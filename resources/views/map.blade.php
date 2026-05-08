@@ -75,6 +75,15 @@
                 </span>
             </div>
 
+            <!-- Navigation Links -->
+            <div class="flex items-center gap-2 flex-shrink-0 ml-4">
+                <a href="{{ route('institutions.index') }}" class="text-sm text-slate-600 hover:text-slate-900">Institutions</a>
+                <span class="text-slate-300">|</span>
+                <a href="{{ route('ict-inventory.index') }}" class="text-sm text-slate-600 hover:text-slate-900">Inventory</a>
+                <span class="text-slate-300">|</span>
+                <a href="{{ route('analytics') }}" class="text-sm text-slate-600 hover:text-slate-900">Analytics</a>
+            </div>
+
             <!-- System Note — info icon + popover -->
             <div class="ml-auto flex-shrink-0 relative" id="info-popover-wrap">
                 <button id="info-popover-btn"

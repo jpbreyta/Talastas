@@ -2,20 +2,19 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Institution;
-use App\Models\AiGapAnalytics;
-use App\Models\Barangay;
 use App\Helpers\GapScoreCalculator;
-use Illuminate\Http\Request;
+use App\Models\Barangay;
+use App\Models\Institution;
 
 class IctMappingController extends Controller
 {
     public function index()
     {
         $institutions = Institution::all();
-        
+
         $heatPoints = $institutions->map(function ($inst) {
             $gapScore = GapScoreCalculator::computeScore($inst);
+
             return [
                 $inst->latitude,
                 $inst->longitude,
@@ -29,18 +28,18 @@ class IctMappingController extends Controller
     public function getInstitutionsGeoJSON()
     {
         $institutions = Institution::with('aiGapAnalytics')->get();
-        
+
         $features = $institutions->map(function ($inst) {
-            $gapScore = $inst->aiGapAnalytics 
-                ? $inst->aiGapAnalytics->gap_score 
+            $gapScore = $inst->aiGapAnalytics
+                ? $inst->aiGapAnalytics->gap_score
                 : GapScoreCalculator::computeScore($inst);
 
             // Compute data completeness for quality indicator
             $completeness = GapScoreCalculator::computeDataCompleteness($inst);
-            
+
             // Determine quality level from completeness
             $qualityLevel = $completeness >= 80 ? 'good' : ($completeness >= 50 ? 'partial' : 'incomplete');
-            
+
             return [
                 'type' => 'Feature',
                 'geometry' => [
@@ -82,19 +81,20 @@ class IctMappingController extends Controller
     {
         // Load barangay boundaries from static GeoJSON file
         $geojsonPath = public_path('data/lipa-city-barangays.geojson');
-        
+
         if (file_exists($geojsonPath)) {
             $geojsonData = json_decode(file_get_contents($geojsonPath), true);
+
             return response()->json($geojsonData);
         }
-        
+
         // Fallback: Load barangay boundaries from database (GeoJSON format)
         $barangays = Barangay::all();
-        
+
         if ($barangays->isEmpty()) {
             // Placeholder points for each distinct barangay from institutions
             $barangayNames = Institution::distinct('barangay_name')->pluck('barangay_name');
-            
+
             $features = $barangayNames->map(function ($name) {
                 return [
                     'type' => 'Feature',
@@ -122,7 +122,7 @@ class IctMappingController extends Controller
                 'type' => 'Feature',
                 'geometry' => $barangay->geometry ?: [
                     'type' => 'Point',
-                    'coordinates' => [121.1644, 13.9413]
+                    'coordinates' => [121.1644, 13.9413],
                 ],
                 'properties' => [
                     'name' => $barangay->name,

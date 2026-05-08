@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\Institution;
 use App\Helpers\GapScoreCalculator;
+use App\Models\Institution;
+use Illuminate\Database\Seeder;
 
 class BackfillInstitutionScopeSeeder extends Seeder
 {
@@ -12,7 +12,7 @@ class BackfillInstitutionScopeSeeder extends Seeder
     {
         foreach (Institution::all() as $institution) {
             $completeness = GapScoreCalculator::computeDataCompleteness($institution);
-            
+
             $institution->update([
                 'sector_type' => $institution->sector_type ?: 'School',
                 'is_pilot_site' => true, // All existing records are pilot sites
@@ -21,7 +21,7 @@ class BackfillInstitutionScopeSeeder extends Seeder
                 'is_active' => true,
             ]);
         }
-        
+
         $this->command->info('Institution scope fields backfilled successfully.');
     }
 }

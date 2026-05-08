@@ -1,9 +1,11 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\IctMappingController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\IctInventoryController;
+use App\Http\Controllers\IctMappingController;
+use App\Http\Controllers\InstitutionController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', [IctMappingController::class, 'index'])->middleware(['auth', 'rbac:admin'])->name('home');
 
@@ -21,4 +23,6 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'rbac:admin'])->group(function () {
     Route::get('/map', [IctMappingController::class, 'index'])->name('map');
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
+    Route::resource('institutions', InstitutionController::class);
+    Route::resource('ict-inventory', IctInventoryController::class);
 });

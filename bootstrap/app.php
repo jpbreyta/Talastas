@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\RBAC;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -13,7 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Register custom middleware aliases (rbac in addition to defaults)
         $middleware->alias([
-            'rbac' => \App\Http\Middleware\RBAC::class,
+            'rbac' => RBAC::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

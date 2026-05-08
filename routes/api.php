@@ -1,11 +1,11 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\IctMappingController;
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuthController;
-use App\Models\Institution;
+use App\Http\Controllers\IctMappingController;
 use App\Models\AiGapAnalytics;
+use App\Models\Institution;
+use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     // Public endpoints (accessible without authentication)
@@ -28,13 +28,14 @@ Route::prefix('v1')->group(function () {
         Route::get('/analytics', [AnalyticsController::class, 'getAnalytics']);
         Route::post('/analytics/analyze/{institution}', [AnalyticsController::class, 'analyzeInstitution']);
         Route::post('/analytics/analyze-all', [AnalyticsController::class, 'analyzeAll']);
-        
+
         // Export endpoint for reports
         Route::get('/analytics/export', function () {
             $analytics = AiGapAnalytics::with('institution')->get();
+
             return response()->json(['export_url' => 'report would be generated here']);
         });
-        
+
         // Barangay-level aggregation for decision support
         Route::get('/barangays/summary', function () {
             $summary = Institution::select('barangay_name')
@@ -42,7 +43,7 @@ Route::prefix('v1')->group(function () {
                 ->withCount('aiGapAnalytics')
                 ->groupBy('barangay_name')
                 ->get();
-            
+
             return response()->json($summary);
         });
     });

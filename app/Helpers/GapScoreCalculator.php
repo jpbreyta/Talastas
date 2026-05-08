@@ -2,6 +2,7 @@
 
 namespace App\Helpers;
 
+use App\Models\IctInventory;
 use App\Models\Institution;
 
 class GapScoreCalculator
@@ -15,7 +16,7 @@ class GapScoreCalculator
         $score = 0;
 
         // 1. Internet Speed (Weight: 30 points)
-        if (!$inst->internet_speed || $inst->internet_speed == 0) {
+        if (! $inst->internet_speed || $inst->internet_speed == 0) {
             $score += 30;
         } elseif ($inst->internet_speed < 10) {
             $score += 25;
@@ -28,31 +29,50 @@ class GapScoreCalculator
         }
 
         // 2. Computer Lab (Weight: 30 points)
-        if (!$inst->has_computer_lab) {
+        $computers = IctInventory::where('institution_id', $inst->id)
+            ->where('category', 'computer')
+            ->where('status', 'active')
+            ->count();
+        if ($computers == 0) {
             $score += 30;
+        } elseif ($computers < 10) {
+            $score += 25;
+        } elseif ($computers < 20) {
+            $score += 15;
+        } elseif ($computers < 30) {
+            $score += 8;
         } else {
-            $computers = (int)($inst->number_of_computers ?? 0);
-            if ($computers < 10) {
-                $score += 25;
-            } elseif ($computers < 20) {
-                $score += 15;
-            } elseif ($computers < 30) {
-                $score += 8;
-            } else {
-                $score += 0;
-            }
+            $score += 0;
         }
 
         // 3. Smart Display & Projectors (Total: 15 points)
-        if (!$inst->has_smart_tv) $score += 10;
-        if (!$inst->has_projected_whiteboard) $score += 5;
+        $smartTvs = IctInventory::where('institution_id', $inst->id)
+            ->where('category', 'smart_tv')
+            ->where('status', 'active')
+            ->count();
+        if ($smartTvs == 0) {
+            $score += 10;
+        }
+        $projectors = IctInventory::where('institution_id', $inst->id)
+            ->where('category', 'projector')
+            ->where('status', 'active')
+            ->count();
+        if ($projectors == 0) {
+            $score += 5;
+        }
 
         // 4. Public Address System (Weight: 10 points)
-        if (!$inst->has_public_address_system) $score += 10;
+        $paSystems = IctInventory::where('institution_id', $inst->id)
+            ->where('category', 'pa_system')
+            ->where('status', 'active')
+            ->count();
+        if ($paSystems == 0) {
+            $score += 10;
+        }
 
         // 5. Student-Computer Ratio (Weight: 15 points)
-        if ($inst->student_population && $inst->number_of_computers) {
-            $ratio = $inst->student_population / max($inst->number_of_computers, 1);
+        if ($inst->student_population && $computers > 0) {
+            $ratio = $inst->student_population / $computers;
             if ($ratio > 40) {
                 $score += 15;
             } elseif ($ratio > 25) {
@@ -82,17 +102,17 @@ class GapScoreCalculator
     {
         $requiredFields = [
             'name', 'type', 'barangay_name', 'latitude', 'longitude',
-            'has_computer_lab', 'has_smart_tv', 'has_public_address_system'
+            'has_computer_lab', 'has_smart_tv', 'has_public_address_system',
         ];
-        
+
         $optionalFields = [
             'student_population', 'staff_population', 'internet_speed',
-            'number_of_computers', 'has_projected_whiteboard', 'needs_maintenance'
+            'number_of_computers', 'has_projected_whiteboard', 'needs_maintenance',
         ];
 
         $requiredScore = 0;
         foreach ($requiredFields as $field) {
-            if (!empty($inst->$field) || $inst->$field === false) { // false is valid for booleans
+            if (! empty($inst->$field) || $inst->$field === false) { // false is valid for booleans
                 $requiredScore += 20; // 7 fields * 20 = 140, but we'll cap later
             }
         }
@@ -100,12 +120,13 @@ class GapScoreCalculator
         $optionalScore = 0;
         $optionalCount = count($optionalFields);
         foreach ($optionalFields as $field) {
-            if (!empty($inst->$field) || $inst->$field === false || $inst->$field === 0) {
+            if (! empty($inst->$field) || $inst->$field === false || $inst->$field === 0) {
                 $optionalScore += (60 / $optionalCount); // optional worth 40% of total
             }
         }
 
         $total = $requiredScore + $optionalScore;
+
         return min(100, (int) round($total));
     }
 

@@ -21,10 +21,10 @@ Route::prefix('v1')->group(function () {
 
     // Authentication endpoints
     Route::post('/auth/login', [AuthController::class, 'apiLogin']);
-    Route::middleware('auth')->get('/auth/me', [AuthController::class, 'me']);
+    Route::middleware('auth:sanctum')->get('/auth/me', [AuthController::class, 'me']);
 
     // Analytics endpoints (require authentication)
-    Route::middleware('auth')->group(function () {
+    Route::middleware('auth:sanctum')->group(function () {
         Route::get('/analytics', [AnalyticsController::class, 'getAnalytics']);
         Route::post('/analytics/analyze/{institution}', [AnalyticsController::class, 'analyzeInstitution']);
         Route::post('/analytics/analyze-all', [AnalyticsController::class, 'analyzeAll']);

@@ -1,0 +1,64 @@
+@import 'tailwindcss';
+
+@import 'leaflet-search/dist/leaflet-search.min.css';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/* Custom map dashboard styles */
+.leaflet-container {
+    font-family: inherit;
+}
+
+.leaflet-popup-content-wrapper {
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.leaflet-popup-content {
+    margin: 0.75rem 1rem;
+    min-width: 200px;
+}
+
+.gap-score-high {
+    background-color: #ef4444;
+    color: white;
+}
+
+.gap-score-medium {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.gap-score-low {
+    background-color: #10b981;
+    color: white;
+}
+
+/* Map marker styling */
+.custom-marker {
+    background: white;
+    border: 2px solid #3b82f6;
+    border-radius: 50%;
+    width: 12px;
+    height: 12px;
+}
+
+/* Analytics table styling */
+.table-gap-score {
+    width: 100px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .map-container {
+        height: 400px;
+    }
+}

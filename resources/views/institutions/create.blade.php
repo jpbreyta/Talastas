@@ -16,23 +16,18 @@
                         @error('name') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
                     </div>
 
-                    <div>
-                        <label for="type" class="block text-sm font-medium text-gray-700">Type</label>
-                        <select name="type" id="type" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="">Select Type</option>
-                            <option value="School" {{ old('type') == 'School' ? 'selected' : '' }}>School</option>
-                            <option value="Hospital" {{ old('type') == 'Hospital' ? 'selected' : '' }}>Hospital</option>
-                            <option value="Government" {{ old('type') == 'Government' ? 'selected' : '' }}>Government</option>
-                            <option value="Library" {{ old('type') == 'Library' ? 'selected' : '' }}>Library</option>
-                            <option value="Community Center" {{ old('type') == 'Community Center' ? 'selected' : '' }}>Community Center</option>
-                            <option value="Other" {{ old('type') == 'Other' ? 'selected' : '' }}>Other</option>
-                        </select>
-                        @error('type') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
-                    </div>
+
 
                     <div>
                         <label for="sector_type" class="block text-sm font-medium text-gray-700">Sector Type</label>
-                        <input type="text" name="sector_type" id="sector_type" value="{{ old('sector_type') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <select name="sector_type" id="sector_type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <option value="School" {{ old('sector_type', 'School') == 'School' ? 'selected' : '' }}>School</option>
+                            <option value="Barangay Hall" {{ old('sector_type') == 'Barangay Hall' ? 'selected' : '' }}>Barangay Hall</option>
+                            <option value="City Government Office" {{ old('sector_type') == 'City Government Office' ? 'selected' : '' }}>City Government Office</option>
+                            <option value="Public Library" {{ old('sector_type') == 'Public Library' ? 'selected' : '' }}>Public Library</option>
+                            <option value="Health Center" {{ old('sector_type') == 'Health Center' ? 'selected' : '' }}>Health Center</option>
+                            <option value="Other Public" {{ old('sector_type') == 'Other Public' ? 'selected' : '' }}>Other Public</option>
+                        </select>
                         @error('sector_type') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
                     </div>
 

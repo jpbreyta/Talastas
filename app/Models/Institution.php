@@ -11,7 +11,6 @@ class Institution extends Model
 
     protected $fillable = [
         'name',
-        'type',
         'sector_type',
         'barangay_name',
         'latitude',

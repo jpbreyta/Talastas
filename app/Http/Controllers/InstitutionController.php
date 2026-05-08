@@ -32,8 +32,7 @@ class InstitutionController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:School,Hospital,Government,Library,Community Center,Other',
-            'sector_type' => 'nullable|string|max:255',
+            'sector_type' => 'required|in:School,Barangay Hall,City Government Office,Public Library,Health Center,Other Public',
             'barangay_name' => 'required|string|max:255',
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
@@ -81,8 +80,7 @@ class InstitutionController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|in:School,Hospital,Government,Library,Community Center,Other',
-            'sector_type' => 'nullable|string|max:255',
+            'sector_type' => 'required|in:School,Barangay Hall,City Government Office,Public Library,Health Center,Other Public',
             'barangay_name' => 'required|string|max:255',
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',

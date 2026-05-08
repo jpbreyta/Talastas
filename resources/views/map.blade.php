@@ -332,7 +332,7 @@
                                 <div class="space-y-1 text-sm mb-3">
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Sector:</span>
-                                        <span class="font-medium">${props.sector_type || props.type}</span>
+                                        <span class="font-medium">${props.sector_type}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Barangay:</span>

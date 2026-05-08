@@ -12,7 +12,6 @@ class InstitutionsSeeder extends Seeder
         $institutions = [
             [
                 'name' => 'Lipa City National High School',
-                'type' => 'School',
                 'sector_type' => 'School',
                 'barangay_name' => 'Poblacion Barrio 1',
                 'latitude' => 13.9411,
@@ -24,7 +23,6 @@ class InstitutionsSeeder extends Seeder
             ],
             [
                 'name' => 'Lipa City Hall',
-                'type' => 'Government',
                 'sector_type' => 'City Government Office',
                 'barangay_name' => 'Poblacion Barrio 2',
                 'latitude' => 13.9420,
@@ -36,7 +34,6 @@ class InstitutionsSeeder extends Seeder
             ],
             [
                 'name' => 'Lipa Medix Medical Center',
-                'type' => 'Hospital',
                 'sector_type' => 'Health Center',
                 'barangay_name' => 'Tambo',
                 'latitude' => 13.9500,

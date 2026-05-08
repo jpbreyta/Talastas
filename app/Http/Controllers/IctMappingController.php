@@ -49,7 +49,6 @@ class IctMappingController extends Controller
                 'properties' => [
                     'id' => $inst->id,
                     'name' => $inst->name,
-                    'type' => $inst->type,
                     'sector_type' => $inst->sector_type,
                     'barangay' => $inst->barangay_name,
                     'latitude' => (float) $inst->latitude,

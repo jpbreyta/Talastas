@@ -45,33 +45,23 @@
                             @error('name') <p class="mt-1 text-sm text-red-600 flex items-center"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>{{ $message }}</p> @enderror
                         </div>
 
-                        <div>
-                            <label for="type" class="block text-sm font-medium text-gray-700 flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                </svg>
-                                Type *
-                            </label>
-                            <select name="type" id="type" required class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 transition duration-200">
-                                <option value="">Select Type</option>
-                                <option value="School" {{ old('type', $institution->type) == 'School' ? 'selected' : '' }}>School</option>
-                                <option value="Hospital" {{ old('type', $institution->type) == 'Hospital' ? 'selected' : '' }}>Hospital</option>
-                                <option value="Government" {{ old('type', $institution->type) == 'Government' ? 'selected' : '' }}>Government</option>
-                                <option value="Library" {{ old('type', $institution->type) == 'Library' ? 'selected' : '' }}>Library</option>
-                                <option value="Community Center" {{ old('type', $institution->type) == 'Community Center' ? 'selected' : '' }}>Community Center</option>
-                                <option value="Other" {{ old('type', $institution->type) == 'Other' ? 'selected' : '' }}>Other</option>
-                            </select>
-                            @error('type') <p class="mt-1 text-sm text-red-600 flex items-center"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>{{ $message }}</p> @enderror
-                        </div>
+
 
                         <div>
                             <label for="sector_type" class="block text-sm font-medium text-gray-700 flex items-center">
                                 <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                 </svg>
-                                Sector Type
+                                Type *
                             </label>
-                            <input type="text" name="sector_type" id="sector_type" value="{{ old('sector_type', $institution->sector_type) }}" class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 transition duration-200">
+                            <select name="sector_type" id="sector_type" class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 transition duration-200">
+                                <option value="School" {{ old('sector_type', $institution->sector_type) == 'School' ? 'selected' : '' }}>School</option>
+                                <option value="Barangay Hall" {{ old('sector_type', $institution->sector_type) == 'Barangay Hall' ? 'selected' : '' }}>Barangay Hall</option>
+                                <option value="City Government Office" {{ old('sector_type', $institution->sector_type) == 'City Government Office' ? 'selected' : '' }}>City Government Office</option>
+                                <option value="Public Library" {{ old('sector_type', $institution->sector_type) == 'Public Library' ? 'selected' : '' }}>Public Library</option>
+                                <option value="Health Center" {{ old('sector_type', $institution->sector_type) == 'Health Center' ? 'selected' : '' }}>Health Center</option>
+                                <option value="Other Public" {{ old('sector_type', $institution->sector_type) == 'Other Public' ? 'selected' : '' }}>Other Public</option>
+                            </select>
                             @error('sector_type') <p class="mt-1 text-sm text-red-600 flex items-center"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>{{ $message }}</p> @enderror
                         </div>
 

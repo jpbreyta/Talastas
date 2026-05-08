@@ -72,26 +72,6 @@
                     indicates pilot test site — representative sample of full 72-barangay coverage.
                 </div>
             </div>
-                    <div class="flex items-center gap-2">
-                        <span class="w-4 h-4 rounded-full bg-yellow-500 border-2 border-white shadow"></span>
-                        <span class="text-gray-600">Moderate (25-50 Mbps)</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="w-4 h-4 rounded-full bg-orange-500 border-2 border-white shadow"></span>
-                        <span class="text-gray-600">Low (10-25 Mbps)</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <span class="w-4 h-4 rounded-full bg-red-500 border-2 border-white shadow"></span>
-                        <span class="text-gray-600">Critical (<10 Mbps or none)</span>
-                    </div>
-                </div>
-                <div class="mt-2 pt-2 border-t border-gray-200">
-                    <div class="flex items-center gap-2">
-                        <span class="w-4 h-1 bg-blue-700"></span>
-                        <span class="text-xs text-gray-600">Barangay Boundaries</span>
-                    </div>
-                </div>
-            </div>
 
             <!-- Interactive Barangay Sidebar -->
             <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
@@ -103,7 +83,7 @@
                     </div>
                 </div>
                 <div class="lg:col-span-3">
-                    <div id="map" class="w-full rounded-lg shadow-md border border-gray-300"></div>
+                    <div id="map" class="w-full h-96 rounded-lg shadow-md border border-gray-300"></div>
                 </div>
             </div>
 
@@ -327,8 +307,6 @@
                                 ${props.last_audited ? '<p class="text-xs text-gray-500 mt-1">Last audited: ' + props.last_audited + '</p>' : ''}
                             </div>
                         `;
-
-                        layer.bindPopup(popupContent);
 
                         layer.bindPopup(popupContent);
 

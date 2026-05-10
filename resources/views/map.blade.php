@@ -3,31 +3,33 @@
 @section('content')
 <div class="w-full flex flex-col flex-1">
     <!-- Dashboard Header -->
-    <div class="w-full bg-white border-b border-slate-100 flex-shrink-0">
+    <div class="w-full bg-white flex-shrink-0" style="box-shadow: 0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.04);">
 
         <!-- Single header bar: buttons + legend + system note all in one row -->
-        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center gap-6">
+        <div class="max-w-7xl mx-auto px-6 py-2.5 flex items-center gap-5">
 
-            <!-- Ghost Buttons -->
-            <div class="flex items-center gap-2 flex-shrink-0">
+            <!-- Map Controls Button Group -->
+            <div class="flex items-center flex-shrink-0" role="group" aria-label="Map controls">
                 <button id="toggleHeatmap"
-                    class="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-slate-200 text-slate-600 text-sm font-medium bg-white hover:bg-slate-50 hover:border-slate-300 transition-colors">
-                    <svg class="w-4 h-4 text-[#ef4444]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="map-ctrl-btn inline-flex items-center gap-2 px-4 py-2 rounded-l-md border border-slate-200 text-slate-600 text-sm font-medium bg-white hover:bg-slate-50 transition-colors"
+                    aria-pressed="false">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z"/>
                     </svg>
                     Heatmap
                 </button>
                 <button id="toggleBarangays"
-                    class="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-slate-200 text-slate-600 text-sm font-medium bg-white hover:bg-slate-50 hover:border-slate-300 transition-colors">
-                    <svg class="w-4 h-4 text-[#3b82f6]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    class="map-ctrl-btn inline-flex items-center gap-2 px-4 py-2 border-y border-r border-slate-200 text-slate-600 text-sm font-medium bg-white hover:bg-slate-50 transition-colors -ml-px"
+                    aria-pressed="false">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V5.618a1 1 0 01-.553-.894L15 7"/>
                     </svg>
                     Barangays
                 </button>
                 <button id="clearDrawings"
-                    class="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-slate-200 text-slate-600 text-sm font-medium bg-white hover:bg-slate-50 hover:border-slate-300 transition-colors">
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-r-md border-y border-r border-slate-200 text-slate-600 text-sm font-medium bg-white hover:bg-slate-50 hover:text-red-600 transition-colors -ml-px">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
@@ -39,52 +41,77 @@
             <!-- Divider -->
             <div class="w-px h-6 bg-slate-200 flex-shrink-0"></div>
 
+            <!-- Data Management Dropdown -->
+            <div class="relative flex-shrink-0" id="data-mgmt-wrap">
+                <button id="data-mgmt-btn"
+                    class="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-slate-200 text-slate-600 text-sm font-medium bg-white hover:bg-slate-50 hover:border-slate-300 transition-colors"
+                    aria-haspopup="true" aria-expanded="false">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                    </svg>
+                    Data Management
+                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div id="data-mgmt-menu"
+                    class="hidden absolute left-0 top-full mt-1.5 w-44 bg-white rounded-lg border border-slate-200 z-[2000]"
+                    style="box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07), 0 10px 24px -4px rgba(0,0,0,0.08);">
+                    <div class="py-1">
+                        <a href="{{ route('institutions.index') }}"
+                            class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                            </svg>
+                            Institutions
+                        </a>
+                        <a href="{{ route('ict-inventory.index') }}"
+                            class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                            </svg>
+                            Inventory
+                        </a>
+                        <div class="my-1 border-t border-slate-100"></div>
+                        <a href="{{ route('analytics') }}"
+                            class="flex items-center gap-2.5 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            Analytics
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Connectivity Legend -->
-            <div class="flex items-center gap-1 text-xs text-slate-500 font-medium uppercase tracking-wide flex-shrink-0">
+            <div class="flex items-center gap-1 text-[10px] text-slate-400 font-semibold uppercase tracking-widest flex-shrink-0">
                 Connectivity
             </div>
-            <div class="flex items-center gap-4 flex-shrink-0">
-                <div class="flex items-center gap-1.5">
-                    <span class="block rounded-full flex-shrink-0" style="width:8px;height:8px;background:#22c55e;"></span>
-                    <span class="text-sm text-slate-600">High</span>
+            <div class="flex items-center gap-3 flex-shrink-0">
+                <div class="flex items-center gap-1">
+                    <span class="block rounded-full flex-shrink-0" style="width:7px;height:7px;background:#22c55e;"></span>
+                    <span class="text-xs text-slate-500">High</span>
                 </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="block rounded-full flex-shrink-0" style="width:8px;height:8px;background:#eab308;"></span>
-                    <span class="text-sm text-slate-600">Moderate</span>
+                <div class="flex items-center gap-1">
+                    <span class="block rounded-full flex-shrink-0" style="width:7px;height:7px;background:#eab308;"></span>
+                    <span class="text-xs text-slate-500">Moderate</span>
                 </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="block rounded-full flex-shrink-0" style="width:8px;height:8px;background:#f97316;"></span>
-                    <span class="text-sm text-slate-600">Low</span>
+                <div class="flex items-center gap-1">
+                    <span class="block rounded-full flex-shrink-0" style="width:7px;height:7px;background:#f97316;"></span>
+                    <span class="text-xs text-slate-500">Low</span>
                 </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="block rounded-full flex-shrink-0" style="width:8px;height:8px;background:#ef4444;"></span>
-                    <span class="text-sm text-slate-600">Critical</span>
+                <div class="flex items-center gap-1">
+                    <span class="block rounded-full flex-shrink-0" style="width:7px;height:7px;background:#ef4444;"></span>
+                    <span class="text-xs text-slate-500">Critical</span>
                 </div>
             </div>
 
-            <!-- Divider -->
-            <div class="w-px h-6 bg-slate-200 flex-shrink-0"></div>
-
-            <!-- Hover Info -->
-            <div class="flex items-center gap-2 min-w-0">
-                <svg class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/>
-                </svg>
-                <span id="barangay-hover-info" class="text-sm text-slate-400 italic truncate">
-                    Hover over a region for details
-                </span>
-            </div>
-
-            <!-- Navigation Links -->
-            <div class="flex items-center gap-2 flex-shrink-0 ml-4">
-                <a href="{{ route('institutions.index') }}" class="text-sm text-slate-600 hover:text-slate-900">Institutions</a>
-                <span class="text-slate-300">|</span>
-                <a href="{{ route('ict-inventory.index') }}" class="text-sm text-slate-600 hover:text-slate-900">Inventory</a>
-                <span class="text-slate-300">|</span>
-                <a href="{{ route('analytics') }}" class="text-sm text-slate-600 hover:text-slate-900">Analytics</a>
-            </div>
-
-            <!-- System Note — info icon + popover -->
+            <!-- System Note — info icon + popover (far right) -->
             <div class="ml-auto flex-shrink-0 relative" id="info-popover-wrap">
                 <button id="info-popover-btn"
                     class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-slate-200 text-slate-500 bg-white hover:bg-slate-50 hover:border-slate-300 hover:text-[#3b82f6] transition-colors"
@@ -144,6 +171,40 @@
     <!-- Main Map Container -->
     <div class="relative w-full flex-1">
         <div id="map" style="position:absolute;inset:0;"></div>
+
+        <!-- Floating Barangay Navigator Card -->
+        <div class="absolute top-3 left-14 z-[1000] bg-white rounded-lg overflow-hidden"
+             style="box-shadow: 0 2px 8px rgba(0,0,0,0.15); border: 1px solid rgba(0,0,0,0.08); min-width: 220px;">
+            <div class="px-3 py-2 flex items-center gap-2 border-b border-slate-100">
+                <svg class="w-3 h-3 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <span class="text-[10px] font-semibold uppercase tracking-widest text-slate-400">Jump to Barangay</span>
+            </div>
+            <div class="px-2 py-2 flex items-center gap-1.5">
+                <select id="barangaySelect"
+                    class="flex-1 px-2 py-1 text-xs border border-slate-200 rounded bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition">
+                    <option value="">— Select —</option>
+                </select>
+                <button id="resetView"
+                    class="inline-flex items-center justify-center w-7 h-7 rounded border border-slate-200 text-slate-500 bg-white hover:bg-slate-50 hover:border-slate-300 transition-colors flex-shrink-0"
+                    title="Reset view">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                    </svg>
+                </button>
+            </div>
+            <!-- Hover info strip -->
+            <div class="px-3 py-1.5 border-t border-slate-100 flex items-center gap-1.5 min-h-[28px]">
+                <svg class="w-3 h-3 text-slate-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/>
+                </svg>
+                <span id="barangay-hover-info" class="text-[11px] text-slate-400 italic truncate">
+                    Hover a region for details
+                </span>
+            </div>
+        </div>
     </div>
 
 </div>{{-- end .flex-col wrapper --}}
@@ -177,37 +238,84 @@
         const heatmapLayer = L.layerGroup().addTo(map);
         let heatData = [];
         let barangayOverlay = null;
+        // Registry: barangay name → layer, populated after GeoJSON loads
+        const barangayLayerMap = {};
 
-        const heatmapBtn = document.getElementById('toggleHeatmap');
-        const barangayBtn = document.getElementById('toggleBarangays');
-        const hoverInfo = document.getElementById('barangay-hover-info');
-        let heatmapVisible = false;
+        const heatmapBtn    = document.getElementById('toggleHeatmap');
+        const barangayBtn   = document.getElementById('toggleBarangays');
+        const barangaySelect = document.getElementById('barangaySelect');
+        const hoverInfo     = document.getElementById('barangay-hover-info');
+        let heatmapVisible  = false;
+        let activeBarangayLayer = null;
+
+        // ── Shared fly-to logic ──────────────────────────────────────────────
+        // Uses flyToBounds for a smooth animated zoom into a barangay polygon.
+        // padding: [top/bottom px, left/right px] keeps the boundary off screen edges.
+        function flyToBarangay(layer) {
+            const bounds = layer.getBounds();
+            map.flyToBounds(bounds, {
+                paddingTopLeft:     [60, 60],
+                paddingBottomRight: [60, 60],
+                maxZoom: 16,
+                duration: 0.8       // seconds — Leaflet animation duration
+            });
+        }
+
+        // ── Reset to city-wide view ──────────────────────────────────────────
+        function resetView() {
+            if (barangayOverlay) {
+                map.flyToBounds(barangayOverlay.getBounds(), {
+                    paddingTopLeft:     [40, 40],
+                    paddingBottomRight: [40, 40],
+                    duration: 0.7
+                });
+            } else {
+                map.flyTo([13.9411, 121.1631], 13, { duration: 0.7 });
+            }
+            // Clear active highlight
+            if (activeBarangayLayer) {
+                activeBarangayLayer.setStyle({ weight: 2, color: '#2563eb', fillOpacity: 0.05 });
+                activeBarangayLayer = null;
+            }
+            // Reset dropdown
+            barangaySelect.value = '';
+            map.closePopup();
+        }
+
+        document.getElementById('resetView').addEventListener('click', resetView);
+
+        function setCtrlActive(btn, active) {
+            if (active) {
+                btn.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
+                btn.classList.remove('bg-white', 'text-slate-600', 'border-slate-200', 'hover:bg-slate-50');
+                btn.setAttribute('aria-pressed', 'true');
+            } else {
+                btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
+                btn.classList.add('bg-white', 'text-slate-600', 'border-slate-200', 'hover:bg-slate-50');
+                btn.setAttribute('aria-pressed', 'false');
+            }
+        }
 
         function updateHeatmapButtonState() {
-            const icon = heatmapBtn.querySelector('svg');
-            if (heatmapVisible) {
-                icon.classList.remove('text-gray-600');
-                icon.classList.add('text-red-600');
-                heatmapBtn.title = 'Hide Heatmap';
-            } else {
-                icon.classList.remove('text-red-600');
-                icon.classList.add('text-gray-600');
-                heatmapBtn.title = 'Show Heatmap';
-            }
+            setCtrlActive(heatmapBtn, heatmapVisible);
+            heatmapBtn.title = heatmapVisible ? 'Hide Heatmap' : 'Show Heatmap';
         }
 
         function updateBarangayButtonState() {
-            const icon = barangayBtn.querySelector('svg');
-            if (barangayOverlay && map.hasLayer(barangayOverlay)) {
-                icon.classList.remove('text-gray-600');
-                icon.classList.add('text-blue-600');
-                barangayBtn.title = 'Hide Barangays';
-            } else {
-                icon.classList.remove('text-blue-600');
-                icon.classList.add('text-gray-600');
-                barangayBtn.title = 'Show Barangays';
-            }
+            const active = !!(barangayOverlay && map.hasLayer(barangayOverlay));
+            setCtrlActive(barangayBtn, active);
+            barangayBtn.title = active ? 'Hide Barangays' : 'Show Barangays';
         }
+
+        // Data Management dropdown
+        const dataMgmtBtn  = document.getElementById('data-mgmt-btn');
+        const dataMgmtMenu = document.getElementById('data-mgmt-menu');
+        dataMgmtBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = !dataMgmtMenu.classList.contains('hidden');
+            dataMgmtMenu.classList.toggle('hidden', isOpen);
+            dataMgmtBtn.setAttribute('aria-expanded', String(!isOpen));
+        });
 
         updateHeatmapButtonState();
         updateBarangayButtonState();
@@ -225,10 +333,9 @@
                     },
                     onEachFeature: (feature, layer) => {
                         const props = feature.properties;
-                        const name = props.NAME || props.name;
+                        const name  = props.NAME || props.name;
                         const connectivity = props.connectivity_level || props.connectivity || null;
 
-                        // connectivity → label + dot color
                         const connectivityMap = {
                             high:     { label: 'High',     color: '#22c55e' },
                             moderate: { label: 'Moderate', color: '#eab308' },
@@ -237,10 +344,43 @@
                         };
                         const conn = connectivity ? connectivityMap[connectivity.toLowerCase()] : null;
 
-                        layer.bindPopup(`<strong>${name}</strong>`);
+                        // Register layer by name for dropdown lookup
+                        barangayLayerMap[name] = layer;
+
+                        // Styled barangay popup
+                        const connBadge = conn
+                            ? `<span style="display:inline-flex;align-items:center;gap:4px;">
+                                 <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${conn.color};"></span>
+                                 <span style="color:#475569;">${conn.label}</span>
+                               </span>`
+                            : '<span style="color:#94a3b8;">No data</span>';
+
+                        layer.bindPopup(`
+                            <div style="min-width:180px;font-family:inherit;">
+                                <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#1e293b;">${name}</p>
+                                <div style="border-top:1px solid #f1f5f9;padding-top:6px;display:flex;justify-content:space-between;align-items:center;font-size:12px;">
+                                    <span style="color:#64748b;">Connectivity</span>
+                                    ${connBadge}
+                                </div>
+                            </div>
+                        `, { className: 'map-popup' });
+
+                        // Click → fly to this barangay
+                        layer.on('click', () => {
+                            // Reset previous highlight
+                            if (activeBarangayLayer && activeBarangayLayer !== layer) {
+                                activeBarangayLayer.setStyle({ weight: 2, color: '#2563eb', fillOpacity: 0.05 });
+                            }
+                            activeBarangayLayer = layer;
+                            layer.setStyle({ weight: 3, color: '#1d4ed8', fillOpacity: 0.15 });
+                            barangaySelect.value = name;
+                            flyToBarangay(layer);
+                        });
 
                         layer.on('mouseover', () => {
-                            layer.setStyle({ weight: 3, fillOpacity: 0.1 });
+                            if (layer !== activeBarangayLayer) {
+                                layer.setStyle({ weight: 3, fillOpacity: 0.1 });
+                            }
                             if (conn) {
                                 hoverInfo.innerHTML = `
                                     <span class="not-italic text-slate-700 font-medium">${name}</span>
@@ -256,7 +396,9 @@
                         });
 
                         layer.on('mouseout', () => {
-                            layer.setStyle({ weight: 2, fillOpacity: 0.05 });
+                            if (layer !== activeBarangayLayer) {
+                                layer.setStyle({ weight: 2, fillOpacity: 0.05 });
+                            }
                             hoverInfo.innerHTML = 'Hover over a region for details';
                             hoverInfo.classList.add('text-slate-400', 'italic');
                         });
@@ -266,6 +408,35 @@
                 barangayOverlay.addTo(map);
                 setTimeout(() => map.invalidateSize(), 150);
                 updateBarangayButtonState();
+
+                // Populate the barangay dropdown from loaded features
+                const sortedNames = Object.keys(barangayLayerMap).sort();
+                sortedNames.forEach(name => {
+                    const opt = document.createElement('option');
+                    opt.value = name;
+                    opt.textContent = name;
+                    barangaySelect.appendChild(opt);
+                });
+
+                // Dropdown → fly to selected barangay
+                barangaySelect.addEventListener('change', () => {
+                    const selected = barangaySelect.value;
+                    if (!selected) { resetView(); return; }
+                    const layer = barangayLayerMap[selected];
+                    if (!layer) return;
+                    // Ensure barangay overlay is visible
+                    if (!map.hasLayer(barangayOverlay)) {
+                        map.addLayer(barangayOverlay);
+                        updateBarangayButtonState();
+                    }
+                    // Highlight + zoom
+                    if (activeBarangayLayer && activeBarangayLayer !== layer) {
+                        activeBarangayLayer.setStyle({ weight: 2, color: '#2563eb', fillOpacity: 0.05 });
+                    }
+                    activeBarangayLayer = layer;
+                    layer.setStyle({ weight: 3, color: '#1d4ed8', fillOpacity: 0.15 });
+                    flyToBarangay(layer);
+                });
             })
             .catch(err => console.error('Error loading barangays:', err));
 
@@ -332,7 +503,7 @@
                                 <div class="space-y-1 text-sm mb-3">
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Sector:</span>
-                                        <span class="font-medium">${props.sector_type}</span>
+                                        <span class="font-medium">${props.sector_type || props.type}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Barangay:</span>
@@ -372,12 +543,14 @@
                                 ${props.last_audited ? '<p class="text-xs text-gray-500 mt-1">Last audited: ' + props.last_audited + '</p>' : ''}
                             </div>
                         `;
-                        layer.bindPopup(popupContent);
+                        // Bind popup — opens on click (Leaflet default)
+                        layer.bindPopup(popupContent, { className: 'map-popup', maxWidth: 300 });
                         layer.on('mouseover', () => layer.setRadius(layer.getRadius() + 3));
-                        layer.on('mouseout', () => layer.setRadius(props.markerRadius));
+                        layer.on('mouseout',  () => layer.setRadius(props.markerRadius));
                     }
                 }).addTo(map);
-                window.institutionsLayer = geoJsonLayer;
+                // Fix: assign the returned layer, not an undefined variable
+                window.institutionsLayer = L.geoJSON({ type: 'FeatureCollection', features });
                 setTimeout(() => map.invalidateSize(), 200);
             })
             .catch(err => console.error('Error loading institutions:', err));
@@ -419,6 +592,7 @@
             map.eachLayer(layer => {
                 if (layer.pm && layer.pm.enabled()) layer.pm.remove();
             });
+            resetView();
         });
 
         map.on('pm:create', ({ layer, shape }) => {
@@ -450,11 +624,40 @@
             popoverBtn.setAttribute('aria-expanded', String(!isOpen));
         });
 
-        // Close when clicking outside
+        // Close popovers when clicking outside
         document.addEventListener('click', () => {
             popover.classList.add('hidden');
             popoverBtn.setAttribute('aria-expanded', 'false');
+            dataMgmtMenu.classList.add('hidden');
+            dataMgmtBtn.setAttribute('aria-expanded', 'false');
         });
     });
 </script>
+
+<style>
+/* Override Leaflet's default popup chrome to match the dashboard */
+.map-popup .leaflet-popup-content-wrapper {
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07), 0 10px 24px -4px rgba(0,0,0,0.08);
+    padding: 0;
+    font-family: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+}
+.map-popup .leaflet-popup-content {
+    margin: 0;
+}
+.map-popup .leaflet-popup-tip {
+    background: #ffffff;
+    box-shadow: none;
+}
+.map-popup .leaflet-popup-close-button {
+    color: #94a3b8;
+    font-size: 16px;
+    top: 8px;
+    right: 8px;
+}
+.map-popup .leaflet-popup-close-button:hover {
+    color: #1e293b;
+}
+</style>
 @endsection

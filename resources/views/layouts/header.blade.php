@@ -1,8 +1,8 @@
-<header class="bg-blue-900 shadow-lg">
+<header class="bg-blue-900 shadow-lg overflow-visible relative z-[100]">
     <div class="w-full px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-center h-16">
             <!-- Logo & Branding -->
-            <div class="flex items-center">
+            <div class="flex items-center flex-shrink-0">
                 <a href="{{ route('home') }}" class="flex items-center space-x-3">
                     <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
                         <svg class="w-6 h-6 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -17,7 +17,7 @@
             </div>
 
             <!-- Navigation -->
-            <nav class="hidden md:flex items-center space-x-6">
+            <nav class="hidden md:flex items-center flex-shrink-0 space-x-6">
                 <a href="{{ route('home') }}" class="flex items-center space-x-2 text-blue-100 hover:text-white transition-colors font-light">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
@@ -34,21 +34,23 @@
             </nav>
 
             <!-- User Profile Dropdown -->
-            <div class="relative" id="userDropdown">
-                <button onclick="toggleDropdown()" class="flex items-center space-x-2 focus:outline-none">
+            <div class="relative flex-shrink-0" id="userDropdown">
+                <button onclick="toggleDropdown()"
+                    class="flex items-center gap-2.5 px-4 py-2 w-auto whitespace-nowrap focus:outline-none rounded-md hover:bg-blue-800 transition-colors">
                     <!-- User Avatar -->
-                    <img src="https://ui-avatars.com/api/?name={{ Auth::user()->name }}&background=3b82f6&color=fff&size=40" 
-                         alt="{{ Auth::user()->name }} avatar" 
-                         class="w-10 h-10 rounded-full border-2 border-blue-200 shadow-sm hover:border-blue-300 transition-colors">
+                    <div class="h-8 w-8 flex-shrink-0 rounded-full bg-blue-500 border-2 border-blue-300 flex items-center justify-center text-xs font-bold text-white select-none">
+                        {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}{{ strtoupper(substr(Auth::user()->name, strrpos(Auth::user()->name, ' ') + 1, 1)) }}
+                    </div>
                     <span class="hidden sm:block text-sm font-medium text-white">{{ Auth::user()->name }}</span>
-                    <svg class="w-4 h-4 text-blue-200 transition-transform" id="dropdownArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-4 h-4 flex-shrink-0 text-blue-200 transition-transform" id="dropdownArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </button>
                 
-                <!-- Dropdown Menu -->
+                <!-- Dropdown Menu — rendered as body portal to escape stacking contexts -->
                 <div id="dropdownMenu" 
-                     class="hidden absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50 overflow-hidden transition-all duration-200">
+                     class="hidden fixed bg-white rounded-md shadow-xl ring-1 ring-black ring-opacity-5 z-[9999] overflow-hidden w-56"
+                     style="top:0;right:0;">
                     
                     <!-- User Info Header -->
                     <div class="bg-gray-50 px-4 py-3 border-b border-gray-100">
@@ -95,27 +97,41 @@
             </div>
 
             <script>
+                // Move dropdown to body on first open to escape all stacking contexts
+                (function() {
+                    const menu = document.getElementById('dropdownMenu');
+                    document.body.appendChild(menu);
+                })();
+
                 function toggleDropdown() {
-                    const dropdown = document.getElementById('dropdownMenu');
-                    const arrow = document.getElementById('dropdownArrow');
-                    
-                    if (dropdown.classList.contains('hidden')) {
-                        dropdown.classList.remove('hidden');
-                        arrow.style.transform = 'rotate(180deg)';
-                    } else {
-                        dropdown.classList.add('hidden');
+                    const btn    = document.querySelector('#userDropdown button');
+                    const menu   = document.getElementById('dropdownMenu');
+                    const arrow  = document.getElementById('dropdownArrow');
+                    const isOpen = !menu.classList.contains('hidden');
+
+                    if (isOpen) {
+                        menu.classList.add('hidden');
                         arrow.style.transform = 'rotate(0deg)';
+                        return;
                     }
+
+                    // Position below the button, right-aligned to viewport edge
+                    const rect = btn.getBoundingClientRect();
+                    menu.style.top  = (rect.bottom + window.scrollY + 6) + 'px';
+                    menu.style.left = 'auto';
+                    menu.style.right = (window.innerWidth - rect.right) + 'px';
+                    menu.classList.remove('hidden');
+                    arrow.style.transform = 'rotate(180deg)';
                 }
 
-                // Close dropdown when clicking outside
+                // Close when clicking outside
                 document.addEventListener('click', function(event) {
-                    const dropdown = document.getElementById('userDropdown');
-                    const menu = document.getElementById('dropdownMenu');
-                    
-                    if (!dropdown.contains(event.target) && !menu.classList.contains('hidden')) {
+                    const trigger = document.getElementById('userDropdown');
+                    const menu    = document.getElementById('dropdownMenu');
+                    if (!trigger.contains(event.target) && !menu.contains(event.target)) {
                         menu.classList.add('hidden');
-                        document.getElementById('dropdownArrow').style.transform = 'rotate(0deg)';
+                        const arrow = document.getElementById('dropdownArrow');
+                        if (arrow) arrow.style.transform = 'rotate(0deg)';
                     }
                 });
             </script>

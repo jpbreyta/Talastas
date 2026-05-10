@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class AiGapAnalytics extends Model
+class InstitutionAnalytics extends Model
 {
     use HasFactory;
 
@@ -16,6 +16,8 @@ class AiGapAnalytics extends Model
         'policy_recommendation',
         'recommendations_detail',
         'analysis_date',
+        'asset_to_user_ratio',
+        'risk_level',
     ];
 
     protected $casts = [

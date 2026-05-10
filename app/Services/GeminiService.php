@@ -82,7 +82,7 @@ class GeminiService
 Analyze the ICT infrastructure gap for this institution in Lipa City:
 
 Name: {$institution->name}
-Type: {$institution->type}
+Type: {$institution->sector_type}
 Barangay: {$institution->barangay_name}
 Students: {$institution->student_population ?? 'N/A'}
 Staff: {$institution->staff_population ?? 'N/A'}

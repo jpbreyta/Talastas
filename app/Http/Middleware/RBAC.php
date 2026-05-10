@@ -11,11 +11,11 @@ class RBAC
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next, string $role): Response
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return redirect()->route('login');
         }
 
@@ -25,7 +25,7 @@ class RBAC
             abort(403, 'Unauthorized: Admin access required');
         }
 
-        if ($role === 'editor' && !in_array($user->role, ['admin', 'editor'])) {
+        if ($role === 'editor' && ! in_array($user->role, ['admin', 'editor'])) {
             abort(403, 'Unauthorized: Editor access required');
         }
 

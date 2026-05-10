@@ -11,7 +11,6 @@ class Institution extends Model
 
     protected $fillable = [
         'name',
-        'type',
         'sector_type',
         'barangay_name',
         'latitude',
@@ -52,9 +51,14 @@ class Institution extends Model
         'data_completeness_score' => 'integer',
     ];
 
-    public function aiGapAnalytics()
+    public function institutionAnalytics()
     {
-        return $this->hasOne(AiGapAnalytics::class, 'institution_id');
+        return $this->hasOne(InstitutionAnalytics::class, 'institution_id');
+    }
+
+    public function ictInventory()
+    {
+        return $this->hasMany(IctInventory::class);
     }
 
     public function auditor()

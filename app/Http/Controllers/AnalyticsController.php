@@ -2,37 +2,37 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Institution;
-use App\Models\AiGapAnalytics;
 use App\Helpers\GapScoreCalculator;
-use Illuminate\Http\Request;
+use App\Models\IctInventory;
+use App\Models\Institution;
+use App\Models\InstitutionAnalytics;
 
 class AnalyticsController extends Controller
 {
     public function index()
     {
-        $analytics = AiGapAnalytics::with('institution')
+        $analytics = InstitutionAnalytics::with('institution')
             ->orderBy('gap_score', 'desc')
             ->paginate(20);
 
-        $averageGapScore = AiGapAnalytics::avg('gap_score');
+        $averageGapScore = InstitutionAnalytics::avg('gap_score');
         $institutionCount = Institution::count();
-        $criticalAreas = AiGapAnalytics::where('gap_score', '>=', 80)->count();
-        $needsAttention = AiGapAnalytics::where('gap_score', '>=', 50)->where('gap_score', '<', 80)->count();
+        $criticalAreas = InstitutionAnalytics::where('gap_score', '>=', 80)->count();
+        $needsAttention = InstitutionAnalytics::where('gap_score', '>=', 50)->where('gap_score', '<', 80)->count();
 
         // Scope: Data integrity monitoring — count institutions with missing critical fields
         $missingCritical = Institution::where(function ($q) {
-                $q->whereNull('internet_speed')
-                  ->orWhereNull('has_computer_lab')
-                  ->orWhereNull('has_smart_tv')
-                  ->orWhereNull('has_public_address_system');
-            })
+            $q->whereNull('internet_speed')
+                ->orWhereNull('has_computer_lab')
+                ->orWhereNull('has_smart_tv')
+                ->orWhereNull('has_public_address_system');
+        })
             ->where('is_active', true)
             ->count();
 
         $needsAudit = Institution::where('requires_audit', true)->where('is_active', true)->count();
         $pilotSites = Institution::where('is_pilot_site', true)->where('is_active', true)->count();
-        
+
         // Average data completeness across all institutions
         $allInstitutions = Institution::all();
         $totalCompleteness = 0;
@@ -42,13 +42,14 @@ class AnalyticsController extends Controller
         $averageCompleteness = $allInstitutions->count() > 0 ? $totalCompleteness / $allInstitutions->count() : 0;
 
         // Objective 3.2: Barangay-level heat map data (aggregated gap scores)
-        $barangayScores = Institution::select('barangay_name')
-            ->withAvg('aiGapAnalytics', 'gap_score')
+        $barangayScores = Institution::join('institution_analytics', 'institutions.id', '=', 'institution_analytics.institution_id')
+            ->select('barangay_name')
+            ->selectRaw('AVG(institution_analytics.gap_score) as avg_gap_score')
             ->groupBy('barangay_name')
-            ->orderBy('ai_gap_analytics_avg_gap_score', 'desc')
+            ->orderBy('avg_gap_score', 'desc')
             ->get()
             ->mapWithKeys(function ($item) {
-                return [$item->barangay_name => round($item->ai_gap_analytics_avg_gap_score ?? 50, 1)];
+                return [$item->barangay_name => round($item->avg_gap_score ?? 50, 1)];
             });
 
         // For filters (Objective 1.2 dynamic dashboard)
@@ -71,13 +72,13 @@ class AnalyticsController extends Controller
 
     public function getAnalytics()
     {
-        $analytics = AiGapAnalytics::with('institution')
+        $analytics = InstitutionAnalytics::with('institution')
             ->orderBy('gap_score', 'desc')
             ->get();
 
-        $averageGapScore = AiGapAnalytics::avg('gap_score');
+        $averageGapScore = InstitutionAnalytics::avg('gap_score');
         $institutionCount = Institution::count();
-        $criticalAreas = AiGapAnalytics::where('gap_score', '>=', 80)->count();
+        $criticalAreas = InstitutionAnalytics::where('gap_score', '>=', 80)->count();
 
         return response()->json([
             'analytics' => $analytics,
@@ -91,7 +92,7 @@ class AnalyticsController extends Controller
     {
         $analysis = $this->computeGapAnalysis($institution);
 
-        $gapAnalytics = AiGapAnalytics::updateOrCreate(
+        $gapAnalytics = InstitutionAnalytics::updateOrCreate(
             ['institution_id' => $institution->id],
             [
                 'gap_score' => $analysis['gap_score'],
@@ -115,8 +116,8 @@ class AnalyticsController extends Controller
 
         foreach ($institutions as $institution) {
             $analysis = $this->computeGapAnalysis($institution);
-            
-            $gapAnalytics = AiGapAnalytics::updateOrCreate(
+
+            $gapAnalytics = InstitutionAnalytics::updateOrCreate(
                 ['institution_id' => $institution->id],
                 [
                     'gap_score' => $analysis['gap_score'],
@@ -126,7 +127,7 @@ class AnalyticsController extends Controller
                     'analysis_date' => now(),
                 ]
             );
-            
+
             $results[] = [
                 'institution' => $institution->name,
                 'gap_score' => $analysis['gap_score'],
@@ -135,7 +136,7 @@ class AnalyticsController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Analysis complete for ' . count($results) . ' institutions',
+            'message' => 'Analysis complete for '.count($results).' institutions',
             'results' => $results,
         ]);
     }
@@ -147,7 +148,13 @@ class AnalyticsController extends Controller
     private function computeGapAnalysis(Institution $inst): array
     {
         $score = GapScoreCalculator::computeScore($inst);
-        
+        $computers = IctInventory::where('institution_id', $inst->id)
+            ->where('category', 'computer')
+            ->where('status', 'active')
+            ->count();
+        $ratio = $inst->student_population > 0 ? $computers / $inst->student_population : null;
+        $riskLevel = $score >= 80 ? 'critical' : ($score >= 50 ? 'warning' : 'adequate');
+
         return [
             'gap_score' => $score,
             'infrastructure_narrative' => $this->buildInfrastructureNarrative($inst, $score),
@@ -157,6 +164,8 @@ class AnalyticsController extends Controller
                 'method' => 'heuristic_algorithm_v1',
                 'computed_at' => now()->toISOString(),
             ],
+            'asset_to_user_ratio' => $ratio,
+            'risk_level' => $riskLevel,
         ];
     }
 
@@ -168,7 +177,7 @@ class AnalyticsController extends Controller
         $factors = [];
 
         // Internet scoring
-        if (!$inst->internet_speed || $inst->internet_speed < 25) {
+        if (! $inst->internet_speed || $inst->internet_speed < 25) {
             $factors['internet'] = 'critical';
         } elseif ($inst->internet_speed < 50) {
             $factors['internet'] = 'moderate';
@@ -192,30 +201,30 @@ class AnalyticsController extends Controller
     {
         $gaps = [];
 
-        if (!$inst->internet_speed || $inst->internet_speed < 25) {
-            $gaps[] = "insufficient internet connectivity (<25 Mbps)";
+        if (! $inst->internet_speed || $inst->internet_speed < 25) {
+            $gaps[] = 'insufficient internet connectivity (<25 Mbps)';
         }
 
-        if (!$inst->has_computer_lab) {
-            $gaps[] = "no dedicated computer laboratory";
+        if (! $inst->has_computer_lab) {
+            $gaps[] = 'no dedicated computer laboratory';
         } elseif (($inst->number_of_computers ?? 0) < 20) {
-            $gaps[] = "insufficient computer units for student population";
+            $gaps[] = 'insufficient computer units for student population';
         }
 
-        if (!$inst->has_smart_tv) {
-            $gaps[] = "lack of interactive display technology";
+        if (! $inst->has_smart_tv) {
+            $gaps[] = 'lack of interactive display technology';
         }
 
-        if (!$inst->has_public_address_system) {
-            $gaps[] = "no emergency broadcast system";
+        if (! $inst->has_public_address_system) {
+            $gaps[] = 'no emergency broadcast system';
         }
 
         if ($inst->needs_maintenance) {
-            $gaps[] = "existing equipment requires maintenance";
+            $gaps[] = 'existing equipment requires maintenance';
         }
 
         if (empty($gaps)) {
-            return "Infrastructure adequately equipped with minimal gaps identified.";
+            return 'Infrastructure adequately equipped with minimal gaps identified.';
         }
 
         $sentence = "Primary ICT deficiencies at {$inst->name}: ";
@@ -243,27 +252,27 @@ class AnalyticsController extends Controller
         $recs = [];
 
         if ($score >= 70) {
-            $recs[] = "URGENT: Allocate budget for internet infrastructure upgrade to minimum 50 Mbps";
-            $recs[] = "Priority action: Establish computer laboratory with at least 20 functional units";
+            $recs[] = 'URGENT: Allocate budget for internet infrastructure upgrade to minimum 50 Mbps';
+            $recs[] = 'Priority action: Establish computer laboratory with at least 20 functional units';
         } elseif ($score >= 40) {
-            $recs[] = "ENHANCE: Increase internet bandwidth to 25-50 Mbps range";
-            $recs[] = "EXPAND: Add 10-15 computer units to improve student access ratio";
+            $recs[] = 'ENHANCE: Increase internet bandwidth to 25-50 Mbps range';
+            $recs[] = 'EXPAND: Add 10-15 computer units to improve student access ratio';
         } else {
-            $recs[] = "MAINTAIN: Continue routine maintenance while planning incremental upgrades";
+            $recs[] = 'MAINTAIN: Continue routine maintenance while planning incremental upgrades';
         }
 
-        if (!$inst->has_smart_tv) {
-            $recs[] = "EQUIP: Procure smart TV displays for digital learning modules";
+        if (! $inst->has_smart_tv) {
+            $recs[] = 'EQUIP: Procure smart TV displays for digital learning modules';
         }
 
-        if (!$inst->has_public_address_system) {
-            $recs[] = "INSTALL: Campus-wide public address and emergency alert system";
+        if (! $inst->has_public_address_system) {
+            $recs[] = 'INSTALL: Campus-wide public address and emergency alert system';
         }
 
         if ($inst->needs_maintenance) {
-            $recs[] = "SERVICE: Conduct preventive maintenance on existing ICT equipment";
+            $recs[] = 'SERVICE: Conduct preventive maintenance on existing ICT equipment';
         }
 
-        return implode('. ', $recs) . '.';
+        return implode('. ', $recs).'.';
     }
 }

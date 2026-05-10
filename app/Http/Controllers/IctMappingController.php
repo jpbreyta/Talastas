@@ -27,11 +27,11 @@ class IctMappingController extends Controller
 
     public function getInstitutionsGeoJSON()
     {
-        $institutions = Institution::with('aiGapAnalytics')->get();
+        $institutions = Institution::with('institutionAnalytics')->get();
 
         $features = $institutions->map(function ($inst) {
-            $gapScore = $inst->aiGapAnalytics
-                ? $inst->aiGapAnalytics->gap_score
+            $gapScore = $inst->institutionAnalytics
+                ? $inst->institutionAnalytics->gap_score
                 : GapScoreCalculator::computeScore($inst);
 
             // Compute data completeness for quality indicator

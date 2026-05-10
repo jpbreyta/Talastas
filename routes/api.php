@@ -3,7 +3,7 @@
 use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\IctMappingController;
-use App\Models\AiGapAnalytics;
+use App\Models\InstitutionAnalytics;
 use App\Models\Institution;
 use Illuminate\Support\Facades\Route;
 
@@ -31,7 +31,7 @@ Route::prefix('v1')->group(function () {
 
         // Export endpoint for reports
         Route::get('/analytics/export', function () {
-            $analytics = AiGapAnalytics::with('institution')->get();
+            $analytics = InstitutionAnalytics::with('institution')->get();
 
             return response()->json(['export_url' => 'report would be generated here']);
         });
@@ -39,8 +39,8 @@ Route::prefix('v1')->group(function () {
         // Barangay-level aggregation for decision support
         Route::get('/barangays/summary', function () {
             $summary = Institution::select('barangay_name')
-                ->withAvg('aiGapAnalytics', 'gap_score')
-                ->withCount('aiGapAnalytics')
+                ->withAvg('institutionAnalytics', 'gap_score')
+                ->withCount('institutionAnalytics')
                 ->groupBy('barangay_name')
                 ->get();
 

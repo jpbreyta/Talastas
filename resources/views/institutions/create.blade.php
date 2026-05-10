@@ -39,13 +39,13 @@
 
                     <div>
                         <label for="latitude" class="block text-sm font-medium text-gray-700">Latitude</label>
-                        <input type="number" step="0.000001" name="latitude" id="latitude" value="{{ old('latitude') }}" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <input type="number" step="0.000001" name="latitude" id="latitude" value="{{ old('latitude') }}" placeholder="e.g. 13.9411" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                         @error('latitude') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
                         <label for="longitude" class="block text-sm font-medium text-gray-700">Longitude</label>
-                        <input type="number" step="0.000001" name="longitude" id="longitude" value="{{ old('longitude') }}" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                        <input type="number" step="0.000001" name="longitude" id="longitude" value="{{ old('longitude') }}" placeholder="e.g. 121.1644" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
                         @error('longitude') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
                     </div>
 

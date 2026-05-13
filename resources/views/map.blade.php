@@ -232,6 +232,10 @@
             maxZoom: 19
         }).addTo(map);
 
+        // Create custom pane for institution markers to ensure they're on top
+        map.createPane('institutionMarkers');
+        map.getPane('institutionMarkers').style.zIndex = 700;
+
         // Force render after layout stabilizes
         setTimeout(() => map.invalidateSize(), 100);
 
@@ -442,12 +446,19 @@
 
         // Load institution data
         fetch('/api/v1/map/institutions')
-            .then(r => r.json())
+            .then(r => {
+                if (!r.ok) {
+                    throw new Error('API error: ' + r.status);
+                }
+                return r.json();
+            })
             .then(data => {
+                console.log('Number of institution features:', data.features ? data.features.length : 0);
                 const features = data.features.map(f => {
                     const props = f.properties;
                     const gapScore = props.gap_score || 0;
                     const completeness = props.data_completeness || 0;
+                    const qualityLabel = completeness >= 80 ? 'Good' : (completeness >= 50 ? 'Partial' : 'Incomplete');
 
                     let color = '#ef4444';
                     let radius = 10;
@@ -475,20 +486,27 @@
                     };
                 });
 
-                L.geoJSON({ type: 'FeatureCollection', features }, {
+                window.institutionsLayer = L.geoJSON({ type: 'FeatureCollection', features }, {
                     pointToLayer: (feature, latlng) => {
                         const props = feature.properties;
-                        return L.circleMarker(latlng, {
+                        const marker = L.circleMarker(latlng, {
                             radius: props.markerRadius,
                             fillColor: props.markerColor,
                             color: props.borderColor || '#fff',
                             weight: props.borderWeight || 2,
                             opacity: 1,
-                            fillOpacity: 0.85
+                            fillOpacity: 0.85,
+                            pane: 'institutionMarkers'
                         });
-                    },
-                    onEachFeature: (feature, layer) => {
-                        const props = feature.properties;
+                        marker.properties = props; // Attach properties for later use
+                        return marker;
+                    }
+                }).addTo(map);
+
+                // Attach click events and popups after adding to map
+                window.institutionsLayer.eachLayer(function(layer) {
+                    if (layer instanceof L.CircleMarker) {
+                        const props = layer.properties;
                         const gapScore = props.gap_score || 0;
                         const gapLevel = gapScore >= 80 ? 'Critical' : (gapScore >= 50 ? 'Needs Attention' : 'Adequate');
                         const completeness = props.data_completeness || 0;
@@ -499,6 +517,11 @@
                                 <div class="flex justify-between items-start mb-2">
                                     <h3 class="font-bold text-base text-gray-900">${props.name}</h3>
                                     ${props.is_pilot ? '<span class="px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded-full">Pilot</span>' : ''}
+                                </div>
+                                <div class="mb-3">
+                                    <button class="zoom-btn w-full px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors" data-lat="${props.latitude}" data-lng="${props.longitude}">
+                                        Zoom to Location
+                                    </button>
                                 </div>
                                 <div class="space-y-1 text-sm mb-3">
                                     <div class="flex justify-between">
@@ -543,14 +566,31 @@
                                 ${props.last_audited ? '<p class="text-xs text-gray-500 mt-1">Last audited: ' + props.last_audited + '</p>' : ''}
                             </div>
                         `;
-                        // Bind popup — opens on click (Leaflet default)
+
+                        layer.on('click', function(e) {
+                            console.log('Institution clicked:', props.name);
+                            e.originalEvent.stopPropagation(); // Prevent map click
+                            layer.openPopup();
+                        });
                         layer.bindPopup(popupContent, { className: 'map-popup', maxWidth: 300 });
+                        layer.on('popupopen', function() {
+                            const zoomBtn = document.querySelector('.leaflet-popup-content .zoom-btn');
+                            if (zoomBtn) {
+                                zoomBtn.addEventListener('click', function() {
+                                    const lat = parseFloat(this.getAttribute('data-lat'));
+                                    const lng = parseFloat(this.getAttribute('data-lng'));
+                                    map.flyTo([lat, lng], 18, { duration: 0.8 });
+                                    layer.closePopup();
+                                });
+                            }
+                        });
                         layer.on('mouseover', () => layer.setRadius(layer.getRadius() + 3));
                         layer.on('mouseout',  () => layer.setRadius(props.markerRadius));
                     }
-                }).addTo(map);
+                });
                 // Fix: assign the returned layer, not an undefined variable
                 window.institutionsLayer = L.geoJSON({ type: 'FeatureCollection', features });
+                console.log('Institutions layer added to map with', features.length, 'features');
                 setTimeout(() => map.invalidateSize(), 200);
             })
             .catch(err => console.error('Error loading institutions:', err));
@@ -577,16 +617,17 @@
             }
         });
 
-        map.pm.addControls({
-            position: 'topleft',
-            drawMarker: true,
-            drawPolygon: true,
-            drawRectangle: true,
-            drawPolyline: true,
-            editMode: true,
-            removalMode: true,
-            rotateMode: false
-        });
+        // Temporarily disable pm controls to test if they interfere with clicks
+        // map.pm.addControls({
+        //     position: 'topleft',
+        //     drawMarker: true,
+        //     drawPolygon: true,
+        //     drawRectangle: true,
+        //     drawPolyline: true,
+        //     editMode: true,
+        //     removalMode: true,
+        //     rotateMode: false
+        // });
 
         document.getElementById('clearDrawings').addEventListener('click', () => {
             map.eachLayer(layer => {

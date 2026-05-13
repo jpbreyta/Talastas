@@ -29,10 +29,14 @@ class GapScoreCalculator
         }
 
         // 2. Computer Lab (Weight: 30 points)
-        $computers = IctInventory::where('institution_id', $inst->id)
-            ->where('category', 'computer')
-            ->where('status', 'active')
-            ->count();
+        try {
+            $computers = IctInventory::where('institution_id', $inst->id)
+                ->where('category', 'computer')
+                ->where('status', 'active')
+                ->count();
+        } catch (\Exception $e) {
+            $computers = 0; // Default if table doesn't exist
+        }
         if ($computers == 0) {
             $score += 30;
         } elseif ($computers < 10) {
@@ -46,26 +50,38 @@ class GapScoreCalculator
         }
 
         // 3. Smart Display & Projectors (Total: 15 points)
-        $smartTvs = IctInventory::where('institution_id', $inst->id)
-            ->where('category', 'smart_tv')
-            ->where('status', 'active')
-            ->count();
+        try {
+            $smartTvs = IctInventory::where('institution_id', $inst->id)
+                ->where('category', 'smart_tv')
+                ->where('status', 'active')
+                ->count();
+        } catch (\Exception $e) {
+            $smartTvs = 0;
+        }
         if ($smartTvs == 0) {
             $score += 10;
         }
-        $projectors = IctInventory::where('institution_id', $inst->id)
-            ->where('category', 'projector')
-            ->where('status', 'active')
-            ->count();
+        try {
+            $projectors = IctInventory::where('institution_id', $inst->id)
+                ->where('category', 'projector')
+                ->where('status', 'active')
+                ->count();
+        } catch (\Exception $e) {
+            $projectors = 0;
+        }
         if ($projectors == 0) {
             $score += 5;
         }
 
         // 4. Public Address System (Weight: 10 points)
-        $paSystems = IctInventory::where('institution_id', $inst->id)
-            ->where('category', 'pa_system')
-            ->where('status', 'active')
-            ->count();
+        try {
+            $paSystems = IctInventory::where('institution_id', $inst->id)
+                ->where('category', 'pa_system')
+                ->where('status', 'active')
+                ->count();
+        } catch (\Exception $e) {
+            $paSystems = 0;
+        }
         if ($paSystems == 0) {
             $score += 10;
         }

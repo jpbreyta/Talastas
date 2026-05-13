@@ -1,117 +1,283 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="py-6">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="bg-white shadow rounded-lg p-6">
-            <h1 class="text-2xl font-bold text-gray-900 mb-6">Add Institution</h1>
+<div class="flex flex-col h-full min-h-0 bg-gray-100">
 
-            <form method="POST" action="{{ route('institutions.store') }}">
-                @csrf
+    <form method="POST" action="{{ route('institutions.store') }}" id="createForm" class="flex flex-col h-full min-h-0">
+        @csrf
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {{-- ── Fixed Action Bar ────────────────────────────────────── --}}
+        <div class="flex-shrink-0 bg-blue-700 px-6 py-4">
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3 min-w-0">
+                    <a href="{{ route('institutions.index') }}"
+                       class="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition shrink-0"
+                       title="Back to list">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                    </a>
                     <div>
-                        <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
-                        <input type="text" name="name" id="name" value="{{ old('name') }}" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                        @error('name') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
-                    </div>
-
-
-
-                    <div>
-                        <label for="sector_type" class="block text-sm font-medium text-gray-700">Sector Type</label>
-                        <select name="sector_type" id="sector_type" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="School" {{ old('sector_type', 'School') == 'School' ? 'selected' : '' }}>School</option>
-                            <option value="Barangay Hall" {{ old('sector_type') == 'Barangay Hall' ? 'selected' : '' }}>Barangay Hall</option>
-                            <option value="City Government Office" {{ old('sector_type') == 'City Government Office' ? 'selected' : '' }}>City Government Office</option>
-                            <option value="Public Library" {{ old('sector_type') == 'Public Library' ? 'selected' : '' }}>Public Library</option>
-                            <option value="Health Center" {{ old('sector_type') == 'Health Center' ? 'selected' : '' }}>Health Center</option>
-                            <option value="Other Public" {{ old('sector_type') == 'Other Public' ? 'selected' : '' }}>Other Public</option>
-                        </select>
-                        @error('sector_type') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label for="barangay_name" class="block text-sm font-medium text-gray-700">Barangay Name</label>
-                        <input type="text" name="barangay_name" id="barangay_name" value="{{ old('barangay_name') }}" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                        @error('barangay_name') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label for="latitude" class="block text-sm font-medium text-gray-700">Latitude</label>
-                        <input type="number" step="0.000001" name="latitude" id="latitude" value="{{ old('latitude') }}" placeholder="e.g. 13.9411" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                        @error('latitude') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label for="longitude" class="block text-sm font-medium text-gray-700">Longitude</label>
-                        <input type="number" step="0.000001" name="longitude" id="longitude" value="{{ old('longitude') }}" placeholder="e.g. 121.1644" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                        @error('longitude') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label for="student_population" class="block text-sm font-medium text-gray-700">Student Population</label>
-                        <input type="number" name="student_population" id="student_population" value="{{ old('student_population') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                        @error('student_population') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label for="internet_speed" class="block text-sm font-medium text-gray-700">Internet Speed (Mbps)</label>
-                        <input type="number" step="0.1" name="internet_speed" id="internet_speed" value="{{ old('internet_speed') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                        @error('internet_speed') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700">ICT Facilities</label>
-                        <div class="mt-2 space-y-2">
-                            <label class="inline-flex items-center">
-                                <input type="checkbox" name="has_computer_lab" value="1" {{ old('has_computer_lab') ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                <span class="ml-2">Has Computer Lab</span>
-                            </label>
-                            <label class="inline-flex items-center ml-4">
-                                <input type="checkbox" name="has_smart_tv" value="1" {{ old('has_smart_tv') ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                <span class="ml-2">Has Smart TV</span>
-                            </label>
-                            <label class="inline-flex items-center ml-4">
-                                <input type="checkbox" name="has_projected_whiteboard" value="1" {{ old('has_projected_whiteboard') ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                <span class="ml-2">Has Projected Whiteboard</span>
-                            </label>
-                            <label class="inline-flex items-center ml-4">
-                                <input type="checkbox" name="has_public_address_system" value="1" {{ old('has_public_address_system') ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                <span class="ml-2">Has Public Address System</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700">Status</label>
-                        <div class="mt-2 space-y-2">
-                            <label class="inline-flex items-center">
-                                <input type="checkbox" name="is_pilot_site" value="1" {{ old('is_pilot_site') ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                <span class="ml-2">Pilot Site</span>
-                            </label>
-                            <label class="inline-flex items-center ml-4">
-                                <input type="checkbox" name="needs_maintenance" value="1" {{ old('needs_maintenance') ? 'checked' : '' }} class="rounded border-gray-300 text-indigo-600 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                                <span class="ml-2">Needs Maintenance</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="md:col-span-2">
-                        <label for="notes" class="block text-sm font-medium text-gray-700">Notes</label>
-                        <textarea name="notes" id="notes" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">{{ old('notes') }}</textarea>
-                        @error('notes') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
+                        <h1 class="text-lg font-semibold text-white leading-tight">Add Institution</h1>
+                        <p class="text-blue-200 text-xs mt-0.5">Register a new institution in the system</p>
                     </div>
                 </div>
-
-                <div class="mt-6">
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                <div class="flex items-center gap-2 shrink-0">
+                    <a href="{{ route('institutions.index') }}"
+                       class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition border border-blue-500">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Cancel
+                    </a>
+                    <button type="submit"
+                            class="flex items-center gap-2 bg-white text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-50 font-medium text-sm shadow-sm transition border border-blue-100">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                        </svg>
                         Create Institution
                     </button>
-                    <a href="{{ route('institutions.index') }}" class="ml-4 text-gray-600 hover:text-gray-900">Cancel</a>
                 </div>
-            </form>
+            </div>
         </div>
-    </div>
+
+        {{-- ── Scrollable Form Body ──────────────────────────────────── --}}
+        <div class="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-5">
+
+            @if($errors->any())
+            <div class="flex items-start gap-3 bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">
+                <svg class="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                    <p class="font-medium">Please fix the following errors:</p>
+                    <ul class="mt-1 list-disc list-inside space-y-0.5 text-xs">
+                        @foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach
+                    </ul>
+                </div>
+            </div>
+            @endif
+
+            {{-- Basic Information --}}
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="flex items-center gap-2.5 px-5 py-3.5 border-b border-gray-100">
+                    <div class="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-800">Basic Information</span>
+                </div>
+                <div class="px-5 py-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                        <div class="xl:col-span-2">
+                            <label for="name" class="block text-xs font-semibold text-gray-600 mb-1.5">Institution Name <span class="text-red-500">*</span></label>
+                            <input type="text" name="name" id="name" value="{{ old('name') }}" required
+                                   class="form-input w-full @error('name') border-red-400 @enderror"
+                                   placeholder="e.g. Lipa City National High School">
+                            @error('name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="sector_type" class="block text-xs font-semibold text-gray-600 mb-1.5">Sector Type <span class="text-red-500">*</span></label>
+                            <select name="sector_type" id="sector_type" required class="form-input w-full @error('sector_type') border-red-400 @enderror">
+                                @foreach(['School','Barangay Hall','City Government Office','Public Library','Health Center','Other Public'] as $type)
+                                <option value="{{ $type }}" {{ old('sector_type', 'School') == $type ? 'selected' : '' }}>{{ $type }}</option>
+                                @endforeach
+                            </select>
+                            @error('sector_type')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="student_population" class="block text-xs font-semibold text-gray-600 mb-1.5">Student Population</label>
+                            <input type="number" name="student_population" id="student_population" min="0"
+                                   value="{{ old('student_population') }}" class="form-input w-full" placeholder="e.g. 1200">
+                            @error('student_population')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="staff_population" class="block text-xs font-semibold text-gray-600 mb-1.5">Staff Population</label>
+                            <input type="number" name="staff_population" id="staff_population" min="0"
+                                   value="{{ old('staff_population') }}" class="form-input w-full" placeholder="e.g. 45">
+                        </div>
+                        <div>
+                            <label for="isp_provider" class="block text-xs font-semibold text-gray-600 mb-1.5">ISP Provider</label>
+                            <input type="text" name="isp_provider" id="isp_provider"
+                                   value="{{ old('isp_provider') }}" class="form-input w-full" placeholder="e.g. PLDT, Globe">
+                        </div>
+                        <div>
+                            <label for="internet_speed" class="block text-xs font-semibold text-gray-600 mb-1.5">Internet Speed (Mbps)</label>
+                            <input type="number" step="0.1" name="internet_speed" id="internet_speed" min="0"
+                                   value="{{ old('internet_speed') }}" class="form-input w-full" placeholder="e.g. 100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Location --}}
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="flex items-center gap-2.5 px-5 py-3.5 border-b border-gray-100">
+                    <div class="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-800">Location</span>
+                </div>
+                <div class="px-5 py-5">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div>
+                            <label for="barangay_name" class="block text-xs font-semibold text-gray-600 mb-1.5">Barangay <span class="text-red-500">*</span></label>
+                            <input type="text" name="barangay_name" id="barangay_name" value="{{ old('barangay_name') }}" required
+                                   class="form-input w-full @error('barangay_name') border-red-400 @enderror"
+                                   placeholder="e.g. Barangay Mataas na Lupa">
+                            @error('barangay_name')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="latitude" class="block text-xs font-semibold text-gray-600 mb-1.5">Latitude <span class="text-red-500">*</span></label>
+                            <input type="number" step="0.000001" name="latitude" id="latitude" value="{{ old('latitude') }}" required
+                                   class="form-input w-full @error('latitude') border-red-400 @enderror" placeholder="e.g. 13.9411">
+                            @error('latitude')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="longitude" class="block text-xs font-semibold text-gray-600 mb-1.5">Longitude <span class="text-red-500">*</span></label>
+                            <input type="number" step="0.000001" name="longitude" id="longitude" value="{{ old('longitude') }}" required
+                                   class="form-input w-full @error('longitude') border-red-400 @enderror" placeholder="e.g. 121.1644">
+                            @error('longitude')<p class="mt-1 text-xs text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+                    <p class="mt-3 text-xs text-gray-400 flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Lipa City is approximately at 13.94°N, 121.16°E.
+                    </p>
+                </div>
+            </div>
+
+            {{-- ICT Facilities --}}
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="flex items-center gap-2.5 px-5 py-3.5 border-b border-gray-100">
+                    <div class="w-7 h-7 rounded-lg bg-purple-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-800">ICT Facilities</span>
+                </div>
+                <div class="px-5 py-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
+                        <x-toggle-card name="has_computer_lab"          label="Computer Lab"        :checked="old('has_computer_lab')"/>
+                        <x-toggle-card name="has_smart_tv"              label="Smart TV"            :checked="old('has_smart_tv')"/>
+                        <x-toggle-card name="has_projected_whiteboard"  label="Projected Whiteboard":checked="old('has_projected_whiteboard')"/>
+                        <x-toggle-card name="has_public_address_system" label="PA System"           :checked="old('has_public_address_system')"/>
+                    </div>
+                    <div class="max-w-xs">
+                        <label for="number_of_computers" class="block text-xs font-semibold text-gray-600 mb-1.5">Number of Computers</label>
+                        <input type="number" name="number_of_computers" id="number_of_computers" min="0"
+                               value="{{ old('number_of_computers') }}" class="form-input w-full" placeholder="e.g. 30">
+                    </div>
+                </div>
+            </div>
+
+            {{-- Status --}}
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="flex items-center gap-2.5 px-5 py-3.5 border-b border-gray-100">
+                    <div class="w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-800">Status & Flags</span>
+                </div>
+                <div class="px-5 py-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                        <x-toggle-card name="is_pilot_site"    label="Pilot Site"       :checked="old('is_pilot_site')"       color="green"/>
+                        <x-toggle-card name="is_active"        label="Active"           :checked="old('is_active', true)"     color="green"/>
+                        <x-toggle-card name="needs_maintenance"label="Needs Maintenance":checked="old('needs_maintenance')"   color="red"/>
+                        <x-toggle-card name="requires_audit"   label="Requires Audit"  :checked="old('requires_audit')"      color="yellow"/>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Notes --}}
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div class="flex items-center gap-2.5 px-5 py-3.5 border-b border-gray-100">
+                    <div class="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </div>
+                    <span class="text-sm font-semibold text-gray-800">Notes <span class="text-xs font-normal text-gray-400">(optional)</span></span>
+                </div>
+                <div class="px-5 py-5">
+                    <textarea name="notes" id="notes" rows="3"
+                              class="form-input w-full resize-none"
+                              placeholder="Add any additional notes or observations…">{{ old('notes') }}</textarea>
+                </div>
+            </div>
+
+            {{-- Bottom save bar --}}
+            <div class="flex items-center justify-end gap-3 py-2">
+                <a href="{{ route('institutions.index') }}"
+                   class="flex items-center gap-2 bg-white text-gray-700 px-5 py-2.5 rounded-lg hover:bg-gray-50 font-medium text-sm transition border border-gray-200 shadow-sm">
+                    Cancel
+                </a>
+                <button type="submit"
+                        class="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 font-medium text-sm transition shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                    Create Institution
+                </button>
+            </div>
+
+        </div>
+    </form>
 </div>
+
+<style>
+    .form-input {
+        @apply block border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white
+               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+               placeholder-gray-400 transition;
+    }
+    select.form-input { @apply pr-8; }
+</style>
+
+@endsection
+
+@section('scripts')
+<script>
+document.querySelectorAll('.toggle-card-label').forEach(label => {
+    const input  = label.querySelector('.toggle-card-input');
+    const body   = label.querySelector('.toggle-card-body');
+    const track  = label.querySelector('.toggle-track');
+    const thumb  = label.querySelector('.toggle-thumb');
+    const text   = label.querySelector('.toggle-label-text');
+    const active = body.dataset.activeClass.split(' ');
+    const tc     = body.dataset.textClass;
+    const trk    = body.dataset.trackClass;
+
+    function sync() {
+        if (input.checked) {
+            body.classList.add(...active);
+            body.classList.remove('border-gray-200', 'bg-white');
+            track.classList.add(trk);
+            track.classList.remove('bg-gray-200');
+            thumb.style.transform = 'translateX(1rem)';
+            text.classList.add(tc);
+            text.classList.remove('text-gray-500');
+        } else {
+            body.classList.remove(...active);
+            body.classList.add('border-gray-200', 'bg-white');
+            track.classList.remove(trk);
+            track.classList.add('bg-gray-200');
+            thumb.style.transform = 'translateX(0)';
+            text.classList.remove(tc);
+            text.classList.add('text-gray-500');
+        }
+    }
+    sync();
+    input.addEventListener('change', sync);
+});
+</script>
 @endsection

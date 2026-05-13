@@ -14,11 +14,11 @@
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans antialiased bg-gray-50 flex flex-col min-h-screen">
-    <div id="app" class="flex-1 flex flex-col">
+<body class="font-sans antialiased bg-gray-50 flex flex-col h-screen overflow-hidden">
+    <div id="app" class="flex-1 flex flex-col min-h-0">
         @include('layouts.header')
 
-        <main class="flex-1 flex flex-col">
+        <main class="flex-1 flex flex-col min-h-0 overflow-hidden">
             @yield('content')
         </main>
 

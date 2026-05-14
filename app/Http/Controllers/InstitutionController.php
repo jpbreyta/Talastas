@@ -12,7 +12,7 @@ class InstitutionController extends Controller
      */
     public function index()
     {
-        $institutions = Institution::paginate(20);
+        $institutions = Institution::latest()->paginate(20);
 
         return view('institutions.index', compact('institutions'));
     }
@@ -32,27 +32,57 @@ class InstitutionController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'sector_type' => 'required|in:School,Barangay Hall,City Government Office,Public Library,Health Center,Other Public',
+
+            'type' => 'required|in:School,Barangay Hall,Local Government Office',
+
             'barangay_name' => 'required|string|max:255',
+
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
+
             'student_population' => 'nullable|integer|min:0',
             'staff_population' => 'nullable|integer|min:0',
+
             'isp_provider' => 'nullable|string|max:255',
             'internet_speed' => 'nullable|numeric|min:0',
-            'has_computer_lab' => 'boolean',
+
+            'has_computer_lab' => 'nullable|boolean',
             'number_of_computers' => 'nullable|integer|min:0',
-            'has_projected_whiteboard' => 'boolean',
-            'has_smart_tv' => 'boolean',
-            'has_public_address_system' => 'boolean',
-            'needs_maintenance' => 'boolean',
-            'is_pilot_site' => 'boolean',
+
+            'has_projected_whiteboard' => 'nullable|boolean',
+            'has_smart_tv' => 'nullable|boolean',
+            'has_public_address_system' => 'nullable|boolean',
+
+            'needs_maintenance' => 'nullable|boolean',
+
             'notes' => 'nullable|string',
+
+            'is_pilot_site' => 'nullable|boolean',
+            'data_completeness_score' => 'nullable|integer|min:0|max:100',
+            'requires_audit' => 'nullable|boolean',
+
+            'last_audited_at' => 'nullable|date',
+            'audited_by' => 'nullable|exists:users,id',
+            'audit_notes' => 'nullable|string',
+
+            'is_active' => 'nullable|boolean',
         ]);
+
+        // Handle unchecked checkboxes
+        $validated['has_computer_lab'] = $request->boolean('has_computer_lab');
+        $validated['has_projected_whiteboard'] = $request->boolean('has_projected_whiteboard');
+        $validated['has_smart_tv'] = $request->boolean('has_smart_tv');
+        $validated['has_public_address_system'] = $request->boolean('has_public_address_system');
+        $validated['needs_maintenance'] = $request->boolean('needs_maintenance');
+        $validated['is_pilot_site'] = $request->boolean('is_pilot_site');
+        $validated['requires_audit'] = $request->boolean('requires_audit');
+        $validated['is_active'] = $request->boolean('is_active');
 
         Institution::create($validated);
 
-        return redirect()->route('institutions.index')->with('success', 'Institution created successfully.');
+        return redirect()
+            ->route('institutions.index')
+            ->with('success', 'Institution created successfully.');
     }
 
     /**
@@ -60,7 +90,11 @@ class InstitutionController extends Controller
      */
     public function show(Institution $institution)
     {
-        $institution->load('ictInventory');
+        $institution->load([
+            'ictInventory',
+            'institutionAnalytics',
+            'auditor',
+        ]);
 
         return view('institutions.show', compact('institution'));
     }
@@ -80,27 +114,57 @@ class InstitutionController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'sector_type' => 'required|in:School,Barangay Hall,City Government Office,Public Library,Health Center,Other Public',
+
+            'type' => 'required|in:School,Barangay Hall,Local Government Office',
+
             'barangay_name' => 'required|string|max:255',
+
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
+
             'student_population' => 'nullable|integer|min:0',
             'staff_population' => 'nullable|integer|min:0',
+
             'isp_provider' => 'nullable|string|max:255',
             'internet_speed' => 'nullable|numeric|min:0',
-            'has_computer_lab' => 'boolean',
+
+            'has_computer_lab' => 'nullable|boolean',
             'number_of_computers' => 'nullable|integer|min:0',
-            'has_projected_whiteboard' => 'boolean',
-            'has_smart_tv' => 'boolean',
-            'has_public_address_system' => 'boolean',
-            'needs_maintenance' => 'boolean',
-            'is_pilot_site' => 'boolean',
+
+            'has_projected_whiteboard' => 'nullable|boolean',
+            'has_smart_tv' => 'nullable|boolean',
+            'has_public_address_system' => 'nullable|boolean',
+
+            'needs_maintenance' => 'nullable|boolean',
+
             'notes' => 'nullable|string',
+
+            'is_pilot_site' => 'nullable|boolean',
+            'data_completeness_score' => 'nullable|integer|min:0|max:100',
+            'requires_audit' => 'nullable|boolean',
+
+            'last_audited_at' => 'nullable|date',
+            'audited_by' => 'nullable|exists:users,id',
+            'audit_notes' => 'nullable|string',
+
+            'is_active' => 'nullable|boolean',
         ]);
+
+        // Handle unchecked checkboxes
+        $validated['has_computer_lab'] = $request->boolean('has_computer_lab');
+        $validated['has_projected_whiteboard'] = $request->boolean('has_projected_whiteboard');
+        $validated['has_smart_tv'] = $request->boolean('has_smart_tv');
+        $validated['has_public_address_system'] = $request->boolean('has_public_address_system');
+        $validated['needs_maintenance'] = $request->boolean('needs_maintenance');
+        $validated['is_pilot_site'] = $request->boolean('is_pilot_site');
+        $validated['requires_audit'] = $request->boolean('requires_audit');
+        $validated['is_active'] = $request->boolean('is_active');
 
         $institution->update($validated);
 
-        return redirect()->route('institutions.index')->with('success', 'Institution updated successfully.');
+        return redirect()
+            ->route('institutions.index')
+            ->with('success', 'Institution updated successfully.');
     }
 
     /**
@@ -110,6 +174,8 @@ class InstitutionController extends Controller
     {
         $institution->delete();
 
-        return redirect()->route('institutions.index')->with('success', 'Institution deleted successfully.');
+        return redirect()
+            ->route('institutions.index')
+            ->with('success', 'Institution deleted successfully.');
     }
 }

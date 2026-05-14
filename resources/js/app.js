@@ -14,12 +14,16 @@ import * as turf from '@turf/turf';
 // Leaflet Search plugin
 import 'leaflet-search';
 
-// Fix for default marker icons not showing in build
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
 delete L.Icon.Default.prototype._getIconUrl;
+
 L.Icon.Default.mergeOptions({
-    iconRetinaUrl: '/images/vendor/leaflet/dist/marker-icon-2x.png',
-    iconUrl: '/images/vendor/leaflet/dist/marker-icon.png',
-    shadowUrl: '/images/vendor/leaflet/dist/marker-shadow.png',
+    iconRetinaUrl: markerIcon2x,
+    iconUrl: markerIcon,
+    shadowUrl: markerShadow,
 });
 
 // Export for use in inline scripts

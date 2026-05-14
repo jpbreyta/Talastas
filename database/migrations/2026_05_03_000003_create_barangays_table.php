@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('name', 100)->unique();
             $table->string('code', 10)->unique();
-            $table->json('geometry')->nullable(); // GeoJSON polygon boundaries
+            $table->json('geometry')->nullable(); 
             $table->integer('population')->nullable();
             $table->integer('total_institutions')->default(0);
             $table->text('notes')->nullable();

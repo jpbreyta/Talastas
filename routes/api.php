@@ -38,10 +38,10 @@ Route::prefix('v1')->group(function () {
 
         // Barangay-level aggregation for decision support
         Route::get('/barangays/summary', function () {
-            $summary = Institution::select('barangay_name')
-                ->withAvg('institutionAnalytics', 'gap_score')
-                ->withCount('institutionAnalytics')
-                ->groupBy('barangay_name')
+            $summary = Institution::join('barangays', 'institutions.barangay_id', '=', 'barangays.id')
+                ->select('barangays.name as barangay_name')
+
+                ->groupBy('barangays.name')
                 ->get();
 
             return response()->json($summary);

@@ -16,7 +16,8 @@ return new class extends Migration
                 'Barangay Hall', 
                 'Local Government Office'
             ])->default('School');
-            $table->string('barangay_name', 255);
+            $table->unsignedBigInteger('barangay_id');
+            $table->foreign('barangay_id')->references('id')->on('barangays')->onDelete('cascade');
             $table->decimal('latitude', 10, 7);
             $table->decimal('longitude', 10, 7);
             $table->integer('student_population')->nullable();
@@ -43,7 +44,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['latitude', 'longitude']);
-            $table->index('barangay_name');
+            $table->index('barangay_id');
         });
     }
 

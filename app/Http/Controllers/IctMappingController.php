@@ -67,7 +67,7 @@ class IctMappingController extends Controller
                     'id' => $inst->id,
                     'name' => $inst->name,
                     'type' => $inst->type,
-                    'barangay' => $inst->barangay_name,
+                    'barangay' => $inst->barangay->name,
 
                     'latitude' => (float) $inst->latitude,
                     'longitude' => (float) $inst->longitude,
@@ -112,18 +112,35 @@ class IctMappingController extends Controller
 
     public function getBarangaysGeoJSON()
     {
-        $geojsonPath = public_path('data/lipa-city-barangays.geojson');
+        $barangays = \App\Models\Barangay::whereNotNull('geometry')->get();
 
-        if (file_exists($geojsonPath)) {
-            return response()->json(
-                json_decode(file_get_contents($geojsonPath), true)
-            );
+        if ($barangays->isNotEmpty()) {
+            $features = $barangays->map(function ($barangay) {
+                return [
+                    'type' => 'Feature',
+                    'geometry' => json_decode($barangay->geometry, true),
+                    'properties' => [
+                        'id' => $barangay->id,
+                        'code' => $barangay->code,
+                        'name' => $barangay->name,
+                        'district' => $barangay->district,
+                        'population' => $barangay->population,
+                        'total_institutions' => $barangay->total_institutions,
+                    ],
+                ];
+            });
+
+            return response()->json([
+                'type' => 'FeatureCollection',
+                'features' => $features,
+            ]);
         }
 
         // fallback using institution data
-        $barangayNames = Institution::query()
+        $barangayNames = Institution::with('barangay')
             ->distinct()
-            ->pluck('barangay_name');
+            ->get()
+            ->pluck('barangay.name');
 
         $features = $barangayNames->map(function ($name) {
             return [

@@ -35,7 +35,7 @@
                         </span>
                         @endif
                     </div>
-                    <p class="text-blue-200 text-xs mt-0.5">{{ $institution->sector_type }} &bull; {{ $institution->barangay_name }}</p>
+                    <p class="text-blue-200 text-xs mt-0.5">{{ $institution->sector_type }} &bull; {{ $institution->barangay->name }}</p>
                 </div>
             </div>
 
@@ -151,7 +151,7 @@
                     </div>
                     <div class="divide-y divide-gray-50">
                         <x-detail-row label="Sector Type" :value="$institution->sector_type"/>
-                        <x-detail-row label="Barangay" :value="$institution->barangay_name"/>
+                        <x-detail-row label="Barangay" :value="$institution->barangay->name"/>
                         <x-detail-row label="ISP Provider" :value="$institution->isp_provider ?? '—'"/>
                         <x-detail-row label="Computers" :value="$institution->number_of_computers ? $institution->number_of_computers . ' units' : '—'"/>
                     </div>

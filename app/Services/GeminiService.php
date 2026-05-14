@@ -83,7 +83,7 @@ Analyze the ICT infrastructure gap for this institution in Lipa City:
 
 Name: {$institution->name}
 Type: {$institution->sector_type}
-Barangay: {$institution->barangay_name}
+Barangay: {$institution->barangay->name}
 Students: {$institution->student_population ?? 'N/A'}
 Staff: {$institution->staff_population ?? 'N/A'}
 Internet Speed: " . ($institution->internet_speed ? $institution->internet_speed . ' Mbps' : 'Not available') . "

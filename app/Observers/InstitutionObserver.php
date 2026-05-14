@@ -20,7 +20,7 @@ class InstitutionObserver
         $relevantFields = [
             'internet_speed', 'student_population', 'staff_population', 'number_of_computers',
             'has_computer_lab', 'has_projected_whiteboard', 'has_smart_tv', 'has_public_address_system',
-            'needs_maintenance', 'name', 'type', 'barangay_name', 'latitude', 'longitude'
+            'needs_maintenance', 'name', 'type', 'barangay', 'latitude', 'longitude'
         ];
 
         if ($institution->wasChanged($relevantFields)) {

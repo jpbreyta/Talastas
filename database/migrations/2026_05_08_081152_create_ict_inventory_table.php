@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('ict_inventories', function (Blueprint $table) {
+        Schema::create('ict_inventory', function (Blueprint $table) {
             $table->id('asset_id');
             $table->foreignId('institution_id')->constrained('institutions')->onDelete('cascade');
             $table->string('category'); // e.g., 'computer', 'projector', 'smart_tv'

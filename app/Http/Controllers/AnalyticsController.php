@@ -43,17 +43,18 @@ class AnalyticsController extends Controller
 
         // Objective 3.2: Barangay-level heat map data (aggregated gap scores)
         $barangayScores = Institution::join('institution_analytics', 'institutions.id', '=', 'institution_analytics.institution_id')
-            ->select('barangay_name')
+            ->join('barangays', 'institutions.barangay_id', '=', 'barangays.id')
+            ->select('barangays.name')
             ->selectRaw('AVG(institution_analytics.gap_score) as avg_gap_score')
-            ->groupBy('barangay_name')
+            ->groupBy('barangays.name')
             ->orderBy('avg_gap_score', 'desc')
             ->get()
             ->mapWithKeys(function ($item) {
-                return [$item->barangay_name => round($item->avg_gap_score ?? 50, 1)];
+                return [$item->name => round($item->avg_gap_score ?? 50, 1)];
             });
 
         // For filters (Objective 1.2 dynamic dashboard)
-        $barangays = Institution::distinct('barangay_name')->pluck('barangay_name')->sort()->values();
+        $barangays = \App\Models\Barangay::orderBy('name')->pluck('name')->values();
 
         return view('analytics', compact(
             'analytics',

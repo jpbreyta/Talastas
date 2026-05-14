@@ -14,7 +14,7 @@ class Institution extends Model
     protected $fillable = [
         'name',
         'type',
-        'barangay_name',
+        'barangay_id',
         'latitude',
         'longitude',
         'student_population',
@@ -80,6 +80,11 @@ class Institution extends Model
     public function auditor()
     {
         return $this->belongsTo(User::class, 'audited_by');
+    }
+
+    public function barangay()
+    {
+        return $this->belongsTo(Barangay::class, 'barangay_id');
     }
 
     /**

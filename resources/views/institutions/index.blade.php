@@ -115,7 +115,7 @@
                                       d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
                             </svg>
-                            <span class="truncate">{{ $institution->barangay_name }}</span>
+                            <span class="truncate">{{ $institution->barangay->name }}</span>
                         </div>
                         @if($institution->student_population)
                         <div class="flex items-center gap-1.5 text-xs text-gray-500">
@@ -187,7 +187,7 @@
                                 <span class="font-medium text-gray-900">{{ $institution->name }}</span>
                             </td>
                             <td class="px-4 py-3 text-gray-500">{{ $institution->sector_type }}</td>
-                            <td class="px-4 py-3 text-gray-500">{{ $institution->barangay_name }}</td>
+                            <td class="px-4 py-3 text-gray-500">{{ $institution->barangay->name }}</td>
                             <td class="px-4 py-3 text-gray-500">
                                 {{ $institution->student_population ? number_format($institution->student_population) : '—' }}
                             </td>

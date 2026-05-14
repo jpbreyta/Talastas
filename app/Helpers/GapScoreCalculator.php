@@ -117,7 +117,7 @@ class GapScoreCalculator
     public static function computeDataCompleteness(Institution $inst): int
     {
         $requiredFields = [
-            'name', 'type', 'barangay_name', 'latitude', 'longitude',
+            'name', 'type', 'barangay', 'latitude', 'longitude',
             'has_computer_lab', 'has_smart_tv', 'has_public_address_system',
         ];
 

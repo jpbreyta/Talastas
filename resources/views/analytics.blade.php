@@ -169,10 +169,8 @@
                     class="px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition min-w-[140px]">
                     <option value="">All Sectors</option>
                     <option value="School">School</option>
-                    <option value="Hospital">Hospital</option>
-                    <option value="Government">Government</option>
-                    <option value="Library">Library</option>
-                    <option value="Community Center">Community Center</option>
+                    <option value="Barangay Hall">Barangay Hall</option>
+                    <option value="Local Government Office">Local Government Office</option>
                     <option value="Other">Other</option>
                 </select>
 
@@ -368,14 +366,14 @@
                             $sector = $analytic->institution->sector_type ?? $analytic->institution->type ?? 'N/A';
                         @endphp
                         <tr class="hover:bg-gray-50 transition-colors analytics-row"
-                            data-barangay="{{ $analytic->institution->barangay_name ?? '' }}"
+                            data-barangay="{{ $analytic->institution->barangay->name ?? '' }}"
                             data-sector="{{ $sector }}"
                             data-risk="{{ $gap >= 80 ? 'critical' : ($gap >= 50 ? 'warning' : 'adequate') }}">
                             <td class="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
                                 {{ $analytic->institution->name ?? 'N/A' }}
                             </td>
                             <td class="px-3 py-3 text-sm text-gray-500 whitespace-nowrap">
-                                {{ Str::limit($analytic->institution->barangay_name ?? 'N/A', 16) }}
+                                {{ Str::limit($analytic->institution->barangay->name ?? 'N/A', 16) }}
                             </td>
                             <td class="px-3 py-3 whitespace-nowrap">
                                 <span class="px-2 py-0.5 text-xs rounded-md bg-blue-50 text-blue-700 font-medium">

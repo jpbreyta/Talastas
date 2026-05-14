@@ -16,7 +16,7 @@
                             <option value="">Select Institution</option>
                             @foreach($institutions as $institution)
                                 <option value="{{ $institution->id }}" {{ request('institution_id') == $institution->id ? 'selected' : '' }}>
-                                    {{ $institution->name }} ({{ $institution->barangay_name }})
+                                    {{ $institution->name }} ({{ $institution->barangay->name }})
                                 </option>
                             @endforeach
                         </select>

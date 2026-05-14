@@ -182,14 +182,19 @@
 
                         {{-- Barangay --}}
                         <div>
-                            <label for="barangay_name" class="block text-xs font-semibold text-gray-600 mb-1.5">
-                                Barangay <span class="text-red-500">*</span>
-                            </label>
-                            <input type="text" name="barangay_name" id="barangay_name"
-                                   value="{{ old('barangay_name', $institution->barangay_name) }}" required
-                                   class="form-input w-full @error('barangay_name') border-red-400 @enderror"
-                                   placeholder="e.g. Barangay Mataas na Lupa">
-                            @error('barangay_name')
+                            <label for="barangay_id" class="block text-xs font-semibold text-gray-600 mb-1.5">Barangay <span class="text-red-500">*</span></label>
+
+                            <select name="barangay_id" id="barangay_id" required
+                                   class="form-input w-full @error('barangay_id') border-red-400 @enderror">
+                                <option value="">Select Barangay</option>
+                                @foreach($barangays as $barangay)
+                                    <option value="{{ $barangay->id }}" {{ old('barangay_id', $institution->barangay_id) == $barangay->id ? 'selected' : '' }}>
+                                        {{ $barangay->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+
+                            @error('barangay_id')
                             <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                             @enderror
                         </div>

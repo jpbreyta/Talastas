@@ -22,7 +22,8 @@ class InstitutionController extends Controller
      */
     public function create()
     {
-        return view('institutions.create');
+        $barangays = \App\Models\Barangay::orderBy('name')->get();
+        return view('institutions.create', compact('barangays'));
     }
 
     /**
@@ -35,7 +36,7 @@ class InstitutionController extends Controller
 
             'type' => 'required|in:School,Barangay Hall,Local Government Office',
 
-            'barangay_name' => 'required|string|max:255',
+            'barangay_id' => 'required|exists:barangays,id',
 
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
@@ -112,7 +113,8 @@ class InstitutionController extends Controller
      */
     public function edit(Institution $institution)
     {
-        return view('institutions.edit', compact('institution'));
+        $barangays = \App\Models\Barangay::orderBy('name')->get();
+        return view('institutions.edit', compact('institution', 'barangays'));
     }
 
     /**
@@ -125,7 +127,7 @@ class InstitutionController extends Controller
 
             'type' => 'required|in:School,Barangay Hall,Local Government Office',
 
-            'barangay_name' => 'required|string|max:255',
+            'barangay_id' => 'required|exists:barangays,id',
 
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',

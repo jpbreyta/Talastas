@@ -13,7 +13,7 @@ class InstitutionsSeeder extends Seeder
             [
                 'name' => 'Batangas State University - Lipa Campus',
                 'type' => 'School',
-                'barangay_name' => 'Maraouy',
+                'barangay_id' => \App\Models\Barangay::where('name', 'Marawoy')->first()?->id ?? 1,
                 'latitude' => 13.9567000,
                 'longitude' => 121.1630000,
 
@@ -47,7 +47,7 @@ class InstitutionsSeeder extends Seeder
             [
                 'name' => 'Kolehiyo ng Lungsod ng Lipa',
                 'type' => 'School',
-                'barangay_name' => 'Maraouy',
+                'barangay_id' => \App\Models\Barangay::where('name', 'Marawoy')->first()?->id ?? 1,
                 'latitude' => 13.9625600,
                 'longitude' => 121.1751500,
 
@@ -81,7 +81,7 @@ class InstitutionsSeeder extends Seeder
             [
                 'name' => 'Lipa City Hall',
                 'type' => 'Local Government Office',
-                'barangay_name' => 'Maraouy',
+                'barangay_id' => \App\Models\Barangay::where('name', 'Marawoy')->first()?->id ?? 1,
                 'latitude' => 13.9573379,
                 'longitude' => 121.1647025,
 

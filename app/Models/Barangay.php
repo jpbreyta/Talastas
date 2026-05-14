@@ -12,7 +12,8 @@ class Barangay extends Model
     protected $fillable = [
         'name',
         'code',
-        'geometry', // GeoJSON polygon geometry
+        'district',
+        'geometry', // GeoJSON MultiPolygon geometry
         'population',
         'total_institutions',
         'notes',
@@ -25,6 +26,6 @@ class Barangay extends Model
 
     public function institutions()
     {
-        return $this->hasMany(Institution::class, 'barangay_name', 'name');
+        return $this->hasMany(Institution::class, 'barangay_id');
     }
 }

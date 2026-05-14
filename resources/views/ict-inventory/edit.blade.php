@@ -17,7 +17,7 @@
                             <option value="">Select Institution</option>
                             @foreach($institutions as $institution)
                                 <option value="{{ $institution->id }}" {{ old('institution_id', $ictInventory->institution_id) == $institution->id ? 'selected' : '' }}>
-                                    {{ $institution->name }} ({{ $institution->barangay_name }})
+                                    {{ $institution->name }} ({{ $institution->barangay->name }})
                                 </option>
                             @endforeach
                         </select>

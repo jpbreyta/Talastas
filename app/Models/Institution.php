@@ -14,7 +14,7 @@ class Institution extends Model
     protected $fillable = [
         'name',
         'type',
-        'barangay_name',
+        'barangay_id',
         'latitude',
         'longitude',
         'student_population',
@@ -82,6 +82,11 @@ class Institution extends Model
         return $this->belongsTo(User::class, 'audited_by');
     }
 
+    public function barangay()
+    {
+        return $this->belongsTo(Barangay::class, 'barangay_id');
+    }
+
     /**
      * Update or create analytics for this institution
      */
@@ -100,6 +105,9 @@ class Institution extends Model
         );
 
         // Also update the institution's data_completeness_score
-        $this->update(['data_completeness_score' => $dataCompleteness]);
+        // Use withoutEvents to prevent infinite loop
+        static::withoutEvents(function () use ($dataCompleteness) {
+            $this->update(['data_completeness_score' => $dataCompleteness]);
+        });
     }
 }

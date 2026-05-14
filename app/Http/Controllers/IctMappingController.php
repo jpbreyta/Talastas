@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\GapScoreCalculator;
-use App\Models\Barangay;
 use App\Models\Institution;
 
 class IctMappingController extends Controller
@@ -13,11 +12,17 @@ class IctMappingController extends Controller
         $institutions = Institution::all();
 
         $heatPoints = $institutions->map(function ($inst) {
-            $gapScore = GapScoreCalculator::computeScore($inst);
+            // Use precomputed values if available
+            if (!$inst->institutionAnalytics || $inst->institutionAnalytics->gap_score === null) {
+                $inst->updateAnalytics();
+                $inst->load('institutionAnalytics');
+            }
+
+            $gapScore = $inst->institutionAnalytics->gap_score ?? 0;
 
             return [
-                $inst->latitude,
-                $inst->longitude,
+                (float) $inst->latitude,
+                (float) $inst->longitude,
                 $gapScore,
             ];
         });
@@ -27,43 +32,72 @@ class IctMappingController extends Controller
 
     public function getInstitutionsGeoJSON()
     {
-        $institutions = Institution::with('institutionAnalytics')->get();
+        $institutions = Institution::with([
+            'institutionAnalytics',
+            'auditor'
+        ])->get();
 
         $features = $institutions->map(function ($inst) {
-            $gapScore = $inst->institutionAnalytics
-                ? $inst->institutionAnalytics->gap_score
-                : GapScoreCalculator::computeScore($inst);
 
-            // Compute data completeness for quality indicator
-            $completeness = GapScoreCalculator::computeDataCompleteness($inst);
+            // Use precomputed values if available, otherwise compute and save
+            if (!$inst->institutionAnalytics || $inst->institutionAnalytics->gap_score === null) {
+                $inst->updateAnalytics();
+                $inst->load('institutionAnalytics');
+            }
 
-            // Determine quality level from completeness
-            $qualityLevel = $completeness >= 80 ? 'good' : ($completeness >= 50 ? 'partial' : 'incomplete');
+            $gapScore = $inst->institutionAnalytics->gap_score ?? 0;
+            $completeness = $inst->institutionAnalytics->data_completeness_score ?? $inst->data_completeness_score ?? 0;
+
+            $qualityLevel = match (true) {
+                $completeness >= 80 => 'good',
+                $completeness >= 50 => 'partial',
+                default => 'incomplete',
+            };
 
             return [
                 'type' => 'Feature',
                 'geometry' => [
                     'type' => 'Point',
-                    'coordinates' => [(float) $inst->longitude, (float) $inst->latitude],
+                    'coordinates' => [
+                        (float) $inst->longitude,
+                        (float) $inst->latitude,
+                    ],
                 ],
                 'properties' => [
                     'id' => $inst->id,
                     'name' => $inst->name,
-                    'sector_type' => $inst->sector_type,
+                    'type' => $inst->type,
                     'barangay' => $inst->barangay_name,
+
                     'latitude' => (float) $inst->latitude,
                     'longitude' => (float) $inst->longitude,
+
                     'internet_speed' => $inst->internet_speed,
-                    'has_lab' => $inst->has_computer_lab,
-                    'computers' => $inst->number_of_computers,
-                    'has_smart_tv' => $inst->has_smart_tv,
-                    'has_pa' => $inst->has_public_address_system,
+                    'isp_provider' => $inst->isp_provider,
+
+                    'has_computer_lab' => (bool) $inst->has_computer_lab,
+                    'number_of_computers' => $inst->number_of_computers,
+
+                    'has_projected_whiteboard' => (bool) $inst->has_projected_whiteboard,
+                    'has_smart_tv' => (bool) $inst->has_smart_tv,
+                    'has_public_address_system' => (bool) $inst->has_public_address_system,
+
                     'student_population' => $inst->student_population,
-                    'is_pilot' => $inst->is_pilot_site,
-                    'requires_audit' => $inst->requires_audit,
+                    'staff_population' => $inst->staff_population,
+
+                    'needs_maintenance' => (bool) $inst->needs_maintenance,
+                    'is_pilot_site' => (bool) $inst->is_pilot_site,
+                    'is_active' => (bool) $inst->is_active,
+                    'requires_audit' => (bool) $inst->requires_audit,
+
                     'data_completeness' => $completeness,
                     'data_quality' => $qualityLevel,
+
                     'last_audited' => $inst->last_audited_at?->format('Y-m-d'),
+                    'audited_by' => $inst->auditor?->name,
+
+                    'audit_notes' => $inst->audit_notes,
+
                     'gap_score' => round($gapScore, 2),
                     'gap_level' => GapScoreCalculator::getLevel($gapScore),
                 ],
@@ -78,56 +112,30 @@ class IctMappingController extends Controller
 
     public function getBarangaysGeoJSON()
     {
-        // Load barangay boundaries from static GeoJSON file
         $geojsonPath = public_path('data/lipa-city-barangays.geojson');
 
         if (file_exists($geojsonPath)) {
-            $geojsonData = json_decode(file_get_contents($geojsonPath), true);
-
-            return response()->json($geojsonData);
+            return response()->json(
+                json_decode(file_get_contents($geojsonPath), true)
+            );
         }
 
-        // Fallback: Load barangay boundaries from database (GeoJSON format)
-        $barangays = Barangay::all();
+        // fallback using institution data
+        $barangayNames = Institution::query()
+            ->distinct()
+            ->pluck('barangay_name');
 
-        if ($barangays->isEmpty()) {
-            // Placeholder points for each distinct barangay from institutions
-            $barangayNames = Institution::distinct('barangay_name')->pluck('barangay_name');
-
-            $features = $barangayNames->map(function ($name) {
-                return [
-                    'type' => 'Feature',
-                    'geometry' => [
-                        'type' => 'Point',
-                        'coordinates' => [121.1644, 13.9413], // Lipa City center
-                    ],
-                    'properties' => [
-                        'name' => $name,
-                        'type' => 'barangay',
-                        'note' => 'Boundary data pending GIS import',
-                    ],
-                ];
-            });
-
-            return response()->json([
-                'type' => 'FeatureCollection',
-                'features' => $features,
-                'message' => 'Barangay polygon boundaries not yet configured. Upload GIS data to barangays table.',
-            ]);
-        }
-
-        $features = $barangays->map(function ($barangay) {
+        $features = $barangayNames->map(function ($name) {
             return [
                 'type' => 'Feature',
-                'geometry' => $barangay->geometry ?: [
+                'geometry' => [
                     'type' => 'Point',
                     'coordinates' => [121.1644, 13.9413],
                 ],
                 'properties' => [
-                    'name' => $barangay->name,
-                    'code' => $barangay->code,
-                    'population' => $barangay->population,
-                    'institutions' => $barangay->total_institutions,
+                    'name' => $name,
+                    'type' => 'barangay',
+                    'note' => 'Boundary data pending GIS import',
                 ],
             ];
         });
@@ -135,6 +143,7 @@ class IctMappingController extends Controller
         return response()->json([
             'type' => 'FeatureCollection',
             'features' => $features,
+            'message' => 'Barangay GIS data not found. Using fallback placeholders.',
         ]);
     }
 }

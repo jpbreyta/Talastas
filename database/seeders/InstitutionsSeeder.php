@@ -11,42 +11,112 @@ class InstitutionsSeeder extends Seeder
     {
         $institutions = [
             [
-                'name' => 'Lipa City National High School',
-                'sector_type' => 'School',
-                'barangay_name' => 'Poblacion Barrio 1',
-                'latitude' => 13.9411,
-                'longitude' => 121.1644,
-                'student_population' => 1200,
-                'internet_speed' => 50.0,
+                'name' => 'Batangas State University - Lipa Campus',
+                'type' => 'School',
+                'barangay_name' => 'Maraouy',
+                'latitude' => 13.9567000,
+                'longitude' => 121.1630000,
+
+                'student_population' => null,
+                'staff_population' => null,
+
+                'isp_provider' => 'PLDT',
+                'internet_speed' => 100.00,
+
+                'has_computer_lab' => true,
+                'number_of_computers' => 100,
+
+                'has_projected_whiteboard' => true,
+                'has_smart_tv' => true,
+                'has_public_address_system' => true,
+
+                'needs_maintenance' => false,
+                'notes' => 'Main pilot institution for ICT mapping.',
+
                 'is_pilot_site' => true,
+                'data_completeness_score' => 85,
+                'requires_audit' => true,
+
+                'last_audited_at' => now(),
+                'audited_by' => null,
+                'audit_notes' => 'Initial audit completed.',
+
                 'is_active' => true,
             ],
+
+            [
+                'name' => 'Kolehiyo ng Lungsod ng Lipa',
+                'type' => 'School',
+                'barangay_name' => 'Maraouy',
+                'latitude' => 13.9625600,
+                'longitude' => 121.1751500,
+
+                'student_population' => null,
+                'staff_population' => null,
+
+                'isp_provider' => 'Converge',
+                'internet_speed' => 50.00,
+
+                'has_computer_lab' => true,
+                'number_of_computers' => 40,
+
+                'has_projected_whiteboard' => true,
+                'has_smart_tv' => false,
+                'has_public_address_system' => true,
+
+                'needs_maintenance' => false,
+                'notes' => 'Secondary pilot school.',
+
+                'is_pilot_site' => true,
+                'data_completeness_score' => 80,
+                'requires_audit' => true,
+
+                'last_audited_at' => now(),
+                'audited_by' => null,
+                'audit_notes' => 'Pending hardware verification.',
+
+                'is_active' => true,
+            ],
+
             [
                 'name' => 'Lipa City Hall',
-                'sector_type' => 'City Government Office',
-                'barangay_name' => 'Poblacion Barrio 2',
-                'latitude' => 13.9420,
-                'longitude' => 121.1650,
+                'type' => 'Local Government Office',
+                'barangay_name' => 'Maraouy',
+                'latitude' => 13.9573379,
+                'longitude' => 121.1647025,
+
                 'student_population' => null,
-                'internet_speed' => 100.0,
+                'staff_population' => 200,
+
+                'isp_provider' => 'PLDT Enterprise',
+                'internet_speed' => 100.00,
+
+                'has_computer_lab' => false,
+                'number_of_computers' => 75,
+
+                'has_projected_whiteboard' => true,
+                'has_smart_tv' => true,
+                'has_public_address_system' => true,
+
+                'needs_maintenance' => false,
+                'notes' => 'Government office with centralized ICT resources.',
+
                 'is_pilot_site' => true,
-                'is_active' => true,
-            ],
-            [
-                'name' => 'Lipa Medix Medical Center',
-                'sector_type' => 'Health Center',
-                'barangay_name' => 'Tambo',
-                'latitude' => 13.9500,
-                'longitude' => 121.1700,
-                'student_population' => null,
-                'internet_speed' => 25.0,
-                'is_pilot_site' => true,
+                'data_completeness_score' => 90,
+                'requires_audit' => false,
+
+                'last_audited_at' => now(),
+                'audited_by' => null,
+                'audit_notes' => 'Audit passed successfully.',
+
                 'is_active' => true,
             ],
         ];
 
-        foreach ($institutions as $inst) {
-            Institution::create($inst);
+        foreach ($institutions as $institution) {
+            Institution::withoutEvents(function () use ($institution) {
+                return Institution::create($institution);
+            });
         }
 
         $this->command->info('Institutions seeded successfully.');

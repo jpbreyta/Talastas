@@ -12,8 +12,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('institution_id')->constrained('institutions')->onDelete('cascade');
             $table->decimal('gap_score', 5, 2); // 0-100 percentage score
-            $table->text('infrastructure_narrative');
-            $table->text('policy_recommendation');
+            $table->text('infrastructure_narrative')->nullable();
+            $table->text('policy_recommendation')->nullable();
             $table->json('recommendations_detail')->nullable();
             $table->timestamp('analysis_date');
             $table->timestamps();

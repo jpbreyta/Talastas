@@ -9,9 +9,11 @@ class Institution extends Model
 {
     use HasFactory;
 
+    protected $table = 'institutions';
+
     protected $fillable = [
         'name',
-        'sector_type',
+        'type',
         'barangay_name',
         'latitude',
         'longitude',
@@ -25,6 +27,8 @@ class Institution extends Model
         'has_smart_tv',
         'has_public_address_system',
         'needs_maintenance',
+        'notes',
+
         'is_pilot_site',
         'data_completeness_score',
         'requires_audit',
@@ -32,24 +36,36 @@ class Institution extends Model
         'audited_by',
         'audit_notes',
         'is_active',
-        'notes',
     ];
 
     protected $casts = [
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',
         'internet_speed' => 'decimal:2',
+
+        'student_population' => 'integer',
+        'staff_population' => 'integer',
+        'number_of_computers' => 'integer',
+        'data_completeness_score' => 'integer',
+
         'has_computer_lab' => 'boolean',
         'has_projected_whiteboard' => 'boolean',
         'has_smart_tv' => 'boolean',
         'has_public_address_system' => 'boolean',
         'needs_maintenance' => 'boolean',
+
         'is_pilot_site' => 'boolean',
         'requires_audit' => 'boolean',
         'is_active' => 'boolean',
+
         'last_audited_at' => 'datetime',
-        'data_completeness_score' => 'integer',
     ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Relationships
+    |--------------------------------------------------------------------------
+    */
 
     public function institutionAnalytics()
     {
@@ -58,11 +74,32 @@ class Institution extends Model
 
     public function ictInventory()
     {
-        return $this->hasMany(IctInventory::class);
+        return $this->hasMany(IctInventory::class, 'institution_id');
     }
 
     public function auditor()
     {
         return $this->belongsTo(User::class, 'audited_by');
+    }
+
+    /**
+     * Update or create analytics for this institution
+     */
+    public function updateAnalytics()
+    {
+        $gapScore = \App\Helpers\GapScoreCalculator::computeScore($this);
+        $dataCompleteness = \App\Helpers\GapScoreCalculator::computeDataCompleteness($this);
+
+        $this->institutionAnalytics()->updateOrCreate(
+            ['institution_id' => $this->id],
+            [
+                'gap_score' => $gapScore,
+                'data_completeness_score' => $dataCompleteness,
+                'analysis_date' => now(),
+            ]
+        );
+
+        // Also update the institution's data_completeness_score
+        $this->update(['data_completeness_score' => $dataCompleteness]);
     }
 }

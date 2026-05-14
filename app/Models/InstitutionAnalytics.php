@@ -12,6 +12,7 @@ class InstitutionAnalytics extends Model
     protected $fillable = [
         'institution_id',
         'gap_score',
+        'data_completeness_score',
         'infrastructure_narrative',
         'policy_recommendation',
         'recommendations_detail',
@@ -22,6 +23,7 @@ class InstitutionAnalytics extends Model
 
     protected $casts = [
         'gap_score' => 'decimal:2',
+        'data_completeness_score' => 'integer',
         'recommendations_detail' => 'array',
         'analysis_date' => 'datetime',
     ];

@@ -1,269 +1,436 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="py-8">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Header -->
-        <div class="bg-white shadow-lg rounded-xl overflow-hidden mb-6">
-            <div class="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600">
-                <div class="flex items-center">
-                    <svg class="w-8 h-8 text-white mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                    </svg>
-                    <div>
-                        <h1 class="text-3xl font-bold text-white">Edit Institution</h1>
-                        <p class="text-blue-100 mt-1">{{ $institution->name }}</p>
+<div class="flex flex-col h-full min-h-0 bg-gray-100">
+
+    <form method="POST" action="{{ route('institutions.update', $institution) }}" id="editForm" class="flex flex-col h-full min-h-0">
+        @csrf
+        @method('PUT')
+
+        {{-- ── Fixed Action Bar (top) ───────────────────────────────── --}}
+        <div class="flex-shrink-0 bg-blue-700 px-6 py-4">
+            <div class="flex items-center justify-between gap-4">
+                {{-- Back + Title --}}
+                <div class="flex items-center gap-3 min-w-0">
+                    <a href="{{ route('institutions.show', $institution) }}"
+                       class="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition shrink-0"
+                       title="Back to view">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                    </a>
+                    <div class="min-w-0">
+                        <h1 class="text-lg font-semibold text-white leading-tight">Edit Institution</h1>
+                        <p class="text-blue-200 text-xs mt-0.5 truncate">{{ $institution->name }}</p>
                     </div>
+                </div>
+
+                {{-- Save / Cancel --}}
+                <div class="flex items-center gap-2 shrink-0">
+                    <a href="{{ route('institutions.show', $institution) }}"
+                       class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition border border-blue-500">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Cancel
+                    </a>
+                    <button type="submit"
+                            class="flex items-center gap-2 bg-white text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-50 font-medium text-sm shadow-sm transition border border-blue-100">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                        </svg>
+                        Save Changes
+                    </button>
                 </div>
             </div>
         </div>
 
-        <form method="POST" action="{{ route('institutions.update', $institution) }}">
-            @csrf
-            @method('PUT')
+        {{-- ── Scrollable Form Body ──────────────────────────────────── --}}
+        <div class="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-5">
 
-            <!-- Basic Information Section -->
-            <div class="bg-white shadow-lg rounded-xl overflow-hidden mb-6">
-                <div class="px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500">
-                    <h2 class="text-xl font-semibold text-white flex items-center">
-                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        Basic Information
-                    </h2>
-                </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label for="name" class="block text-sm font-medium text-gray-700 flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
-                                </svg>
-                                Name *
-                            </label>
-                            <input type="text" name="name" id="name" value="{{ old('name', $institution->name) }}" required class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 transition duration-200">
-                            @error('name') <p class="mt-1 text-sm text-red-600 flex items-center"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>{{ $message }}</p> @enderror
-                        </div>
-
-
-
-                        <div>
-                            <label for="sector_type" class="block text-sm font-medium text-gray-700 flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                </svg>
-                                Type *
-                            </label>
-                            <select name="sector_type" id="sector_type" class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 transition duration-200">
-                                <option value="School" {{ old('sector_type', $institution->sector_type) == 'School' ? 'selected' : '' }}>School</option>
-                                <option value="Barangay Hall" {{ old('sector_type', $institution->sector_type) == 'Barangay Hall' ? 'selected' : '' }}>Barangay Hall</option>
-                                <option value="City Government Office" {{ old('sector_type', $institution->sector_type) == 'City Government Office' ? 'selected' : '' }}>City Government Office</option>
-                                <option value="Public Library" {{ old('sector_type', $institution->sector_type) == 'Public Library' ? 'selected' : '' }}>Public Library</option>
-                                <option value="Health Center" {{ old('sector_type', $institution->sector_type) == 'Health Center' ? 'selected' : '' }}>Health Center</option>
-                                <option value="Other Public" {{ old('sector_type', $institution->sector_type) == 'Other Public' ? 'selected' : '' }}>Other Public</option>
-                            </select>
-                            @error('sector_type') <p class="mt-1 text-sm text-red-600 flex items-center"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>{{ $message }}</p> @enderror
-                        </div>
-
-                        <div>
-                            <label for="student_population" class="block text-sm font-medium text-gray-700 flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-                                </svg>
-                                Student Population
-                            </label>
-                            <input type="number" name="student_population" id="student_population" value="{{ old('student_population', $institution->student_population) }}" class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-emerald-500 focus:border-emerald-500 transition duration-200">
-                            @error('student_population') <p class="mt-1 text-sm text-red-600 flex items-center"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>{{ $message }}</p> @enderror
-                        </div>
-                    </div>
+            {{-- Validation summary --}}
+            @if($errors->any())
+            <div class="flex items-start gap-3 bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">
+                <svg class="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <div>
+                    <p class="font-medium">Please fix the following errors:</p>
+                    <ul class="mt-1 list-disc list-inside space-y-0.5 text-xs">
+                        @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
                 </div>
             </div>
+            @endif
 
-            <!-- Location Section -->
-            <div class="bg-white shadow-lg rounded-xl overflow-hidden mb-6">
-                <div class="px-6 py-4 bg-gradient-to-r from-blue-500 to-cyan-500">
-                    <h2 class="text-xl font-semibold text-white flex items-center">
-                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        </svg>
-                        Location & Connectivity
-                    </h2>
-                </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label for="barangay_name" class="block text-sm font-medium text-gray-700 flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                </svg>
-                                Barangay Name *
-                            </label>
-                            <input type="text" name="barangay_name" id="barangay_name" value="{{ old('barangay_name', $institution->barangay_name) }}" required class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-200">
-                            @error('barangay_name') <p class="mt-1 text-sm text-red-600 flex items-center"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>{{ $message }}</p> @enderror
-                        </div>
-
-                        <div>
-                            <label for="internet_speed" class="block text-sm font-medium text-gray-700 flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-                                </svg>
-                                Internet Speed (Mbps)
-                            </label>
-                            <input type="number" step="0.1" name="internet_speed" id="internet_speed" value="{{ old('internet_speed', $institution->internet_speed) }}" class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-200">
-                            @error('internet_speed') <p class="mt-1 text-sm text-red-600 flex items-center"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>{{ $message }}</p> @enderror
-                        </div>
-
-                        <div>
-                            <label for="latitude" class="block text-sm font-medium text-gray-700 flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
-                                </svg>
-                                Latitude *
-                            </label>
-                            <input type="number" step="0.000001" name="latitude" id="latitude" value="{{ old('latitude', $institution->latitude) }}" placeholder="e.g. 13.9411" required class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-200">
-                            @error('latitude') <p class="mt-1 text-sm text-red-600 flex items-center"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>{{ $message }}</p> @enderror
-                        </div>
-
-                        <div>
-                            <label for="longitude" class="block text-sm font-medium text-gray-700 flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path>
-                                </svg>
-                                Longitude *
-                            </label>
-                            <input type="number" step="0.000001" name="longitude" id="longitude" value="{{ old('longitude', $institution->longitude) }}" placeholder="e.g. 121.1644" required class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 transition duration-200">
-                            @error('longitude') <p class="mt-1 text-sm text-red-600 flex items-center"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>{{ $message }}</p> @enderror
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ICT Facilities Section -->
-            <div class="bg-white shadow-lg rounded-xl overflow-hidden mb-6">
-                <div class="px-6 py-4 bg-gradient-to-r from-purple-500 to-pink-500">
-                    <h2 class="text-xl font-semibold text-white flex items-center">
-                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                        </svg>
-                        ICT Facilities
-                    </h2>
-                </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="space-y-4">
-                            <div class="flex items-center">
-                                <input type="checkbox" name="has_computer_lab" value="1" {{ old('has_computer_lab', $institution->has_computer_lab) ? 'checked' : '' }} class="rounded border-gray-300 text-purple-600 shadow-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50 h-5 w-5">
-                                <label class="ml-3 text-sm font-medium text-gray-700 flex items-center">
-                                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                                    </svg>
-                                    Computer Lab
-                                </label>
-                            </div>
-
-                            <div class="flex items-center">
-                                <input type="checkbox" name="has_smart_tv" value="1" {{ old('has_smart_tv', $institution->has_smart_tv) ? 'checked' : '' }} class="rounded border-gray-300 text-purple-600 shadow-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50 h-5 w-5">
-                                <label class="ml-3 text-sm font-medium text-gray-700 flex items-center">
-                                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                                    </svg>
-                                    Smart TV
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="space-y-4">
-                            <div class="flex items-center">
-                                <input type="checkbox" name="has_projected_whiteboard" value="1" {{ old('has_projected_whiteboard', $institution->has_projected_whiteboard) ? 'checked' : '' }} class="rounded border-gray-300 text-purple-600 shadow-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50 h-5 w-5">
-                                <label class="ml-3 text-sm font-medium text-gray-700 flex items-center">
-                                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                    </svg>
-                                    Projected Whiteboard
-                                </label>
-                            </div>
-
-                            <div class="flex items-center">
-                                <input type="checkbox" name="has_public_address_system" value="1" {{ old('has_public_address_system', $institution->has_public_address_system) ? 'checked' : '' }} class="rounded border-gray-300 text-purple-600 shadow-sm focus:border-purple-300 focus:ring focus:ring-purple-200 focus:ring-opacity-50 h-5 w-5">
-                                <label class="ml-3 text-sm font-medium text-gray-700 flex items-center">
-                                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"></path>
-                                    </svg>
-                                    Public Address System
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Status & Notes Section -->
-            <div class="bg-white shadow-lg rounded-xl overflow-hidden mb-6">
-                <div class="px-6 py-4 bg-gradient-to-r from-orange-500 to-red-500">
-                    <h2 class="text-xl font-semibold text-white flex items-center">
-                        <svg class="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        </svg>
-                        Status & Notes
-                    </h2>
-                </div>
-                <div class="p-6">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div class="space-y-4">
-                            <div class="flex items-center">
-                                <input type="checkbox" name="is_pilot_site" value="1" {{ old('is_pilot_site', $institution->is_pilot_site) ? 'checked' : '' }} class="rounded border-gray-300 text-orange-600 shadow-sm focus:border-orange-300 focus:ring focus:ring-orange-200 focus:ring-opacity-50 h-5 w-5">
-                                <label class="ml-3 text-sm font-medium text-gray-700 flex items-center">
-                                    <svg class="w-4 h-4 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Pilot Site
-                                </label>
-                            </div>
-
-                            <div class="flex items-center">
-                                <input type="checkbox" name="needs_maintenance" value="1" {{ old('needs_maintenance', $institution->needs_maintenance) ? 'checked' : '' }} class="rounded border-gray-300 text-orange-600 shadow-sm focus:border-orange-300 focus:ring focus:ring-orange-200 focus:ring-opacity-50 h-5 w-5">
-                                <label class="ml-3 text-sm font-medium text-gray-700 flex items-center">
-                                    <svg class="w-4 h-4 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                                    </svg>
-                                    Needs Maintenance
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="notes" class="block text-sm font-medium text-gray-700 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+            {{-- ── Section 1: Basic Information ──────────────────────── --}}
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <button type="button" onclick="toggleSection('sec-basic')"
+                        class="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-gray-50 transition">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            Notes
-                        </label>
-                        <textarea name="notes" id="notes" rows="4" class="mt-1 block w-full border-gray-300 rounded-lg shadow-sm focus:ring-orange-500 focus:border-orange-500 transition duration-200" placeholder="Add any additional notes...">{{ old('notes', $institution->notes) }}</textarea>
-                        @error('notes') <p class="mt-1 text-sm text-red-600 flex items-center"><svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <span class="text-sm font-semibold text-gray-800">Basic Information</span>
+                            <span class="ml-2 text-xs text-gray-400">Name, sector, population</span>
+                        </div>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-400 section-chevron transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div id="sec-basic" class="border-t border-gray-100 px-5 py-5">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+
+                        {{-- Name --}}
+                        <div class="xl:col-span-2">
+                            <label for="name" class="block text-xs font-semibold text-gray-600 mb-1.5">
+                                Institution Name <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="name" id="name"
+                                   value="{{ old('name', $institution->name) }}" required
+                                   class="form-input w-full @error('name') border-red-400 @enderror"
+                                   placeholder="e.g. Lipa City National High School">
+                            @error('name')
+                            <p class="mt-1 text-xs text-red-600 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                {{ $message }}
+                            </p>
+                            @enderror
+                        </div>
+
+                        {{-- Sector Type --}}
+                        <div>
+                            <label for="sector_type" class="block text-xs font-semibold text-gray-600 mb-1.5">
+                                Sector Type <span class="text-red-500">*</span>
+                            </label>
+                            <select name="sector_type" id="sector_type" required
+                                    class="form-input w-full @error('sector_type') border-red-400 @enderror">
+                                @foreach(['School','Barangay Hall','City Government Office','Public Library','Health Center','Other Public'] as $type)
+                                <option value="{{ $type }}" {{ old('sector_type', $institution->sector_type) == $type ? 'selected' : '' }}>{{ $type }}</option>
+                                @endforeach
+                            </select>
+                            @error('sector_type')
+                            <p class="mt-1 text-xs text-red-600 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                {{ $message }}
+                            </p>
+                            @enderror
+                        </div>
+
+                        {{-- Student Population --}}
+                        <div>
+                            <label for="student_population" class="block text-xs font-semibold text-gray-600 mb-1.5">Student Population</label>
+                            <input type="number" name="student_population" id="student_population" min="0"
+                                   value="{{ old('student_population', $institution->student_population) }}"
+                                   class="form-input w-full @error('student_population') border-red-400 @enderror"
+                                   placeholder="e.g. 1200">
+                            @error('student_population')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        {{-- Staff Population --}}
+                        <div>
+                            <label for="staff_population" class="block text-xs font-semibold text-gray-600 mb-1.5">Staff Population</label>
+                            <input type="number" name="staff_population" id="staff_population" min="0"
+                                   value="{{ old('staff_population', $institution->staff_population) }}"
+                                   class="form-input w-full @error('staff_population') border-red-400 @enderror"
+                                   placeholder="e.g. 45">
+                            @error('staff_population')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        {{-- ISP Provider --}}
+                        <div>
+                            <label for="isp_provider" class="block text-xs font-semibold text-gray-600 mb-1.5">ISP Provider</label>
+                            <input type="text" name="isp_provider" id="isp_provider"
+                                   value="{{ old('isp_provider', $institution->isp_provider) }}"
+                                   class="form-input w-full"
+                                   placeholder="e.g. PLDT, Globe, Converge">
+                        </div>
+
+                        {{-- Internet Speed --}}
+                        <div>
+                            <label for="internet_speed" class="block text-xs font-semibold text-gray-600 mb-1.5">Internet Speed (Mbps)</label>
+                            <input type="number" step="0.1" name="internet_speed" id="internet_speed" min="0"
+                                   value="{{ old('internet_speed', $institution->internet_speed) }}"
+                                   class="form-input w-full @error('internet_speed') border-red-400 @enderror"
+                                   placeholder="e.g. 100">
+                            @error('internet_speed')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
                     </div>
                 </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="flex justify-end space-x-4">
-                <a href="{{ route('institutions.index') }}" class="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 font-medium shadow-sm transition duration-200 flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            {{-- ── Section 2: Location ────────────────────────────────── --}}
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <button type="button" onclick="toggleSection('sec-location')"
+                        class="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-gray-50 transition">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-emerald-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="text-sm font-semibold text-gray-800">Location</span>
+                            <span class="ml-2 text-xs text-gray-400">Barangay and GPS coordinates</span>
+                        </div>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-400 section-chevron transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
+                </button>
+                <div id="sec-location" class="border-t border-gray-100 px-5 py-5">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+                        {{-- Barangay --}}
+                        <div>
+                            <label for="barangay_name" class="block text-xs font-semibold text-gray-600 mb-1.5">
+                                Barangay <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="barangay_name" id="barangay_name"
+                                   value="{{ old('barangay_name', $institution->barangay_name) }}" required
+                                   class="form-input w-full @error('barangay_name') border-red-400 @enderror"
+                                   placeholder="e.g. Barangay Mataas na Lupa">
+                            @error('barangay_name')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        {{-- Latitude --}}
+                        <div>
+                            <label for="latitude" class="block text-xs font-semibold text-gray-600 mb-1.5">
+                                Latitude <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" step="0.000001" name="latitude" id="latitude"
+                                   value="{{ old('latitude', $institution->latitude) }}" required
+                                   class="form-input w-full @error('latitude') border-red-400 @enderror"
+                                   placeholder="e.g. 13.9411">
+                            @error('latitude')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        {{-- Longitude --}}
+                        <div>
+                            <label for="longitude" class="block text-xs font-semibold text-gray-600 mb-1.5">
+                                Longitude <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" step="0.000001" name="longitude" id="longitude"
+                                   value="{{ old('longitude', $institution->longitude) }}" required
+                                   class="form-input w-full @error('longitude') border-red-400 @enderror"
+                                   placeholder="e.g. 121.1644">
+                            @error('longitude')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                    </div>
+                    <p class="mt-3 text-xs text-gray-400 flex items-center gap-1">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Lipa City is approximately at 13.94°N, 121.16°E. Use Google Maps to find precise coordinates.
+                    </p>
+                </div>
+            </div>
+
+            {{-- ── Section 3: ICT Facilities ──────────────────────────── --}}
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <button type="button" onclick="toggleSection('sec-ict')"
+                        class="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-gray-50 transition">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-purple-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="text-sm font-semibold text-gray-800">ICT Facilities</span>
+                            <span class="ml-2 text-xs text-gray-400">Equipment and hardware availability</span>
+                        </div>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-400 section-chevron transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div id="sec-ict" class="border-t border-gray-100 px-5 py-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-5">
+                        <x-toggle-card name="has_computer_lab"         label="Computer Lab"        :checked="old('has_computer_lab', $institution->has_computer_lab)"/>
+                        <x-toggle-card name="has_smart_tv"             label="Smart TV"            :checked="old('has_smart_tv', $institution->has_smart_tv)"/>
+                        <x-toggle-card name="has_projected_whiteboard" label="Projected Whiteboard":checked="old('has_projected_whiteboard', $institution->has_projected_whiteboard)"/>
+                        <x-toggle-card name="has_public_address_system"label="PA System"           :checked="old('has_public_address_system', $institution->has_public_address_system)"/>
+                    </div>
+                    <div class="max-w-xs">
+                        <label for="number_of_computers" class="block text-xs font-semibold text-gray-600 mb-1.5">Number of Computers</label>
+                        <input type="number" name="number_of_computers" id="number_of_computers" min="0"
+                               value="{{ old('number_of_computers', $institution->number_of_computers) }}"
+                               class="form-input w-full"
+                               placeholder="e.g. 30">
+                    </div>
+                </div>
+            </div>
+
+            {{-- ── Section 4: Status & Flags ──────────────────────────── --}}
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <button type="button" onclick="toggleSection('sec-status')"
+                        class="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-gray-50 transition">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-orange-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="text-sm font-semibold text-gray-800">Status & Flags</span>
+                            <span class="ml-2 text-xs text-gray-400">Operational status and audit flags</span>
+                        </div>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-400 section-chevron transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div id="sec-status" class="border-t border-gray-100 px-5 py-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                        <x-toggle-card name="is_pilot_site"    label="Pilot Site"       :checked="old('is_pilot_site', $institution->is_pilot_site)"       color="green"/>
+                        <x-toggle-card name="is_active"        label="Active"           :checked="old('is_active', $institution->is_active)"               color="green"/>
+                        <x-toggle-card name="needs_maintenance"label="Needs Maintenance":checked="old('needs_maintenance', $institution->needs_maintenance)" color="red"/>
+                        <x-toggle-card name="requires_audit"   label="Requires Audit"  :checked="old('requires_audit', $institution->requires_audit)"      color="yellow"/>
+                    </div>
+                </div>
+            </div>
+
+            {{-- ── Section 5: Notes ───────────────────────────────────── --}}
+            <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <button type="button" onclick="toggleSection('sec-notes')"
+                        class="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-gray-50 transition">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <span class="text-sm font-semibold text-gray-800">Notes</span>
+                            <span class="ml-2 text-xs text-gray-400">Additional remarks or observations</span>
+                        </div>
+                    </div>
+                    <svg class="w-4 h-4 text-gray-400 section-chevron transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                <div id="sec-notes" class="border-t border-gray-100 px-5 py-5">
+                    <textarea name="notes" id="notes" rows="4"
+                              class="form-input w-full resize-none"
+                              placeholder="Add any additional notes, observations, or remarks about this institution…">{{ old('notes', $institution->notes) }}</textarea>
+                    @error('notes')
+                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+            </div>
+
+            {{-- Bottom save bar (convenience duplicate) --}}
+            <div class="flex items-center justify-end gap-3 py-2">
+                <a href="{{ route('institutions.show', $institution) }}"
+                   class="flex items-center gap-2 bg-white text-gray-700 px-5 py-2.5 rounded-lg hover:bg-gray-50 font-medium text-sm transition border border-gray-200 shadow-sm">
                     Cancel
                 </a>
-                <button type="submit" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-medium shadow-sm transition duration-200 flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                <button type="submit"
+                        class="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 font-medium text-sm transition shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
-                    Update Institution
+                    Save Changes
                 </button>
             </div>
-        </form>
-    </div>
+
+        </div>{{-- end scrollable body --}}
+    </form>
 </div>
+
+<style>
+    .form-input {
+        @apply block border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white
+               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+               placeholder-gray-400 transition;
+    }
+    select.form-input { @apply pr-8; }
+</style>
+
+@endsection
+
+@section('scripts')
+<script>
+// ── Toggle cards ─────────────────────────────────────────────────────
+document.querySelectorAll('.toggle-card-label').forEach(label => {
+    const input  = label.querySelector('.toggle-card-input');
+    const body   = label.querySelector('.toggle-card-body');
+    const track  = label.querySelector('.toggle-track');
+    const thumb  = label.querySelector('.toggle-thumb');
+    const text   = label.querySelector('.toggle-label-text');
+    const active = body.dataset.activeClass.split(' ');
+    const tc     = body.dataset.textClass;
+    const trk    = body.dataset.trackClass;
+
+    function sync() {
+        if (input.checked) {
+            body.classList.add(...active);
+            body.classList.remove('border-gray-200', 'bg-white');
+            track.classList.add(trk);
+            track.classList.remove('bg-gray-200');
+            thumb.style.transform = 'translateX(1rem)';
+            text.classList.add(tc);
+            text.classList.remove('text-gray-500');
+        } else {
+            body.classList.remove(...active);
+            body.classList.add('border-gray-200', 'bg-white');
+            track.classList.remove(trk);
+            track.classList.add('bg-gray-200');
+            thumb.style.transform = 'translateX(0)';
+            text.classList.remove(tc);
+            text.classList.add('text-gray-500');
+        }
+    }
+    sync();
+    input.addEventListener('change', sync);
+});
+
+// ── Accordion sections ───────────────────────────────────────────────
+function toggleSection(id) {
+    const body    = document.getElementById(id);
+    const btn     = body.previousElementSibling;
+    const chevron = btn.querySelector('.section-chevron');
+    const isOpen  = !body.classList.contains('hidden');
+
+    body.classList.toggle('hidden', isOpen);
+    chevron.style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
+}
+
+// Warn on unsaved changes
+(function () {
+    let dirty = false;
+    document.getElementById('editForm').addEventListener('change', () => dirty = true);
+    window.addEventListener('beforeunload', e => {
+        if (dirty) { e.preventDefault(); e.returnValue = ''; }
+    });
+    document.getElementById('editForm').addEventListener('submit', () => dirty = false);
+    document.querySelectorAll('a[href]').forEach(a => {
+        a.addEventListener('click', e => {
+            if (dirty && !confirm('You have unsaved changes. Leave anyway?')) e.preventDefault();
+        });
+    });
+})();
+</script>
 @endsection

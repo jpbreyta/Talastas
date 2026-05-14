@@ -48,22 +48,7 @@
         {{-- ── Scrollable Form Body ──────────────────────────────────── --}}
         <div class="flex-1 min-h-0 overflow-y-auto px-6 py-5 space-y-5">
 
-            {{-- Validation summary --}}
-            @if($errors->any())
-            <div class="flex items-start gap-3 bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-3 rounded-lg">
-                <svg class="w-4 h-4 text-red-500 shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                </svg>
-                <div>
-                    <p class="font-medium">Please fix the following errors:</p>
-                    <ul class="mt-1 list-disc list-inside space-y-0.5 text-xs">
-                        @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            </div>
-            @endif
+
 
             {{-- ── Section 1: Basic Information ──────────────────────── --}}
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -104,48 +89,48 @@
                             @enderror
                         </div>
 
-                        {{-- Sector Type --}}
-                        <div>
-                            <label for="sector_type" class="block text-xs font-semibold text-gray-600 mb-1.5">
-                                Sector Type <span class="text-red-500">*</span>
-                            </label>
-                            <select name="sector_type" id="sector_type" required
-                                    class="form-input w-full @error('sector_type') border-red-400 @enderror">
-                                @foreach(['School','Barangay Hall','City Government Office','Public Library','Health Center','Other Public'] as $type)
-                                <option value="{{ $type }}" {{ old('sector_type', $institution->sector_type) == $type ? 'selected' : '' }}>{{ $type }}</option>
-                                @endforeach
-                            </select>
-                            @error('sector_type')
-                            <p class="mt-1 text-xs text-red-600 flex items-center gap-1">
-                                <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
-                                {{ $message }}
-                            </p>
-                            @enderror
-                        </div>
+                         {{-- Sector Type --}}
+                         <div>
+                             <label for="type" class="block text-xs font-semibold text-gray-600 mb-1.5">
+                                 Sector Type <span class="text-red-500">*</span>
+                             </label>
+                             <select name="type" id="type" required
+                                     class="form-input w-full @error('type') border-red-400 @enderror">
+                                  @foreach(['School','Barangay Hall','Local Government Office'] as $type)
+                                 <option value="{{ $type }}" {{ old('type', $institution->type) == $type ? 'selected' : '' }}>{{ $type }}</option>
+                                 @endforeach
+                             </select>
+                             @error('type')
+                             <p class="mt-1 text-xs text-red-600 flex items-center gap-1">
+                                 <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                 {{ $message }}
+                             </p>
+                             @enderror
+                         </div>
 
-                        {{-- Student Population --}}
-                        <div>
-                            <label for="student_population" class="block text-xs font-semibold text-gray-600 mb-1.5">Student Population</label>
-                            <input type="number" name="student_population" id="student_population" min="0"
-                                   value="{{ old('student_population', $institution->student_population) }}"
-                                   class="form-input w-full @error('student_population') border-red-400 @enderror"
-                                   placeholder="e.g. 1200">
-                            @error('student_population')
-                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
+                         {{-- Student Population --}}
+                         <div class="population-field" data-type="school">
+                             <label for="student_population" class="block text-xs font-semibold text-gray-600 mb-1.5">Student Population <span class="text-red-500">*</span></label>
+                             <input type="number" name="student_population" id="student_population" min="0"
+                                    value="{{ old('student_population', $institution->student_population) }}"
+                                    class="form-input w-full @error('student_population') border-red-400 @enderror"
+                                    placeholder="e.g. 1200" required>
+                             @error('student_population')
+                             <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                             @enderror
+                         </div>
 
-                        {{-- Staff Population --}}
-                        <div>
-                            <label for="staff_population" class="block text-xs font-semibold text-gray-600 mb-1.5">Staff Population</label>
-                            <input type="number" name="staff_population" id="staff_population" min="0"
-                                   value="{{ old('staff_population', $institution->staff_population) }}"
-                                   class="form-input w-full @error('staff_population') border-red-400 @enderror"
-                                   placeholder="e.g. 45">
-                            @error('staff_population')
-                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                            @enderror
-                        </div>
+                         {{-- Staff Population --}}
+                         <div class="population-field" data-type="other">
+                             <label for="staff_population" class="block text-xs font-semibold text-gray-600 mb-1.5">Staff Population <span class="text-red-500">*</span></label>
+                             <input type="number" name="staff_population" id="staff_population" min="0"
+                                    value="{{ old('staff_population', $institution->staff_population) }}"
+                                    class="form-input w-full @error('staff_population') border-red-400 @enderror"
+                                    placeholder="e.g. 45" required>
+                             @error('staff_population')
+                             <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                             @enderror
+                         </div>
 
                         {{-- ISP Provider --}}
                         <div>
@@ -417,6 +402,37 @@ function toggleSection(id) {
     body.classList.toggle('hidden', isOpen);
     chevron.style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
 }
+
+// ── Dynamic population fields ─────────────────────────────────────────
+function updatePopulationFields() {
+    const typeSelect = document.getElementById('type');
+    const selectedType = typeSelect.value;
+
+    const schoolField = document.querySelector('.population-field[data-type="school"]');
+    const otherField = document.querySelector('.population-field[data-type="other"]');
+    const studentInput = document.getElementById('student_population');
+    const staffInput = document.getElementById('staff_population');
+
+    if (selectedType === 'School') {
+        schoolField.style.display = 'block';
+        otherField.style.display = 'none';
+        studentInput.required = true;
+        staffInput.required = false;
+        // Don't clear values on edit
+    } else {
+        schoolField.style.display = 'none';
+        otherField.style.display = 'block';
+        studentInput.required = false;
+        staffInput.required = true;
+        // Don't clear values on edit
+    }
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', updatePopulationFields);
+
+// Update when type changes
+document.getElementById('type').addEventListener('change', updatePopulationFields);
 
 // Warn on unsaved changes
 (function () {

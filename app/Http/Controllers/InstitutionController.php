@@ -30,7 +30,7 @@ class InstitutionController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $rules = [
             'name' => 'required|string|max:255',
 
             'type' => 'required|in:School,Barangay Hall,Local Government Office',
@@ -39,9 +39,6 @@ class InstitutionController extends Controller
 
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
-
-            'student_population' => 'nullable|integer|min:0',
-            'staff_population' => 'nullable|integer|min:0',
 
             'isp_provider' => 'nullable|string|max:255',
             'internet_speed' => 'nullable|numeric|min:0',
@@ -66,7 +63,18 @@ class InstitutionController extends Controller
             'audit_notes' => 'nullable|string',
 
             'is_active' => 'nullable|boolean',
-        ]);
+        ];
+
+        // Conditional validation for population fields
+        if ($request->type === 'School') {
+            $rules['student_population'] = 'required|integer|min:0';
+            $rules['staff_population'] = 'nullable|integer|min:0';
+        } else {
+            $rules['student_population'] = 'nullable|integer|min:0';
+            $rules['staff_population'] = 'required|integer|min:0';
+        }
+
+        $validated = $request->validate($rules);
 
         // Handle unchecked checkboxes
         $validated['has_computer_lab'] = $request->boolean('has_computer_lab');
@@ -112,7 +120,7 @@ class InstitutionController extends Controller
      */
     public function update(Request $request, Institution $institution)
     {
-        $validated = $request->validate([
+        $rules = [
             'name' => 'required|string|max:255',
 
             'type' => 'required|in:School,Barangay Hall,Local Government Office',
@@ -121,9 +129,6 @@ class InstitutionController extends Controller
 
             'latitude' => 'required|numeric|between:-90,90',
             'longitude' => 'required|numeric|between:-180,180',
-
-            'student_population' => 'nullable|integer|min:0',
-            'staff_population' => 'nullable|integer|min:0',
 
             'isp_provider' => 'nullable|string|max:255',
             'internet_speed' => 'nullable|numeric|min:0',
@@ -148,7 +153,18 @@ class InstitutionController extends Controller
             'audit_notes' => 'nullable|string',
 
             'is_active' => 'nullable|boolean',
-        ]);
+        ];
+
+        // Conditional validation for population fields
+        if ($request->type === 'School') {
+            $rules['student_population'] = 'required|integer|min:0';
+            $rules['staff_population'] = 'nullable|integer|min:0';
+        } else {
+            $rules['student_population'] = 'nullable|integer|min:0';
+            $rules['staff_population'] = 'required|integer|min:0';
+        }
+
+        $validated = $request->validate($rules);
 
         // Handle unchecked checkboxes
         $validated['has_computer_lab'] = $request->boolean('has_computer_lab');

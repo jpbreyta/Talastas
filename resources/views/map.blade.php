@@ -260,7 +260,7 @@
             // Additional invalidate after data loads
             setTimeout(() => map.invalidateSize(), 500);
 
-            const heatmapLayer = L.layerGroup().addTo(map);
+            let heatmapLayer = null;
             let heatData = [];
             let barangayOverlay = null;
             // Registry: barangay name → layer, populated after GeoJSON loads
@@ -691,10 +691,13 @@
 
             heatmapBtn.addEventListener('click', () => {
                 if (heatmapVisible) {
-                    map.removeLayer(heatmapLayer);
+                    if (heatmapLayer) {
+                        map.removeLayer(heatmapLayer);
+                        heatmapLayer = null;
+                    }
                     heatmapVisible = false;
                 } else {
-                    L.heatLayer(heatData, {
+                    heatmapLayer = L.heatLayer(heatData, {
                         radius: 25,
                         blur: 15,
                         maxZoom: 17,

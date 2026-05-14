@@ -100,6 +100,9 @@ class Institution extends Model
         );
 
         // Also update the institution's data_completeness_score
-        $this->update(['data_completeness_score' => $dataCompleteness]);
+        // Use withoutEvents to prevent infinite loop
+        static::withoutEvents(function () use ($dataCompleteness) {
+            $this->update(['data_completeness_score' => $dataCompleteness]);
+        });
     }
 }

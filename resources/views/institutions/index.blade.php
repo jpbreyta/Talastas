@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('dashboard-layout')@endsection
+
 @section('content')
 <div class="flex flex-col h-full min-h-0 bg-gray-100">
 
@@ -30,36 +32,6 @@
                            class="bg-blue-800 text-white placeholder-blue-300 text-sm pl-9 pr-4 py-2 rounded-lg border border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300 w-56 transition"/>
                 </div>
 
-                {{-- View toggle --}}
-                <div class="flex items-center bg-blue-800 rounded-lg border border-blue-600 p-0.5 gap-0.5">
-                    <button id="btnGrid" onclick="setView('grid')"
-                            title="Grid view"
-                            class="view-btn active-view p-1.5 rounded-md transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
-                        </svg>
-                    </button>
-                    <button id="btnList" onclick="setView('list')"
-                            title="List view"
-                            class="view-btn p-1.5 rounded-md transition">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                  d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
-                        </svg>
-                    </button>
-                </div>
-
-                {{-- Column density (grid only) --}}
-                <div id="colControls" class="flex items-center bg-blue-800 rounded-lg border border-blue-600 p-0.5 gap-0.5">
-                    <button onclick="setCols(4)" data-cols="4" title="4 columns"
-                            class="col-btn px-2 py-1.5 rounded-md text-xs font-medium text-blue-200 hover:bg-blue-700 hover:text-white transition">4</button>
-                    <button onclick="setCols(5)" data-cols="5" title="5 columns"
-                            class="col-btn active-cols px-2 py-1.5 rounded-md text-xs font-medium transition">5</button>
-                    <button onclick="setCols(6)" data-cols="6" title="6 columns"
-                            class="col-btn px-2 py-1.5 rounded-md text-xs font-medium text-blue-200 hover:bg-blue-700 hover:text-white transition">6</button>
-                </div>
-
                 {{-- Add button --}}
                 <a href="{{ route('institutions.create') }}"
                    class="flex items-center gap-2 bg-white text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-50 font-medium text-sm shadow-sm transition border border-blue-100 shrink-0">
@@ -72,8 +44,8 @@
         </div>
     </div>
 
-    {{-- ── Scrollable Content Area ───────────────────────────────────── --}}
-    <div class="flex-1 min-h-0 overflow-y-auto px-5 py-4">
+    {{-- ── Content Area ─────────────────────────────────────────────── --}}
+    <div class="flex-1 min-h-0 flex flex-col">
 
         @if($institutions->count() > 0)
 
@@ -170,7 +142,7 @@
         <div id="listView" class="hidden">
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                 <table class="w-full text-sm">
-                    <thead>
+                    <thead class="sticky top-0 z-10">
                         <tr class="bg-gray-50 border-b border-gray-200 text-left">
                             <th class="px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Institution</th>
                             <th class="px-4 py-3 font-semibold text-gray-600 text-xs uppercase tracking-wide">Sector</th>
@@ -182,7 +154,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @foreach($institutions as $institution)
-                        <tr class="inst-card hover:bg-blue-50/40 transition group">
+                        <tr class="inst-row hover:bg-blue-50/40 transition">
                             <td class="px-4 py-3">
                                 <span class="font-medium text-gray-900">{{ $institution->name }}</span>
                             </td>
@@ -222,17 +194,26 @@
                         @endforeach
                     </tbody>
                 </table>
+
+                {{-- Empty filter state --}}
+                <div id="noResults" class="hidden py-12 text-center">
+                    <svg class="mx-auto h-8 w-8 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+                    </svg>
+                    <p class="text-sm text-gray-500">No institutions match your search.</p>
+                </div>
             </div>
         </div>
 
         {{-- Pagination --}}
-        <div class="mt-5">
+        <div class="flex-shrink-0 px-5 py-2 border-t border-gray-200 bg-white">
             {{ $institutions->links() }}
         </div>
 
         @else
         {{-- Empty state --}}
-        <div class="flex flex-col items-center justify-center py-24 text-center">
+        <div class="flex-1 flex flex-col items-center justify-center text-center">
             <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-blue-50 mb-4">
                 <svg class="h-7 w-7 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -252,76 +233,28 @@
             </div>
         </div>
         @endif
-    </div>
-</div>
-
-<style>
-    /* View toggle button states */
-    .view-btn { color: #93c5fd; }
-    .view-btn:hover { background-color: #1d4ed8; color: #fff; }
-    .active-view { background-color: #1e40af; color: #fff; }
-
-    /* Column density button states */
-    .active-cols { background-color: #1e40af; color: #fff; }
-    .col-btn:hover:not(.active-cols) { background-color: #1d4ed8; color: #fff; }
-
-    /* CSS custom property drives the grid column count */
-    #gridView { --inst-cols: 5; }
-</style>
+    </div>{{-- /content area --}}
+</div>{{-- /page wrapper --}}
 
 @endsection
 
 @section('scripts')
 <script>
 (function () {
-    // ── Persist preferences ──────────────────────────────────────────
-    const PREF_VIEW = 'inst_view';
-    const PREF_COLS = 'inst_cols';
-
-    const gridView   = document.getElementById('gridView');
-    const listView   = document.getElementById('listView');
-    const colControls = document.getElementById('colControls');
     const searchInput = document.getElementById('institutionSearch');
 
-    // ── View toggle ──────────────────────────────────────────────────
-    window.setView = function (mode) {
-        const isGrid = mode === 'grid';
-        gridView.classList.toggle('hidden', !isGrid);
-        listView.classList.toggle('hidden', isGrid);
-        colControls.classList.toggle('hidden', !isGrid);
-
-        document.getElementById('btnGrid').classList.toggle('active-view', isGrid);
-        document.getElementById('btnList').classList.toggle('active-view', !isGrid);
-
-        localStorage.setItem(PREF_VIEW, mode);
-    };
-
-    // ── Column density ───────────────────────────────────────────────
-    window.setCols = function (n) {
-        gridView.style.setProperty('--inst-cols', n);
-        document.querySelectorAll('.col-btn').forEach(btn => {
-            const active = parseInt(btn.dataset.cols) === n;
-            btn.classList.toggle('active-cols', active);
-            btn.classList.toggle('text-blue-200', !active);
-        });
-        localStorage.setItem(PREF_COLS, n);
-    };
-
-    // ── Client-side search ───────────────────────────────────────────
-    searchInput.addEventListener('input', function () {
+    searchInput?.addEventListener('input', function () {
         const q = this.value.toLowerCase().trim();
-        document.querySelectorAll('.inst-card').forEach(card => {
-            const text = card.textContent.toLowerCase();
-            card.style.display = (!q || text.includes(q)) ? '' : 'none';
+        let visible = 0;
+
+        document.querySelectorAll('.inst-row').forEach(row => {
+            const match = !q || row.textContent.toLowerCase().includes(q);
+            row.style.display = match ? '' : 'none';
+            if (match) visible++;
         });
+
+        document.getElementById('noResults')?.classList.toggle('hidden', visible > 0);
     });
-
-    // ── Restore preferences on load ──────────────────────────────────
-    const savedView = localStorage.getItem(PREF_VIEW) || 'grid';
-    const savedCols = parseInt(localStorage.getItem(PREF_COLS) || '5');
-
-    setView(savedView);
-    setCols(savedCols);
 })();
 </script>
 @endsection

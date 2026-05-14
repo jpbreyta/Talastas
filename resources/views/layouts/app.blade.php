@@ -16,14 +16,15 @@
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans antialiased bg-gray-50">
-    <div id="app" class="flex flex-col min-h-screen">
+<body class="font-sans antialiased bg-gray-50 @hasSection('dashboard-layout') overflow-hidden h-screen @endif">
+    <div id="app" class="flex flex-col @hasSection('dashboard-layout') h-screen overflow-hidden @else min-h-screen @endif">
         @include('layouts.header')
 
-        <main class="flex-1">
+        <main class="@hasSection('dashboard-layout') flex-1 min-h-0 overflow-hidden flex flex-col @else flex-1 @endif">
             @yield('content')
         </main>
 
+        {{-- Footer always rendered; in dashboard-layout it is flex-shrink-0 and stays pinned --}}
         @include('layouts.footer')
     </div>
     @yield('scripts')

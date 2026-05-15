@@ -100,6 +100,11 @@ class IctMappingController extends Controller
 
                     'gap_score' => round($gapScore, 2),
                     'gap_level' => GapScoreCalculator::getLevel($gapScore),
+
+                    // Include recommendations for map display
+                    'infrastructure_narrative' => $inst->institutionAnalytics->infrastructure_narrative ?? null,
+                    'policy_recommendation' => $inst->institutionAnalytics->policy_recommendation ?? null,
+                    'analysis_method' => $inst->institutionAnalytics->recommendations_detail['method'] ?? null,
                 ],
             ];
         });

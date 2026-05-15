@@ -346,13 +346,14 @@
                 <table id="analyticsTable" class="min-w-full divide-y divide-gray-100">
                     <thead>
                         <tr>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Institution</th>
-                            <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Barangay</th>
-                            <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Sector</th>
-                            <th class="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-400">Pilot</th>
-                            <th class="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-400">Quality</th>
-                            <th class="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Gap Score</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Recommendation</th>
+                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Institution</th>
+                             <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Barangay</th>
+                             <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Sector</th>
+                             <th class="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-400">Pilot</th>
+                             <th class="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-400">Quality</th>
+                             <th class="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-400">Method</th>
+                             <th class="px-3 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-400">Gap Score</th>
+                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-400">Analysis &amp; Recommendations</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-50" id="analyticsTableBody">
@@ -387,12 +388,31 @@
                                     <span class="text-gray-300">—</span>
                                 @endif
                             </td>
-                            <td class="px-3 py-3 text-center whitespace-nowrap">
-                                <span class="px-2 py-0.5 text-xs rounded-full font-medium {{ $qClass }}">
-                                    {{ $completeness }}%
-                                </span>
-                            </td>
-                            <td class="px-3 py-3 whitespace-nowrap text-right">
+                             <td class="px-3 py-3 text-center whitespace-nowrap">
+                                 <span class="px-2 py-0.5 text-xs rounded-full font-medium {{ $qClass }}">
+                                     {{ $completeness }}%
+                                 </span>
+                             </td>
+                             <td class="px-3 py-3 text-center whitespace-nowrap">
+                                 @php
+                                     $method = '—';
+                                     $methodClass = 'bg-gray-100 text-gray-600';
+                                     if ($analytic->recommendations_detail) {
+                                         $details = json_decode($analytic->recommendations_detail, true);
+                                         if (isset($details['source']) && $details['source'] === 'gemini') {
+                                             $method = 'AI';
+                                             $methodClass = 'bg-purple-100 text-purple-700';
+                                         } elseif (isset($details['method']) && $details['method'] === 'heuristic') {
+                                             $method = 'Sim';
+                                             $methodClass = 'bg-blue-100 text-blue-700';
+                                         }
+                                     }
+                                 @endphp
+                                 <span class="px-2 py-0.5 text-xs rounded-full font-medium {{ $methodClass }}">
+                                     {{ $method }}
+                                 </span>
+                             </td>
+                             <td class="px-3 py-3 whitespace-nowrap text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     <div class="w-14 bg-gray-100 rounded-full h-1.5 overflow-hidden">
                                         <div class="h-1.5 rounded-full {{ $gapBar }}" style="width: {{ min(100, $gap) }}%"></div>
@@ -402,19 +422,34 @@
                                     </span>
                                 </div>
                             </td>
-                            <td class="px-4 py-3 text-sm text-gray-500 max-w-xs">
-                                <span class="truncate block" title="{{ $analytic->policy_recommendation ?? '' }}">
-                                    {{ Str::limit($analytic->policy_recommendation ?? 'No recommendations', 65) }}
-                                </span>
-                            </td>
+                             <td class="px-4 py-3 text-sm text-gray-500 max-w-sm">
+                                 @if($analytic->infrastructure_narrative)
+                                     <div class="mb-2">
+                                         <span class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Analysis:</span>
+                                         <p class="text-xs text-gray-700 mt-1 leading-relaxed" title="{{ $analytic->infrastructure_narrative }}">
+                                             {{ Str::limit($analytic->infrastructure_narrative, 80) }}
+                                         </p>
+                                     </div>
+                                 @endif
+                                 @if($analytic->policy_recommendation)
+                                     <div>
+                                         <span class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Recommendation:</span>
+                                         <p class="text-xs text-blue-700 mt-1 leading-relaxed font-medium" title="{{ $analytic->policy_recommendation }}">
+                                             {{ Str::limit($analytic->policy_recommendation, 80) }}
+                                         </p>
+                                     </div>
+                                 @else
+                                     <span class="text-xs text-gray-400 italic">No recommendations available</span>
+                                 @endif
+                             </td>
                         </tr>
-                        @empty
-                        <tr>
-                            <td colspan="7" class="px-4 py-10 text-center text-sm text-gray-400">
-                                No analytics data available.
-                            </td>
-                        </tr>
-                        @endforelse
+                         @empty
+                         <tr>
+                             <td colspan="8" class="px-4 py-10 text-center text-sm text-gray-400">
+                                 No analytics data available.
+                             </td>
+                         </tr>
+                         @endforelse
                     </tbody>
                 </table>
             </div>
@@ -438,6 +473,7 @@
                     Data covers public sector institutions (schools, barangay halls, city offices) only.
                     System is in <strong>pilot testing phase</strong> with representative sites.
                     No real-time IoT monitoring — regular field audits are required for data integrity.
+                    Gap analysis uses <strong>heuristic simulation</strong> (AI analysis available with API key).
                     <a href="{{ route('home') }}" class="text-blue-500 hover:underline ml-1">View full scope &rarr;</a>
                 </p>
             </div>

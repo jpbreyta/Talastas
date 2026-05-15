@@ -89,17 +89,25 @@ class Institution extends Model
 
     /**
      * Update or create analytics for this institution
+     * Includes full heuristic analysis with recommendations
      */
     public function updateAnalytics()
     {
         $gapScore = \App\Helpers\GapScoreCalculator::computeScore($this);
         $dataCompleteness = \App\Helpers\GapScoreCalculator::computeDataCompleteness($this);
 
+        // Get full heuristic analysis with recommendations
+        $service = app(\App\Services\GeminiService::class);
+        $analysis = $service->analyzeInfrastructure($this);
+
         $this->institutionAnalytics()->updateOrCreate(
             ['institution_id' => $this->id],
             [
                 'gap_score' => $gapScore,
                 'data_completeness_score' => $dataCompleteness,
+                'infrastructure_narrative' => $analysis['infrastructure_narrative'],
+                'policy_recommendation' => $analysis['policy_recommendation'],
+                'recommendations_detail' => $analysis['recommendations_detail'],
                 'analysis_date' => now(),
             ]
         );

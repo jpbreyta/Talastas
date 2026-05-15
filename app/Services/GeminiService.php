@@ -78,17 +78,21 @@ class GeminiService
      */
     private function buildPrompt(Institution $institution): string
     {
+        $students = $institution->student_population ?? 'N/A';
+        $staff = $institution->staff_population ?? 'N/A';
+        $computers = $institution->number_of_computers ?? 0;
+
         return "
 Analyze the ICT infrastructure gap for this institution in Lipa City:
 
 Name: {$institution->name}
 Type: {$institution->sector_type}
 Barangay: {$institution->barangay->name}
-Students: {$institution->student_population ?? 'N/A'}
-Staff: {$institution->staff_population ?? 'N/A'}
+Students: {$students}
+Staff: {$staff}
 Internet Speed: " . ($institution->internet_speed ? $institution->internet_speed . ' Mbps' : 'Not available') . "
 Has Computer Lab: " . ($institution->has_computer_lab ? 'Yes' : 'No') . "
-Number of Computers: {$institution->number_of_computers ?? 0}
+Number of Computers: {$computers}
 Has Smart TV: " . ($institution->has_smart_tv ? 'Yes' : 'No') . "
 Has PA System: " . ($institution->has_public_address_system ? 'Yes' : 'No') . "
 

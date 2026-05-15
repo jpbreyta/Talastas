@@ -182,8 +182,22 @@
         </div>
 
         <!-- Main Map Container -->
-        <div class="relative w-full flex-1 min-h-[600px]">
+        <div class="relative w-full flex-1 min-h-[600px] overflow-x-hidden">
             <div id="map" style="position:absolute;inset:0;"></div>
+
+            <!-- Sliding Side Panel -->
+            <div id="sidePanel" class="absolute top-4 bottom-4 right-0 h-[calc(100%-2rem)] w-80 bg-white shadow-lg transform translate-x-full transition-all duration-300 ease-in-out z-[1500] overflow-y-auto invisible rounded-l-lg">
+                <div class="p-4 border-b border-gray-200 flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-gray-900">Institution Details</h2>
+                    <button id="closePanel" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div id="panelContent" class="p-4">
+                    </div>
+            </div>
 
             <!-- Floating Barangay Navigator Card -->
             <div class="absolute top-3 left-14 z-[1000] bg-white rounded-lg overflow-hidden"
@@ -596,10 +610,13 @@
                                 'Partial' : 'Incomplete');
 
                             const popupContent = `
-                            <div class="p-3 min-w-[260px]">
+                            <div class="p-3 min-w-[280px]">
                                 <div class="flex justify-between items-start mb-2">
                                     <h3 class="font-bold text-base text-gray-900">${props.name}</h3>
-                                    ${props.is_pilot ? '<span class="px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded-full">Pilot</span>' : ''}
+                                    <div class="flex gap-1">
+                                        ${props.analysis_method ? '<span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">Sim</span>' : ''}
+                                        ${props.is_pilot ? '<span class="px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded-full">Pilot</span>' : ''}
+                                    </div>
                                 </div>
                                 <div class="mb-3">
                                     <button class="zoom-btn w-full px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors" data-lat="${props.latitude}" data-lng="${props.longitude}">
@@ -621,11 +638,11 @@
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Computer Lab:</span>
-                                        <span class="font-medium">${props.has_lab ? 'Yes' : 'No'}</span>
+                                        <span class="font-medium">${props.has_computer_lab ? 'Yes' : 'No'}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Computers:</span>
-                                        <span class="font-medium">${props.computers || 0}</span>
+                                        <span class="font-medium">${props.number_of_computers || 0}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Data Quality:</span>
@@ -636,7 +653,7 @@
                                     </div>
                                 </div>
                                 <div class="border-t border-gray-200 my-2"></div>
-                                <div class="flex justify-between items-center">
+                                <div class="flex justify-between items-center mb-2">
                                     <span class="text-gray-800 font-semibold">Gap Score:</span>
                                     <span class="px-2 py-1 text-xs font-bold rounded-full ${
                                         gapScore >= 80 ? 'bg-red-100 text-red-700' :
@@ -645,35 +662,47 @@
                                         ${gapScore.toFixed(1)}% (${gapLevel})
                                     </span>
                                 </div>
-                                ${props.requires_audit ? '<p class="text-xs text-orange-600 mt-2"><strong>⚠️ Audit required</strong> — Field verification needed</p>' : ''}
-                                ${props.last_audited ? '<p class="text-xs text-gray-500 mt-1">Last audited: ' + props.last_audited + '</p>' : ''}
+                                ${props.infrastructure_narrative ? `
+                                <div class="mb-2">
+                                    <span class="text-xs font-semibold text-gray-700">Analysis:</span>
+                                    <p class="text-xs text-gray-600 mt-1 leading-relaxed">${props.infrastructure_narrative.substring(0, 120)}${props.infrastructure_narrative.length > 120 ? '...' : ''}</p>
+                                </div>
+                                ` : ''}
+                                ${props.policy_recommendation ? `
+                                <div class="mb-2">
+                                    <span class="text-xs font-semibold text-gray-700">Recommendation:</span>
+                                    <p class="text-xs text-blue-600 mt-1 leading-relaxed">${props.policy_recommendation.substring(0, 100)}${props.policy_recommendation.length > 100 ? '...' : ''}</p>
+                                </div>
+                                ` : ''}
+                                <div class="border-t border-gray-200 my-2"></div>
+                                ${props.requires_audit ? '<p class="text-xs text-orange-600"><strong>⚠️ Audit required</strong> — Field verification needed</p>' : ''}
+                                ${props.last_audited ? '<p class="text-xs text-gray-500">Last audited: ' + props.last_audited + '</p>' : ''}
                             </div>
                         `;
 
                             layer.on('click', function(e) {
                                 console.log('Institution clicked:', props.name);
                                 e.originalEvent.stopPropagation(); // Prevent map click
-                                layer.openPopup();
-                            });
-                            layer.bindPopup(popupContent, {
-                                className: 'map-popup',
-                                maxWidth: 300
-                            });
-                            layer.on('popupopen', function() {
-                                const zoomBtn = document.querySelector(
-                                    '.leaflet-popup-content .zoom-btn');
-                                if (zoomBtn) {
-                                    zoomBtn.addEventListener('click', function() {
-                                        const lat = parseFloat(this.getAttribute(
-                                            'data-lat'));
-                                        const lng = parseFloat(this.getAttribute(
-                                            'data-lng'));
-                                        map.flyTo([lat, lng], 18, {
-                                            duration: 0.8
+                                // Populate side panel
+                                document.getElementById('panelContent').innerHTML = popupContent;
+                                // Show side panel
+                                const panel = document.getElementById('sidePanel');
+                                panel.classList.remove('translate-x-full', 'invisible');
+                                // Add zoom button event after content is inserted
+                                setTimeout(() => {
+                                    const zoomBtn = document.querySelector('#panelContent .zoom-btn');
+                                    if (zoomBtn) {
+                                        zoomBtn.addEventListener('click', function() {
+                                            const lat = parseFloat(this.getAttribute('data-lat'));
+                                            const lng = parseFloat(this.getAttribute('data-lng'));
+                                            map.flyTo([lat, lng], 18, {
+                                                duration: 0.8
+                                            });
+                                            // Close side panel
+                                            panel.classList.add('translate-x-full', 'invisible');
                                         });
-                                        layer.closePopup();
-                                    });
-                                }
+                                    }
+                                }, 10);
                             });
                             layer.on('mouseover', () => layer.setRadius(layer.getRadius() + 3));
                             layer.on('mouseout', () => layer.setRadius(props.markerRadius));
@@ -778,6 +807,13 @@
                 const isOpen = !popover.classList.contains('hidden');
                 popover.classList.toggle('hidden', isOpen);
                 popoverBtn.setAttribute('aria-expanded', String(!isOpen));
+            });
+
+            // Close side panel
+            document.getElementById('closePanel').addEventListener('click', (e) => {
+                e.stopPropagation();
+                const panel = document.getElementById('sidePanel');
+                panel.classList.add('translate-x-full', 'invisible');
             });
 
             // Close popovers when clicking outside

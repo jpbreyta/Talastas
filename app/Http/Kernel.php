@@ -47,5 +47,6 @@ class Kernel extends HttpKernel
     protected $routeMiddleware = [
         'auth' => Authenticate::class,
         'rbac' => RBAC::class,
+        'api.key' => EnsureApiKeyIsValid::class,
     ];
 }

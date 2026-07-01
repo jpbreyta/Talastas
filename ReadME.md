@@ -48,6 +48,159 @@ The system processes data through a structured pipeline:
 - **Quality Standard**: Evaluated against ISO/IEC 25010:2023 for functional suitability and reliability.
 - **Compliance**: Fully adheres to RA 10173 (Data Privacy Act of 2012) through data masking and anonymization.
 
+## API Documentation
+
+All API endpoints are prefixed with `/api/v1`. Base URL: `https://your-domain.com/api/v1`
+
+### Authentication (Recommended: Custom API Key)
+
+For Flutter app integration, use the **x-api-key** header. No login required.
+
+**Generate an API Key (once):**
+```
+POST /api/v1/api-keys/generate
+Body: {"name": "Flutter Mobile App"}
+Returns: {"key": "sk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"}
+```
+
+**Use in Flutter:**
+```dart
+final headers = {
+  'x-api-key': 'sk_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'Content-Type': 'application/json',
+  'Accept': 'application/json',
+};
+```
+
+### Endpoint Reference
+
+| Method | Endpoint | Auth Required | Description |
+|--------|----------|---------------|-------------|
+| POST | `/api-keys/generate` | No | Generate a new API key |
+| GET | `/institutions` | No | Get all institutions (read-only) |
+| GET | `/institutions/{id}` | No | Get single institution |
+| POST | `/institutions` | Yes (x-api-key) | Create institution |
+| PUT | `/institutions/{id}` | Yes (x-api-key) | Update institution |
+| DELETE | `/institutions/{id}` | Yes (x-api-key) | Delete institution |
+| GET | `/ict-inventory` | Yes (x-api-key) | Get all inventory items |
+| GET | `/ict-inventory/{id}` | Yes (x-api-key) | Get single inventory item |
+| POST | `/ict-inventory` | Yes (x-api-key) | Create inventory item |
+| PUT | `/ict-inventory/{id}` | Yes (x-api-key) | Update inventory item |
+| DELETE | `/ict-inventory/{id}` | Yes (x-api-key) | Delete inventory item |
+| GET | `/analytics` | Yes (x-api-key) | Get all analytics data |
+| POST | `/analytics/analyze/{id}` | Yes (x-api-key) | Analyze single institution |
+| POST | `/analytics/analyze-all` | Yes (x-api-key) | Analyze all institutions |
+| GET | `/map/institutions` | No | Institutions as GeoJSON |
+| GET | `/barangays/geojson` | No | Barangays as GeoJSON |
+| GET | `/map/barangays` | No | Barangays boundaries |
+| GET | `/barangays` | No | Get all barangays |
+| POST | `/institutions/geocode` | Yes (x-api-key) | Geocode institution location |
+
+### Alternative: Sanctum Token Auth
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/auth/login` | No | Login with email/password, returns token |
+| GET | `/auth/me` | Yes | Get current authenticated user |
+
+**Institution Fields:**
+```dart
+{
+  "name": "String (required)",
+  "type": "School|Barangay Hall|Local Government Office (required)",
+  "barangay_id": "Integer (required)",
+  "latitude": "Double (optional)",
+  "longitude": "Double (optional)",
+  "student_population": "Integer (required for Schools)",
+  "staff_population": "Integer (required for non-Schools)",
+  "isp_provider": "String (optional)",
+  "internet_speed": "Double (optional, Mbps)",
+  "has_computer_lab": "Boolean",
+  "number_of_computers": "Integer",
+  "has_projected_whiteboard": "Boolean",
+  "has_smart_tv": "Boolean",
+  "has_public_address_system": "Boolean",
+  "needs_maintenance": "Boolean",
+  "notes": "String",
+  "is_pilot_site": "Boolean",
+  "requires_audit": "Boolean",
+  "is_active": "Boolean"
+}
+```
+
+**Inventory Item Fields:**
+```dart
+{
+  "institution_id": "Integer (required)",
+  "category": "String (computer, smart_tv, projector, pa_system - required)",
+  "condition": "String (required)",
+  "acquisition_year": "Integer 1900-current+1 (required)",
+  "status": "active|retired (required)"
+}
+```
+
+**Analytics Response:**
+```dart
+{
+  "analytics": [...],
+  "average_gap_score": 45.5,
+  "institution_count": 120,
+  "critical_areas": 23
+}
+```
+
+## Flutter Integration Example (API Key)
+
+```dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+class LipaApi {
+  final String baseUrl;
+  final String apiKey;
+
+  LipaApi(this.baseUrl, this.apiKey);
+
+  Map<String, String> get headers => {
+    'x-api-key': apiKey,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  };
+
+  Future<List> getInstitutions() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/v1/institutions'),
+      headers: headers,
+    );
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> getMapData() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/v1/map/institutions'),
+      headers: headers,
+    );
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> getAnalytics() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/v1/analytics'),
+      headers: headers,
+    );
+    return jsonDecode(response.body);
+  }
+
+  Future<void> createInstitution(Map<String, dynamic> data) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/api/v1/institutions'),
+      headers: headers,
+      body: jsonEncode(data),
+    );
+  }
+}
+```
+
 ## The Development Team
 
 - Madrid, Jaika Remina A.

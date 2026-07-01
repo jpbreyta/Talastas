@@ -394,20 +394,20 @@
                                  </span>
                              </td>
                              <td class="px-3 py-3 text-center whitespace-nowrap">
-                                 @php
-                                     $method = '—';
-                                     $methodClass = 'bg-gray-100 text-gray-600';
-                                     if ($analytic->recommendations_detail) {
-                                         $details = json_decode($analytic->recommendations_detail, true);
-                                         if (isset($details['source']) && $details['source'] === 'gemini') {
-                                             $method = 'AI';
-                                             $methodClass = 'bg-purple-100 text-purple-700';
-                                         } elseif (isset($details['method']) && $details['method'] === 'heuristic') {
-                                             $method = 'Sim';
-                                             $methodClass = 'bg-blue-100 text-blue-700';
-                                         }
-                                     }
-                                 @endphp
+                                  @php
+                                      $method = '—';
+                                      $methodClass = 'bg-gray-100 text-gray-600';
+                                      $details = $analytic->recommendations_detail;
+                                      if ($details) {
+                                          if (isset($details['source']) && $details['source'] === 'gemini') {
+                                              $method = 'AI';
+                                              $methodClass = 'bg-purple-100 text-purple-700';
+                                          } elseif (isset($details['method'])) {
+                                              $method = 'Sim';
+                                              $methodClass = 'bg-blue-100 text-blue-700';
+                                          }
+                                      }
+                                  @endphp
                                  <span class="px-2 py-0.5 text-xs rounded-full font-medium {{ $methodClass }}">
                                      {{ $method }}
                                  </span>

@@ -21,6 +21,7 @@ class Institution extends Model
         'staff_population',
         'isp_provider',
         'internet_speed',
+        'api_key',
         'has_computer_lab',
         'number_of_computers',
         'has_projected_whiteboard',

@@ -24,6 +24,7 @@ return new class extends Migration
             $table->integer('staff_population')->nullable();
             $table->string('isp_provider', 255)->nullable();
             $table->decimal('internet_speed', 8, 2)->nullable();
+            $table->string('api_key', 255)->nullable();
             $table->boolean('has_computer_lab')->default(false);
             $table->integer('number_of_computers')->nullable();
             $table->boolean('has_projected_whiteboard')->default(false);

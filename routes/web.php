@@ -24,5 +24,6 @@ Route::middleware(['auth', 'rbac:admin'])->group(function () {
     Route::get('/map', [IctMappingController::class, 'index'])->name('map');
     Route::get('/analytics', [AnalyticsController::class, 'index'])->name('analytics');
     Route::resource('institutions', InstitutionController::class);
+    Route::post('/institutions/geocode', [InstitutionController::class, 'geocode'])->name('institutions.geocode');
     Route::resource('ict-inventory', IctInventoryController::class);
 });

@@ -84,13 +84,37 @@ class IctInventoryController extends Controller
         return redirect()->route('ict-inventory.index')->with('success', 'ICT Inventory item updated successfully.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(IctInventory $ictInventory)
+    public function storeApi(Request $request)
+    {
+        $validated = $request->validate([
+            'institution_id' => 'required|exists:institutions,id',
+            'category' => 'required|string|max:255',
+            'condition' => 'required|string|max:255',
+            'acquisition_year' => 'required|integer|min:1900|max:'.(date('Y') + 1),
+            'status' => 'required|in:active,retired',
+        ]);
+
+        $inventory = IctInventory::create($validated);
+        return response()->json($inventory->load('institution'));
+    }
+
+    public function updateApi(Request $request, IctInventory $ictInventory)
+    {
+        $validated = $request->validate([
+            'institution_id' => 'sometimes|required|exists:institutions,id',
+            'category' => 'sometimes|required|string|max:255',
+            'condition' => 'sometimes|required|string|max:255',
+            'acquisition_year' => 'sometimes|required|integer|min:1900|max:'.(date('Y') + 1),
+            'status' => 'sometimes|required|in:active,retired',
+        ]);
+
+        $ictInventory->update($validated);
+        return response()->json($ictInventory->load('institution'));
+    }
+
+    public function destroyApi(IctInventory $ictInventory)
     {
         $ictInventory->delete();
-
-        return redirect()->route('ict-inventory.index')->with('success', 'ICT Inventory item deleted successfully.');
+        return response()->json(['message' => 'ICT Inventory item deleted successfully.']);
     }
 }

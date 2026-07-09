@@ -221,15 +221,14 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label for="modalBarangay"
-                                        class="block text-xs font-semibold text-gray-600 mb-1.5">Barangay <span
-                                            class="text-red-500">*</span></label>
-                                    <select name="barangay_id" id="modalBarangay" required class="form-input w-full">
-                                        <option value="">Select Barangay</option>
-                                        @foreach (\App\Models\Barangay::orderBy('name')->get() as $barangay)
-                                            <option value="{{ $barangay->id }}">{{ $barangay->name }}</option>
-                                        @endforeach
-                                    </select>
+                                    <label class="block text-xs font-semibold text-gray-600 mb-1.5">
+                                        Barangay
+                                    </label>
+
+                                    <input type="text" id="modalBarangay" readonly
+                                        class="form-input w-full bg-gray-100" placeholder="Automatically detected">
+
+                                    <input type="hidden" name="barangay_id" id="modalBarangayId">
                                 </div>
                                 <div class="modal-population-field" data-type="school">
                                     <label for="modalStudentPop"
@@ -254,6 +253,28 @@
                                 <div id="mapPickerContainer"
                                     class="relative h-64 rounded-lg border border-gray-300 overflow-hidden bg-gray-50">
                                     <div id="mapPicker" class="w-full h-full"></div>
+                                </div>
+
+                                <div class="grid grid-cols-3 gap-4">
+
+                                    <div>
+                                        <label>Latitude</label>
+
+                                        <input id="modalLatitudeDisplay" readonly class="form-input bg-gray-100">
+                                    </div>
+
+                                    <div>
+                                        <label>Longitude</label>
+
+                                        <input id="modalLongitudeDisplay" readonly class="form-input bg-gray-100">
+                                    </div>
+
+                                    <div>
+                                        <label>City</label>
+
+                                        <input id="modalCity" readonly class="form-input bg-gray-100">
+                                    </div>
+
                                 </div>
 
                                 <input type="hidden" name="latitude" id="modalLatitude">
@@ -349,7 +370,6 @@
             const searchInput = document.getElementById('institutionSearch');
             const geocodeSearchBtn = document.getElementById('geocodeSearchBtn');
             const modalName = document.getElementById('modalName');
-            const modalBarangay = document.getElementById('modalBarangay');
             const searchResultsDropdown = document.getElementById('searchResultsDropdown');
 
             // ── Table filter search ─────────────────────────────────────
@@ -382,8 +402,8 @@
             geocodeSearchBtn?.addEventListener('click', searchLocations);
 
             // Clear the red error border as soon as the user fixes the field
-            modalName?.addEventListener('input', () => modalName.classList.remove('border-red-500', 'ring-2', 'ring-red-200'));
-            modalBarangay?.addEventListener('change', () => modalBarangay.classList.remove('border-red-500', 'ring-2', 'ring-red-200'));
+            modalName?.addEventListener('input', () => modalName.classList.remove('border-red-500', 'ring-2',
+                'ring-red-200'));
 
             let mapPicker, pickerMarker;
 
@@ -414,7 +434,6 @@
 
             function clearFieldErrors() {
                 modalName?.classList.remove('border-red-500', 'ring-2', 'ring-red-200');
-                modalBarangay?.classList.remove('border-red-500', 'ring-2', 'ring-red-200');
             }
 
             function hideSearchResults() {
@@ -452,7 +471,6 @@
             // ── Geocode search (Institution Name + Barangay → Nominatim) ──
             async function searchLocations() {
                 const name = modalName.value.trim();
-                const barangayId = modalBarangay.value;
 
                 clearFieldErrors();
 
@@ -461,10 +479,6 @@
                 if (!name) {
                     missing.push('Institution Name');
                     modalName.classList.add('border-red-500', 'ring-2', 'ring-red-200');
-                }
-                if (!barangayId) {
-                    missing.push('Barangay');
-                    modalBarangay.classList.add('border-red-500', 'ring-2', 'ring-red-200');
                 }
 
                 if (missing.length > 0) {
@@ -480,11 +494,11 @@
                         headers: {
                             'Content-Type': 'application/json',
                             'Accept': 'application/json',
-                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute(
+                                'content') ?? ''
                         },
                         body: JSON.stringify({
-                            name,
-                            barangay_id: barangayId
+                            name
                         })
                     });
 
@@ -537,7 +551,8 @@
             }
 
             function showErrorInDropdown(message) {
-                searchResultsDropdown.innerHTML = `<div class="p-3 text-center text-red-600 text-sm">${escapeHtml(message)}</div>`;
+                searchResultsDropdown.innerHTML =
+                    `<div class="p-3 text-center text-red-600 text-sm">${escapeHtml(message)}</div>`;
                 searchResultsDropdown.classList.remove('hidden');
                 positionDropdown();
             }
@@ -554,8 +569,17 @@
             }
 
             function selectLocation(result) {
+
+                document.getElementById('modalBarangayId').value = result.barangay_id ?? '';
+
+                document.getElementById('modalCity').value =
+                    result.city ?? '';
+
                 const lat = parseFloat(result.lat);
                 const lng = parseFloat(result.lng);
+
+                document.getElementById('modalLatitudeDisplay').value = lat.toFixed(7);
+                document.getElementById('modalLongitudeDisplay').value = lng.toFixed(7);
 
                 if (Number.isNaN(lat) || Number.isNaN(lng)) {
                     showErrorInDropdown('Invalid coordinates returned for this location.');
@@ -577,9 +601,7 @@
                 if (pickerMarker) {
                     pickerMarker.setLatLng(latlng);
                 } else {
-                    pickerMarker = L.marker(latlng, {
-                        draggable: true
-                    }).addTo(mapPicker);
+                    pickerMarker = L.marker(latlng).addTo(mapPicker);
                     pickerMarker.on('dragend', function(e) {
                         const newLatLng = e.target.getLatLng();
                         document.getElementById('modalLatitude').value = newLatLng.lat.toFixed(7);
@@ -589,11 +611,6 @@
 
                 // Rebind click handler each time to avoid stacking duplicate listeners
                 mapPicker.off('click');
-                mapPicker.on('click', function(e) {
-                    pickerMarker.setLatLng(e.latlng);
-                    document.getElementById('modalLatitude').value = e.latlng.lat.toFixed(7);
-                    document.getElementById('modalLongitude').value = e.latlng.lng.toFixed(7);
-                });
             }
 
             // Close dropdown if clicking outside it

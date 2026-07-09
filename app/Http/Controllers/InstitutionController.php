@@ -38,7 +38,9 @@ class InstitutionController extends Controller
 
         // Auto-geocode location if coordinates not provided
         if (empty($validated['latitude']) || empty($validated['longitude'])) {
-            $coordinates = $this->geocodeLocation($validated['name'], $validated['barangay_id']);
+            $coordinates = $this->geocodeLocation(
+                $validated['name']
+            );
             if (!empty($coordinates)) {
                 // geocodeLocation() returns an array of results — take the first (best) match
                 $validated['latitude'] = $coordinates[0]['lat'];
@@ -91,7 +93,7 @@ class InstitutionController extends Controller
 
         // Auto-geocode location if coordinates not provided
         if (empty($validated['latitude']) || empty($validated['longitude'])) {
-            $coordinates = $this->geocodeLocation($validated['name'], $validated['barangay_id']);
+            $coordinates = $this->geocodeLocation($validated['name']);
             if (!empty($coordinates)) {
                 // FIX: geocodeLocation() returns an array of results (like store() expects),
                 // not a single ['lat' => ..., 'lng' => ...] array. Previously this used
@@ -123,8 +125,6 @@ class InstitutionController extends Controller
             'name' => 'required|string|max:255',
 
             'type' => 'required|in:School,Barangay Hall,Local Government Office',
-
-            'barangay_id' => 'required|exists:barangays,id',
 
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
@@ -195,31 +195,23 @@ class InstitutionController extends Controller
      *
      * @return array<int, array{lat: float, lng: float, display_name: string}>|null
      */
-    protected function geocodeLocation(string $name, int $barangayId): ?array
+    protected function geocodeLocation(string $name): ?array
     {
         try {
-            $barangay = \App\Models\Barangay::find($barangayId);
-
-            if (!$barangay) {
-                Log::warning('Geocode attempted with unknown barangay_id', ['barangay_id' => $barangayId]);
-                return null;
-            }
-
             // Note: Nominatim usually prefers un-encoded strings for the 'q' parameter
             // when using an HTTP client because the client URL-encodes it automatically.
-            $query = trim($name) . ', ' . $barangay->name . ', Lipa City, Batangas, Philippines';
+            $query = trim($name);
 
             $response = Http::withHeaders([
-                    // REQUIRED: Nominatim blocks requests without a custom User-Agent
-                    'User-Agent' => config('services.nominatim.user_agent', 'LipaGisMapping/1.0 (your-email@example.com)'),
-                ])
+                // REQUIRED: Nominatim blocks requests without a custom User-Agent
+                'User-Agent' => config('services.nominatim.user_agent', 'LipaGisMapping/1.0 (jpreytapogi@gmail.com)'),
+            ])
                 ->timeout(10)
                 ->get(config('services.nominatim.base_url', 'https://nominatim.openstreetmap.org/search'), [
                     'format' => config('services.nominatim.output_format', 'json'),
-                    'addressdetails' => 1,
                     'q' => $query,
+                    'addressdetails' => 1,
                     'limit' => 5,
-                    'countrycodes' => config('services.nominatim.country_code', 'ph'),
                     'email' => config('services.nominatim.app_email'),
                 ]);
 
@@ -240,6 +232,7 @@ class InstitutionController extends Controller
             }
 
             $outputFormat = config('services.nominatim.output_format', 'json');
+
             $results = [];
 
             foreach ($data as $item) {
@@ -256,9 +249,32 @@ class InstitutionController extends Controller
                 }
 
                 $results[] = [
-                    'lat' => round((float) $lat, 7),
-                    'lng' => round((float) $lng, 7),
+                    'lat' => round((float)$lat, 7),
+                    'lng' => round((float)$lng, 7),
+
                     'display_name' => $result['display_name'] ?? $item['display_name'] ?? '',
+
+                    'address' => $item['address'] ?? [],
+
+                    'barangay' =>
+                    $item['address']['suburb']
+                        ?? $item['address']['village']
+                        ?? $item['address']['hamlet']
+                        ?? '',
+
+                    'city' =>
+                    $item['address']['city']
+                        ?? $item['address']['town']
+                        ?? $item['address']['municipality']
+                        ?? '',
+
+                    'province' =>
+                    $item['address']['state']
+                        ?? '',
+
+                    'country' =>
+                    $item['address']['country']
+                        ?? '',
                 ];
             }
 
@@ -267,7 +283,6 @@ class InstitutionController extends Controller
             Log::error('Nominatim geocode failed', [
                 'error' => $e->getMessage(),
                 'name' => $name,
-                'barangay_id' => $barangayId,
             ]);
         }
 
@@ -281,10 +296,11 @@ class InstitutionController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'barangay_id' => 'required|exists:barangays,id',
         ]);
 
-        $coordinates = $this->geocodeLocation($validated['name'], (int) $validated['barangay_id']);
+        $coordinates = $this->geocodeLocation(
+            $validated['name']
+        );
 
         if (!empty($coordinates)) {
             return response()->json($coordinates);
@@ -309,7 +325,7 @@ class InstitutionController extends Controller
         $rules = $this->rules($request);
 
         // API update supports partial updates — soften "required" to "sometimes|required"
-        foreach (['name', 'type', 'barangay_id'] as $field) {
+        foreach (['name', 'type'] as $field) {
             $rules[$field] = 'sometimes|' . $rules[$field];
         }
         if (isset($rules['student_population'])) {
@@ -322,9 +338,14 @@ class InstitutionController extends Controller
         $validated = $request->validate($rules);
 
         $booleanFields = [
-            'has_computer_lab', 'has_projected_whiteboard', 'has_smart_tv',
-            'has_public_address_system', 'needs_maintenance', 'is_pilot_site',
-            'requires_audit', 'is_active',
+            'has_computer_lab',
+            'has_projected_whiteboard',
+            'has_smart_tv',
+            'has_public_address_system',
+            'needs_maintenance',
+            'is_pilot_site',
+            'requires_audit',
+            'is_active',
         ];
 
         foreach ($booleanFields as $field) {
@@ -354,4 +375,5 @@ class InstitutionController extends Controller
             ->route('institutions.index')
             ->with('success', 'Institution deleted successfully.');
     }
+    
 }

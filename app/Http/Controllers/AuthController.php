@@ -47,21 +47,47 @@ class AuthController extends Controller
             'password' => ['required'],
         ]);
 
-        if (Auth::attempt($credentials)) {
-            $user = Auth::user();
-            $token = $user->createToken('API Token')->plainTextToken;
-
+        if (!Auth::attempt($credentials)) {
             return response()->json([
-                'user' => $user,
-                'token' => $token,
-            ]);
+                'success' => false,
+                'message' => 'Invalid credentials.',
+            ], 401);
         }
 
-        return response()->json(['message' => 'Invalid credentials'], 401);
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        // Remove old tokens so only one active token exists per user
+        $user->tokens()->delete();
+
+        // Create a new Sanctum token
+        $token = $user->createToken('flutter')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Login successful.',
+            'data' => [
+                'token' => $token,
+                'user' => $user,
+            ],
+        ]);
     }
 
     public function me(Request $request)
     {
-        return response()->json($request->user());
+        return response()->json([
+            'success' => true,
+            'data' => $request->user(),
+        ]);
+    }
+
+    public function apiLogout(Request $request)
+    {
+        $request->user()->currentAccessToken()?->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Logged out successfully.',
+        ]);
     }
 }

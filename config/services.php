@@ -12,10 +12,11 @@ return [
     |
     */
     'nominatim' => [
-        'base_url' => env('NOMINATIM_BASE_URL', 'https://nominatim.openstreetmap.org/search'),
+        'base_url'      => env('NOMINATIM_BASE_URL', 'https://nominatim.openstreetmap.org/search'),
         'output_format' => env('NOMINATIM_OUTPUT_FORMAT', 'json'),
-        'country_code' => env('NOMINATIM_COUNTRY_CODE', 'ph'),
-        'app_email' => env('NOMINATIM_APP_EMAIL', ''),
+        'country_code'  => env('NOMINATIM_COUNTRY_CODE', 'ph'),
+        'app_email'     => env('NOMINATIM_APP_EMAIL'),
+        'user_agent'    => env('NOMINATIM_USER_AGENT', 'LipaGisMapping/1.0 (' . env('NOMINATIM_APP_EMAIL', 'jpreytapogi@gmail.com') . ')'),
     ],
 
     /*

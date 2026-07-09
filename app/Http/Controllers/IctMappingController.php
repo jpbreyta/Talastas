@@ -9,41 +9,25 @@ class IctMappingController extends Controller
 {
     public function index()
     {
-        $institutions = Institution::all();
-
-        $heatPoints = $institutions->map(function ($inst) {
-            // Use precomputed values if available
-            if (!$inst->institutionAnalytics || $inst->institutionAnalytics->gap_score === null) {
-                $inst->updateAnalytics();
-                $inst->load('institutionAnalytics');
-            }
-
-            $gapScore = $inst->institutionAnalytics->gap_score ?? 0;
-
-            return [
-                (float) $inst->latitude,
-                (float) $inst->longitude,
-                $gapScore,
-            ];
-        });
-
-        return view('map', compact('heatPoints'));
+        // Removed the unused $heatPoints calculation to prevent N+1 queries and unnecessary processing on page load.
+        return view('map');
     }
 
     public function getInstitutionsGeoJSON()
     {
+        // Added 'barangay' to eager loading to prevent N+1 query when accessing $inst->barangay->name
         $institutions = Institution::with([
             'institutionAnalytics',
-            'auditor'
+            'auditor',
+            'barangay'
         ])->get();
 
         $features = $institutions->map(function ($inst) {
-
-            // Use precomputed values if available, otherwise compute and save
-            if (!$inst->institutionAnalytics || $inst->institutionAnalytics->gap_score === null) {
-                $inst->updateAnalytics();
-                $inst->load('institutionAnalytics');
-            }
+            
+            /* * Removed synchronous $inst->updateAnalytics() call.
+             * Analytics generation should be handled by an Observer (e.g., InstitutionObserver) 
+             * or a queued Job when an Institution is created/updated, not during a GET request.
+             */
 
             $gapScore = $inst->institutionAnalytics->gap_score ?? 0;
             $completeness = $inst->institutionAnalytics->data_completeness_score ?? $inst->data_completeness_score ?? 0;
@@ -67,7 +51,7 @@ class IctMappingController extends Controller
                     'id' => $inst->id,
                     'name' => $inst->name,
                     'type' => $inst->type,
-                    'barangay' => $inst->barangay->name,
+                    'barangay' => $inst->barangay ? $inst->barangay->name : 'Unknown', // Added null check
 
                     'latitude' => (float) $inst->latitude,
                     'longitude' => (float) $inst->longitude,
@@ -101,7 +85,6 @@ class IctMappingController extends Controller
                     'gap_score' => round($gapScore, 2),
                     'gap_level' => GapScoreCalculator::getLevel($gapScore),
 
-                    // Include recommendations for map display
                     'infrastructure_narrative' => $inst->institutionAnalytics->infrastructure_narrative ?? null,
                     'policy_recommendation' => $inst->institutionAnalytics->policy_recommendation ?? null,
                     'analysis_method' => $inst->institutionAnalytics->recommendations_detail['method'] ?? null,
@@ -141,7 +124,6 @@ class IctMappingController extends Controller
             ]);
         }
 
-        // fallback using institution data
         $barangayNames = Institution::with('barangay')
             ->distinct()
             ->get()

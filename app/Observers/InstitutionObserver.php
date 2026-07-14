@@ -11,9 +11,9 @@ class InstitutionObserver
     public function created(Institution $institution)
     {
         // Dispatches the analytics update to run asynchronously in the background.
-        dispatch(function () use ($institution) {
-            $institution->updateAnalytics();
-        });
+        // dispatch(function () use ($institution) {
+        //     $institution->updateAnalytics();
+        // });
     }
 
     public function updated(Institution $institution)

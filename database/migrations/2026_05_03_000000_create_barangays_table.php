@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('name', 100)->unique();
             $table->string('code', 10)->unique();
             $table->string('district', 20)->nullable()->after('code');
-            $table->json('geometry')->nullable(); // GeoJSON MultiPolygon for barangay boundaries
+            $table->json('geometry')->nullable();
             $table->integer('population')->nullable();
             $table->integer('total_institutions')->default(0);
             $table->text('notes')->nullable();

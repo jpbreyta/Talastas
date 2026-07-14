@@ -103,20 +103,21 @@ class IctMappingController extends Controller
         $barangays = \App\Models\Barangay::whereNotNull('geometry')->get();
 
         if ($barangays->isNotEmpty()) {
-            $features = $barangays->map(function ($barangay) {
-                return [
-                    'type' => 'Feature',
-                    'geometry' => json_decode($barangay->geometry, true),
-                    'properties' => [
-                        'id' => $barangay->id,
-                        'code' => $barangay->code,
-                        'name' => $barangay->name,
-                        'district' => $barangay->district,
-                        'population' => $barangay->population,
-                        'total_institutions' => $barangay->total_institutions,
-                    ],
-                ];
-            });
+            
+        $features = $barangays->map(function ($barangay) {
+            return [
+                'type' => 'Feature',
+                'geometry' => $barangay->geometry,
+                'properties' => [
+                    'id' => $barangay->id,
+                    'code' => $barangay->code,
+                    'name' => $barangay->name,
+                    'district' => $barangay->district,
+                    'population' => $barangay->population,
+                    'total_institutions' => $barangay->total_institutions,
+                ],
+            ];
+        });
 
             return response()->json([
                 'type' => 'FeatureCollection',

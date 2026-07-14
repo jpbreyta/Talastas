@@ -15,30 +15,36 @@ class Institution extends Model
         'name',
         'type',
         'barangay_id',
+
         'latitude',
         'longitude',
+
         'student_population',
         'staff_population',
+
         'isp_provider',
         'internet_speed',
         'api_key',
+
         'has_computer_lab',
         'number_of_computers',
         'has_projected_whiteboard',
         'has_smart_tv',
         'has_public_address_system',
+
         'needs_maintenance',
         'notes',
 
         'is_pilot_site',
         'data_completeness_score',
         'requires_audit',
+
         'last_audited_at',
         'audited_by',
         'audit_notes',
+
         'is_active',
     ];
-
     protected $casts = [
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',

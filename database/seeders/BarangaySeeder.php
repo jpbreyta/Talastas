@@ -21,7 +21,7 @@ class BarangaySeeder extends Seeder
                     [
                         'name' => $feature['properties']['NAME'],
                         'district' => $feature['properties']['DISTRICT'],
-                        'geometry' => json_encode($feature['geometry']),
+                        'geometry' => $feature['geometry'],
                     ]
                 );
             }

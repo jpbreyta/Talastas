@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Institution;
+use App\Models\Barangay;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class InstitutionController extends Controller
 {
@@ -33,22 +36,32 @@ class InstitutionController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate($this->rules($request));
-        $validated = $this->applyCheckboxDefaults($validated, $request);
+        // Convert checkbox values before validation
+        $request->merge([
+            'has_computer_lab' => $request->boolean('has_computer_lab'),
+            'has_projected_whiteboard' => $request->boolean('has_projected_whiteboard'),
+            'has_smart_tv' => $request->boolean('has_smart_tv'),
+            'has_public_address_system' => $request->boolean('has_public_address_system'),
+            'needs_maintenance' => $request->boolean('needs_maintenance'),
+            'is_pilot_site' => $request->boolean('is_pilot_site'),
+            'requires_audit' => $request->boolean('requires_audit'),
+            'is_active' => $request->boolean('is_active'),
+        ]);
+
+        $validated = Validator::make($request->all(), $this->rules($request))->validate();
 
         // Auto-geocode location if coordinates not provided
         if (empty($validated['latitude']) || empty($validated['longitude'])) {
-            $coordinates = $this->geocodeLocation(
-                $validated['name']
-            );
+            $coordinates = $this->geocodeLocation($validated['name']);
+
             if (!empty($coordinates)) {
-                // geocodeLocation() returns an array of results — take the first (best) match
                 $validated['latitude'] = $coordinates[0]['lat'];
                 $validated['longitude'] = $coordinates[0]['lng'];
+                $validated['barangay_id'] = $coordinates[0]['barangay_id'];
             }
         }
 
-        // Set API key from config for RDBMA integration
+        // Set API key from config
         if (config('services.rdbma.api_key')) {
             $validated['api_key'] = config('services.rdbma.api_key');
         }
@@ -123,7 +136,7 @@ class InstitutionController extends Controller
     {
         $rules = [
             'name' => 'required|string|max:255',
-
+            'barangay_id' => 'required|exists:barangays,id',
             'type' => 'required|in:School,Barangay Hall,Local Government Office',
 
             'latitude' => 'nullable|numeric|between:-90,90',
@@ -248,19 +261,30 @@ class InstitutionController extends Controller
                     continue;
                 }
 
+                $lat = (float) $lat;
+                $lng = (float) $lng;
+
+                $barangay = DB::table('barangays')
+                    ->select('id', 'name')
+                    ->whereRaw(
+                        "ST_Contains(
+                            geom,
+                            ST_SetSRID(ST_Point(?, ?), 4326)
+                        )",
+                        [$lng, $lat] // longitude first, latitude second
+                    )
+                    ->first();
+
                 $results[] = [
-                    'lat' => round((float)$lat, 7),
-                    'lng' => round((float)$lng, 7),
+                    'lat' => round((float) $lat, 7),
+                    'lng' => round((float) $lng, 7),
 
                     'display_name' => $result['display_name'] ?? $item['display_name'] ?? '',
 
                     'address' => $item['address'] ?? [],
 
-                    'barangay' =>
-                    $item['address']['suburb']
-                        ?? $item['address']['village']
-                        ?? $item['address']['hamlet']
-                        ?? '',
+                    'barangay' => $barangay?->name,
+                    'barangay_id' => $barangay?->id,
 
                     'city' =>
                     $item['address']['city']
@@ -375,5 +399,4 @@ class InstitutionController extends Controller
             ->route('institutions.index')
             ->with('success', 'Institution deleted successfully.');
     }
-    
 }

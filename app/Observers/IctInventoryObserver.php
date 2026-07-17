@@ -2,28 +2,59 @@
 
 namespace App\Observers;
 
+use App\Jobs\ProcessInstitutionAnalytics;
 use App\Models\IctInventory;
 use App\Models\Institution;
 
 class IctInventoryObserver
 {
-    public function saved(IctInventory $inventory)
+    public function created(IctInventory $inventory): void
     {
-        $this->updateComputerCount($inventory->institution_id);
+        $this->refreshInstitutionAnalytics($inventory);
     }
 
-    public function deleted(IctInventory $inventory)
+    public function updated(IctInventory $inventory): void
     {
-        $this->updateComputerCount($inventory->institution_id);
+        $this->refreshInstitutionAnalytics($inventory);
     }
 
-    private function updateComputerCount($institutionId)
+    public function deleted(IctInventory $inventory): void
     {
-        $count = IctInventory::where('institution_id', $institutionId)
-            ->where('category', 'computer')
-            ->where('status', 'active')
+        $this->refreshInstitutionAnalytics($inventory);
+    }
+
+    private function refreshInstitutionAnalytics(
+        IctInventory $inventory
+    ): void {
+        $institutionId = (int) $inventory->institution_id;
+
+        $institution = Institution::find($institutionId);
+
+        if (!$institution) {
+            return;
+        }
+
+        $computerCount = IctInventory::query()
+            ->where('institution_id', $institutionId)
+            ->whereIn('category', [
+                'computer',
+                'desktop',
+                'laptop',
+            ])
+            ->whereIn('status', [
+                'active',
+                'operational',
+                'working',
+                'in use',
+            ])
             ->count();
 
-        Institution::where('id', $institutionId)->update(['number_of_computers' => $count]);
+        $institution->updateQuietly([
+            'number_of_computers' => $computerCount,
+        ]);
+
+        ProcessInstitutionAnalytics::dispatch(
+            $institutionId
+        )->afterCommit();
     }
 }

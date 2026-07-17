@@ -2,37 +2,49 @@
 
 namespace App\Observers;
 
+use App\Jobs\ProcessInstitutionAnalytics;
 use App\Models\AuditRecord;
 use App\Models\Institution;
-use App\Jobs\ProcessInstitutionAnalytics;
 use Illuminate\Support\Facades\Auth;
 
 class InstitutionObserver
 {
-    public function created(Institution $institution)
+    public function created(Institution $institution): void
     {
-        // Dispatches the analytics update to our Python API queue.
-        ProcessInstitutionAnalytics::dispatch($institution);
+        ProcessInstitutionAnalytics::dispatch($institution->id)
+            ->afterCommit();
     }
 
-    public function updated(Institution $institution)
+    public function updated(Institution $institution): void
     {
-        $relevantFields = [
-            'internet_speed', 'student_population', 'staff_population', 'number_of_computers',
-            'has_computer_lab', 'has_projected_whiteboard', 'has_smart_tv', 'has_public_address_system',
-            'needs_maintenance', 'name', 'type', 'barangay_id', 'latitude', 'longitude'
+        $analyticsFields = [
+            'name',
+            'type',
+            'student_population',
+            'staff_population',
+            'internet_speed',
+            'number_of_computers',
+            'has_computer_lab',
+            'has_projected_whiteboard',
+            'has_smart_tv',
+            'has_public_address_system',
+            'needs_maintenance',
         ];
 
-        if ($institution->wasChanged($relevantFields)) {
-            // Dispatches the analytics update to our Python API queue.
-            ProcessInstitutionAnalytics::dispatch($institution);
+        if ($institution->wasChanged($analyticsFields)) {
+            ProcessInstitutionAnalytics::dispatch($institution->id)
+                ->afterCommit();
         }
 
-        if ($institution->wasChanged('last_audited_at') && $institution->last_audited_at) {
+        if (
+            $institution->wasChanged('last_audited_at')
+            && $institution->last_audited_at !== null
+            && Auth::check()
+        ) {
             AuditRecord::create([
                 'institution_id' => $institution->id,
-                'user_id' => Auth::id() ?? 1,
-                'audit_date' => $institution->last_audited_at,
+                'user_id' => Auth::id(),
+                'audit_date' => $institution->last_audited_at->toDateString(),
                 'validation_status' => 'completed',
             ]);
         }

@@ -27,7 +27,7 @@ class InstitutionController extends Controller
      */
     public function create()
     {
-        $barangays = \App\Models\Barangay::orderBy('name')->get();
+        $barangays = Barangay::orderBy('name')->get();
         return view('institutions.create', compact('barangays'));
     }
 
@@ -92,7 +92,7 @@ class InstitutionController extends Controller
      */
     public function edit(Institution $institution)
     {
-        $barangays = \App\Models\Barangay::orderBy('name')->get();
+        $barangays = Barangay::orderBy('name')->get();
         return view('institutions.edit', compact('institution', 'barangays'));
     }
 
@@ -136,44 +136,80 @@ class InstitutionController extends Controller
     {
         $rules = [
             'name' => 'required|string|max:255',
-            'barangay_id' => 'required|exists:barangays,id',
-            'type' => 'required|in:School,Barangay Hall,Local Government Office',
 
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
+            'barangay_id' =>
+            'required|exists:barangays,id',
 
-            'isp_provider' => 'nullable|string|max:255',
-            'internet_speed' => 'nullable|numeric|min:0',
+            'type' =>
+            'required|in:School,Barangay Hall,Local Government Office',
 
-            'has_computer_lab' => 'nullable|boolean',
-            'number_of_computers' => 'nullable|integer|min:0',
+            'latitude' =>
+            'nullable|numeric|between:-90,90',
 
-            'has_projected_whiteboard' => 'nullable|boolean',
-            'has_smart_tv' => 'nullable|boolean',
-            'has_public_address_system' => 'nullable|boolean',
+            'longitude' =>
+            'nullable|numeric|between:-180,180',
 
-            'needs_maintenance' => 'nullable|boolean',
+            'isp_provider' =>
+            'nullable|string|max:255',
 
-            'notes' => 'nullable|string',
+            'internet_speed' =>
+            'nullable|numeric|min:0',
 
-            'is_pilot_site' => 'nullable|boolean',
-            'data_completeness_score' => 'nullable|integer|min:0|max:100',
-            'requires_audit' => 'nullable|boolean',
+            'has_computer_lab' =>
+            'nullable|boolean',
 
-            'last_audited_at' => 'nullable|date',
-            'audited_by' => 'nullable|exists:users,id',
-            'audit_notes' => 'nullable|string',
+            'number_of_computers' =>
+            'nullable|integer|min:0',
 
-            'is_active' => 'nullable|boolean',
+            'has_projected_whiteboard' =>
+            'nullable|boolean',
+
+            'has_smart_tv' =>
+            'nullable|boolean',
+
+            'has_public_address_system' =>
+            'nullable|boolean',
+
+            'needs_maintenance' =>
+            'nullable|boolean',
+
+            'notes' =>
+            'nullable|string',
+
+            'is_pilot_site' =>
+            'nullable|boolean',
+
+            'data_completeness_score' =>
+            'nullable|integer|min:0|max:100',
+
+            'requires_audit' =>
+            'nullable|boolean',
+
+            'last_audited_at' =>
+            'nullable|date',
+
+            'audited_by' =>
+            'nullable|exists:users,id',
+
+            'audit_notes' =>
+            'nullable|string',
+
+            'is_active' =>
+            'nullable|boolean',
         ];
 
-        // Conditional validation for population fields
         if ($request->input('type') === 'School') {
-            $rules['student_population'] = 'required|integer|min:0';
-            $rules['staff_population'] = 'nullable|integer|min:0';
+            $rules['student_population'] =
+                'required|integer|min:0';
+
+            $rules['staff_population'] =
+                'nullable|integer|min:0';
         } else {
-            $rules['student_population'] = 'nullable|integer|min:0';
-            $rules['staff_population'] = 'required|integer|min:0';
+            $rules['student_population'] =
+                'nullable|integer|min:0';
+
+            $rules['staff_population'] =
+                'required|integer|min:0';
         }
 
         return $rules;
@@ -335,26 +371,135 @@ class InstitutionController extends Controller
         ], 404);
     }
 
+
     public function storeApi(Request $request)
     {
-        $validated = $request->validate($this->rules($request));
-        $validated = $this->applyCheckboxDefaults($validated, $request);
+        /*
+     * Flutter currently sends the barangay name using the "barangay" field.
+     * Convert that name into the barangay ID required by the database.
+     */
+        if (
+            !$request->filled('barangay_id') &&
+            $request->filled('barangay')
+        ) {
+            $barangayName = trim((string) $request->input('barangay'));
 
-        $institution = Institution::create($validated);
-        return response()->json($institution->load('barangay'), 201);
+            $barangay = Barangay::query()
+                ->whereRaw(
+                    'LOWER(name) = ?',
+                    [mb_strtolower($barangayName)]
+                )
+                ->first();
+
+            if (!$barangay) {
+                return response()->json([
+                    'message' => 'The selected barangay was not found.',
+                    'errors' => [
+                        'barangay' => [
+                            'The barangay "' . $barangayName .
+                                '" does not exist in the barangays table.',
+                        ],
+                    ],
+                ], 422);
+            }
+
+            $request->merge([
+                'barangay_id' => $barangay->id,
+            ]);
+        }
+
+        /*
+     * Newly created institutions should be active unless the application
+     * explicitly sends another value.
+     */
+        if (!$request->has('is_active')) {
+            $request->merge([
+                'is_active' => true,
+            ]);
+        }
+
+        /*
+     * Validate the request after resolving the barangay ID.
+     */
+        $validated = $request->validate(
+            $this->rules($request)
+        );
+
+        $validated = $this->applyCheckboxDefaults(
+            $validated,
+            $request
+        );
+
+        /*
+     * Use Nominatim when Flutter did not provide coordinates.
+     */
+        if (
+            empty($validated['latitude']) ||
+            empty($validated['longitude'])
+        ) {
+            $barangay = Barangay::find(
+                $validated['barangay_id']
+            );
+
+            $searchQuery = implode(', ', array_filter([
+                $validated['name'],
+                $barangay?->name,
+                'Lipa City',
+                'Batangas',
+                'Philippines',
+            ]));
+
+            $locations = $this->geocodeLocation(
+                $searchQuery
+            );
+
+            if (empty($locations)) {
+                return response()->json([
+                    'message' =>
+                    'The institution was not saved because its location could not be found.',
+                    'errors' => [
+                        'location' => [
+                            'No Nominatim result was found for "' .
+                                $searchQuery . '".',
+                        ],
+                    ],
+                ], 422);
+            }
+
+            $validated['latitude'] =
+                $locations[0]['lat'];
+
+            $validated['longitude'] =
+                $locations[0]['lng'];
+        }
+
+        if (config('services.rdbma.api_key')) {
+            $validated['api_key'] =
+                config('services.rdbma.api_key');
+        }
+
+        $institution = Institution::create(
+            $validated
+        );
+
+        return response()->json([
+            'message' => 'Institution created successfully.',
+            'data' => $institution->load('barangay'),
+        ], 201);
     }
 
     public function updateApi(Request $request, Institution $institution)
     {
         $rules = $this->rules($request);
-
-        // API update supports partial updates — soften "required" to "sometimes|required"
+        // API update supports partial updates
         foreach (['name', 'type'] as $field) {
             $rules[$field] = 'sometimes|' . $rules[$field];
         }
+
         if (isset($rules['student_population'])) {
             $rules['student_population'] = 'sometimes|' . $rules['student_population'];
         }
+
         if (isset($rules['staff_population'])) {
             $rules['staff_population'] = 'sometimes|' . $rules['staff_population'];
         }
@@ -394,9 +539,29 @@ class InstitutionController extends Controller
     public function destroy(Institution $institution)
     {
         $institution->delete();
+        return response()->json([
+            'success' => true,
+            'message' => 'Institution deleted successfully.'
+        ]);
+    }
 
-        return redirect()
-            ->route('institutions.index')
-            ->with('success', 'Institution deleted successfully.');
+    public function indexApi()
+    {
+        return response()->json([
+            'success' => true,
+            'data' => Institution::with('barangay')->get(),
+        ]);
+    }
+
+    public function showApi(Institution $institution)
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $institution->load([
+                'barangay',
+                'ictInventory',
+                'institutionAnalytics',
+            ]),
+        ]);
     }
 }

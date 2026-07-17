@@ -2,20 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\GapScoreCalculator;
 use App\Models\Institution;
 
 class IctMappingController extends Controller
 {
+    /**
+     * Display the map view.
+     */
     public function index()
     {
-        // Removed the unused $heatPoints calculation to prevent N+1 queries and unnecessary processing on page load.
         return view('map');
     }
 
+    /**
+     * Get institutions as GeoJSON for the map.
+     */
     public function getInstitutionsGeoJSON()
     {
-        // Added 'barangay' to eager loading to prevent N+1 query when accessing $inst->barangay->name
         $institutions = Institution::with([
             'institutionAnalytics',
             'auditor',
@@ -23,12 +26,6 @@ class IctMappingController extends Controller
         ])->get();
 
         $features = $institutions->map(function ($inst) {
-            
-            /* * Removed synchronous $inst->updateAnalytics() call.
-             * Analytics generation should be handled by an Observer (e.g., InstitutionObserver) 
-             * or a queued Job when an Institution is created/updated, not during a GET request.
-             */
-
             $gapScore = $inst->institutionAnalytics->gap_score ?? 0;
             $completeness = $inst->institutionAnalytics->data_completeness_score ?? $inst->data_completeness_score ?? 0;
 
@@ -38,20 +35,27 @@ class IctMappingController extends Controller
                 default => 'incomplete',
             };
 
+            // Logic replaced to avoid dependency on deleted GapScoreCalculator helper
+            $gapLevel = match (true) {
+                $gapScore >= 75 => 'high_gap',
+                $gapScore >= 40 => 'moderate_gap',
+                default => 'low_gap',
+            };
+
             return [
                 'type' => 'Feature',
                 'geometry' => [
                     'type' => 'Point',
                     'coordinates' => [
-                        (float) $inst->longitude,
-                        (float) $inst->latitude,
+                        (float) ($inst->longitude ?? 0),
+                        (float) ($inst->latitude ?? 0),
                     ],
                 ],
                 'properties' => [
                     'id' => $inst->id,
                     'name' => $inst->name,
                     'type' => $inst->type,
-                    'barangay' => $inst->barangay ? $inst->barangay->name : 'Unknown', // Added null check
+                    'barangay' => $inst->barangay ? $inst->barangay->name : 'Unknown',
 
                     'latitude' => (float) $inst->latitude,
                     'longitude' => (float) $inst->longitude,
@@ -79,11 +83,10 @@ class IctMappingController extends Controller
 
                     'last_audited' => $inst->last_audited_at?->format('Y-m-d'),
                     'audited_by' => $inst->auditor?->name,
-
                     'audit_notes' => $inst->audit_notes,
 
                     'gap_score' => round($gapScore, 2),
-                    'gap_level' => GapScoreCalculator::getLevel($gapScore),
+                    'gap_level' => $gapLevel,
 
                     'infrastructure_narrative' => $inst->institutionAnalytics->infrastructure_narrative ?? null,
                     'policy_recommendation' => $inst->institutionAnalytics->policy_recommendation ?? null,
@@ -98,26 +101,28 @@ class IctMappingController extends Controller
         ]);
     }
 
+    /**
+     * Get barangays as GeoJSON for the map.
+     */
     public function getBarangaysGeoJSON()
     {
         $barangays = \App\Models\Barangay::whereNotNull('geometry')->get();
 
         if ($barangays->isNotEmpty()) {
-            
-        $features = $barangays->map(function ($barangay) {
-            return [
-                'type' => 'Feature',
-                'geometry' => $barangay->geometry,
-                'properties' => [
-                    'id' => $barangay->id,
-                    'code' => $barangay->code,
-                    'name' => $barangay->name,
-                    'district' => $barangay->district,
-                    'population' => $barangay->population,
-                    'total_institutions' => $barangay->total_institutions,
-                ],
-            ];
-        });
+            $features = $barangays->map(function ($barangay) {
+                return [
+                    'type' => 'Feature',
+                    'geometry' => $barangay->geometry,
+                    'properties' => [
+                        'id' => $barangay->id,
+                        'code' => $barangay->code,
+                        'name' => $barangay->name,
+                        'district' => $barangay->district,
+                        'population' => $barangay->population,
+                        'total_institutions' => $barangay->total_institutions,
+                    ],
+                ];
+            });
 
             return response()->json([
                 'type' => 'FeatureCollection',

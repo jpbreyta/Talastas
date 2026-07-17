@@ -4,16 +4,15 @@ namespace App\Observers;
 
 use App\Models\AuditRecord;
 use App\Models\Institution;
+use App\Jobs\ProcessInstitutionAnalytics;
 use Illuminate\Support\Facades\Auth;
 
 class InstitutionObserver
 {
     public function created(Institution $institution)
     {
-        // Dispatches the analytics update to run asynchronously in the background.
-        // dispatch(function () use ($institution) {
-        //     $institution->updateAnalytics();
-        // });
+        // Dispatches the analytics update to our Python API queue.
+        ProcessInstitutionAnalytics::dispatch($institution);
     }
 
     public function updated(Institution $institution)
@@ -25,10 +24,8 @@ class InstitutionObserver
         ];
 
         if ($institution->wasChanged($relevantFields)) {
-            // Dispatches the analytics update to run asynchronously in the background.
-            dispatch(function () use ($institution) {
-                $institution->updateAnalytics();
-            });
+            // Dispatches the analytics update to our Python API queue.
+            ProcessInstitutionAnalytics::dispatch($institution);
         }
 
         if ($institution->wasChanged('last_audited_at') && $institution->last_audited_at) {

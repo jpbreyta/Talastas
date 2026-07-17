@@ -94,35 +94,42 @@ class Institution extends Model
         return $this->belongsTo(Barangay::class, 'barangay_id');
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Data Quality Methods
+    |--------------------------------------------------------------------------
+    */
+
     /**
-     * Update or create analytics for this institution
-     * Includes full heuristic analysis with recommendations
+     * Compute data completeness score (0-100) for quality flagging
      */
-    public function updateAnalytics()
+    public function computeDataCompleteness(): int
     {
-        $gapScore = \App\Helpers\GapScoreCalculator::computeScore($this);
-        $dataCompleteness = \App\Helpers\GapScoreCalculator::computeDataCompleteness($this);
+        $requiredFields = [
+            'name', 'type', 'barangay_id', 'latitude', 'longitude',
+            'has_computer_lab', 'has_smart_tv', 'has_public_address_system',
+        ];
 
-        // Get full heuristic analysis with recommendations
-        $service = app(\App\Services\GeminiService::class);
-        $analysis = $service->analyzeInfrastructure($this);
+        $optionalFields = [
+            'student_population', 'staff_population', 'internet_speed',
+            'number_of_computers', 'has_projected_whiteboard', 'needs_maintenance',
+        ];
 
-        $this->institutionAnalytics()->updateOrCreate(
-            ['institution_id' => $this->id],
-            [
-                'gap_score' => $gapScore,
-                'data_completeness_score' => $dataCompleteness,
-                'infrastructure_narrative' => $analysis['infrastructure_narrative'],
-                'policy_recommendation' => $analysis['policy_recommendation'],
-                'recommendations_detail' => $analysis['recommendations_detail'],
-                'analysis_date' => now(),
-            ]
-        );
+        $requiredScore = 0;
+        foreach ($requiredFields as $field) {
+            if (! empty($this->$field) || $this->$field === false) {
+                $requiredScore += 20; 
+            }
+        }
 
-        // Also update the institution's data_completeness_score
-        // Use withoutEvents to prevent infinite loop
-        static::withoutEvents(function () use ($dataCompleteness) {
-            $this->update(['data_completeness_score' => $dataCompleteness]);
-        });
+        $optionalScore = 0;
+        $optionalCount = count($optionalFields);
+        foreach ($optionalFields as $field) {
+            if (! empty($this->$field) || $this->$field === false || $this->$field === 0) {
+                $optionalScore += (60 / $optionalCount); 
+            }
+        }
+
+        return min(100, (int) round($requiredScore + $optionalScore));
     }
 }

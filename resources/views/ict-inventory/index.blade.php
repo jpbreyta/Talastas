@@ -58,17 +58,7 @@
     {{-- ── Content Area ─────────────────────────────────────────────── --}}
     <div class="flex-1 min-h-0 flex flex-col">
 
-        {{-- Flash message --}}
-        @if(session('success'))
-        <div class="flex-shrink-0 mx-5 mt-3 flex items-center gap-2 bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-3 rounded-lg">
-            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-            </svg>
-            {{ session('success') }}
-        </div>
-        @endif
-
-@if($inventories->count() > 0)
+    @if($inventories->count() > 0)
 
         {{-- ── TABLE VIEW ─────────────────────────────────────────────── --}}
         <div class="flex-1 min-h-0 px-5 pt-3 pb-1 flex flex-col min-w-0">

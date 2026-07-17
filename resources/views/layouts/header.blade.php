@@ -167,6 +167,8 @@
     </script>
 </header>
 
+<div id="toastContainer" class="fixed top-5 right-5 z-[10001] flex flex-col gap-3 pointer-events-none"></div>
+
 <!-- =====================================================================
      NOTIFICATIONS PANEL
      Appended to <body> via JS (same pattern as userDropdown) so it
@@ -454,5 +456,89 @@
             panel.classList.add('hidden');
         }
     });
+})();
+</script>
+<script>
+(function () {
+    const toastContainer = document.getElementById('toastContainer');
+
+    const toastStyles = {
+        success: {
+            border: 'border-emerald-200',
+            ring: 'ring-emerald-500/10',
+            icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />',
+            title: 'Success',
+            color: 'text-emerald-600',
+        },
+        error: {
+            border: 'border-rose-200',
+            ring: 'ring-rose-500/10',
+            icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />',
+            title: 'Error',
+            color: 'text-rose-600',
+        },
+        warning: {
+            border: 'border-amber-200',
+            ring: 'ring-amber-500/10',
+            icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M4.93 19.07a10 10 0 1114.14 0 10 10 0 01-14.14 0z" />',
+            title: 'Warning',
+            color: 'text-amber-600',
+        },
+        info: {
+            border: 'border-sky-200',
+            ring: 'ring-sky-500/10',
+            icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />',
+            title: 'Info',
+            color: 'text-sky-600',
+        },
+    };
+
+    function removeToast(toast) {
+        if (!toast) return;
+        toast.classList.add('opacity-0', 'translate-x-3');
+        setTimeout(() => toast.remove(), 180);
+    }
+
+    window.showToast = function (type, message, duration = 4500) {
+        if (!toastContainer || !message) return;
+
+        const style = toastStyles[type] || toastStyles.info;
+        const toast = document.createElement('div');
+        toast.className = `pointer-events-auto w-full overflow-hidden rounded-3xl border bg-white px-4 py-3 shadow-2xl ring-1 ${style.ring} transition-all duration-200 ease-out opacity-0 translate-x-3`
+        toast.innerHTML = `
+            <div class="flex gap-3 items-start">
+                <div class="mt-0.5 shrink-0 rounded-2xl bg-slate-100 p-2 text-slate-700 ${style.color}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">${style.icon}</svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-3">
+                        <p class="text-sm font-semibold text-slate-900">${style.title}</p>
+                        <button type="button" class="text-slate-400 hover:text-slate-600 focus:outline-none" aria-label="Close toast">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="text-sm text-slate-600 mt-1 break-words">${message}</p>
+                </div>
+            </div>
+        `;
+
+        const closeButton = toast.querySelector('button');
+        closeButton.addEventListener('click', () => removeToast(toast));
+
+        toastContainer.appendChild(toast);
+        requestAnimationFrame(() => {
+            toast.classList.remove('opacity-0', 'translate-x-3');
+        });
+
+        setTimeout(() => removeToast(toast), duration);
+    };
+
+    @if(session('success'))
+        window.showToast('success', @json(session('success')));
+    @elseif(session('error'))
+        window.showToast('error', @json(session('error')));
+    @endif
 })();
 </script>

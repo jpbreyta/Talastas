@@ -499,6 +499,54 @@
         setTimeout(() => toast.remove(), 180);
     }
 
+    function installToastGestures(toast) {
+        let startX = 0;
+        let currentX = 0;
+        let dragging = false;
+
+        function updateTransform() {
+            toast.style.transform = `translateX(${currentX}px)`;
+            toast.style.opacity = `${Math.max(0, 1 - Math.abs(currentX) / 240)}`;
+        }
+
+        function onPointerMove(event) {
+            if (!dragging) return;
+            currentX = Math.max(0, event.clientX - startX);
+            updateTransform();
+        }
+
+        function onPointerUp() {
+            if (!dragging) return;
+            dragging = false;
+            toast.releasePointerCapture(toast.pointerId);
+            toast.style.transition = 'transform .2s ease, opacity .2s ease';
+
+            if (currentX > 100) {
+                toast.style.transform = 'translateX(120%)';
+                toast.style.opacity = '0';
+                setTimeout(() => removeToast(toast), 180);
+            } else {
+                currentX = 0;
+                toast.style.transform = 'translateX(0)';
+                toast.style.opacity = '1';
+            }
+
+            window.removeEventListener('pointermove', onPointerMove);
+            window.removeEventListener('pointerup', onPointerUp);
+        }
+
+        toast.addEventListener('pointerdown', function (event) {
+            event.preventDefault();
+            startX = event.clientX;
+            currentX = 0;
+            dragging = true;
+            toast.style.transition = 'none';
+            toast.setPointerCapture(event.pointerId);
+            window.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerup', onPointerUp);
+        });
+    }
+
     window.showToast = function (type, message, duration = 4500) {
         if (!toastContainer || !message) return;
 
@@ -526,10 +574,12 @@
 
         const closeButton = toast.querySelector('button');
         closeButton.addEventListener('click', () => removeToast(toast));
+        installToastGestures(toast);
 
         toastContainer.appendChild(toast);
         requestAnimationFrame(() => {
             toast.classList.remove('opacity-0', 'translate-x-3');
+            toast.style.transform = 'translateX(0)';
         });
 
         setTimeout(() => removeToast(toast), duration);
@@ -537,8 +587,15 @@
 
     @if(session('success'))
         window.showToast('success', @json(session('success')));
-    @elseif(session('error'))
+    @endif
+    @if(session('error'))
         window.showToast('error', @json(session('error')));
+    @endif
+    @if(session('warning'))
+        window.showToast('warning', @json(session('warning')));
+    @endif
+    @if(session('info'))
+        window.showToast('info', @json(session('info')));
     @endif
 })();
 </script>

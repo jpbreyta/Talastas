@@ -41,6 +41,24 @@
                 </a>
             </nav>
 
+            <!-- Notification Bell (right, before user dropdown) -->
+            <div class="relative shrink-0 flex items-center" id="notificationTrigger">
+                <button onclick="toggleNotifications()"
+                    class="relative p-2 rounded-md text-blue-200 hover:text-white hover:bg-blue-800 transition-colors focus:outline-none"
+                    aria-label="Notifications">
+                    <!-- Bell icon -->
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                    <!-- Unread badge -->
+                    <span id="notifBadge"
+                        class="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 leading-none">
+                        3
+                    </span>
+                </button>
+            </div>
+
             <!-- User Profile Dropdown (right) -->
             <div class="relative shrink-0 flex justify-end w-64" id="userDropdown">
                 <button onclick="toggleDropdown()"
@@ -148,3 +166,436 @@
         });
     </script>
 </header>
+
+<div id="toastContainer" class="fixed top-5 right-5 z-[10001] flex flex-col gap-3 pointer-events-none"></div>
+
+<!-- =====================================================================
+     NOTIFICATIONS PANEL
+     Appended to <body> via JS (same pattern as userDropdown) so it
+     escapes the header's stacking context.
+====================================================================== -->
+<div id="notificationsPanel"
+    class="hidden fixed z-[9999] w-[390px] bg-white rounded-2xl shadow-2xl ring-1 ring-black/8 overflow-hidden"
+    style="top:0;right:0;">
+
+    <!-- Panel Header -->
+    <div class="bg-blue-700 px-4 py-3 flex items-center gap-3">
+        <svg class="w-5 h-5 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+        </svg>
+        <span class="text-white font-semibold text-base flex-1">Notifications</span>
+        <span id="notifNewBadge"
+            class="bg-blue-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full border border-blue-400">
+            3 new
+        </span>
+        <button onclick="closeNotifications()"
+            class="ml-2 text-blue-200 hover:text-white transition-colors focus:outline-none"
+            aria-label="Close notifications">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 bg-white">
+        <button onclick="markAllRead()"
+            class="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors focus:outline-none">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            Mark all read
+        </button>
+        <button onclick="clearAllNotifications()"
+            class="text-sm text-gray-400 hover:text-gray-600 font-medium transition-colors focus:outline-none">
+            Clear all
+        </button>
+    </div>
+
+    <!-- Notification List -->
+    <div id="notifList" class="overflow-y-auto max-h-[420px] divide-y divide-gray-100">
+
+        <!-- Critical -->
+        <div class="notif-item flex items-start gap-3 px-4 py-3.5 hover:bg-blue-50/60 transition-colors cursor-pointer bg-blue-50/30"
+            data-unread="true" onclick="markRead(this)">
+            <!-- Icon: Critical -->
+            <div class="shrink-0 w-9 h-9 rounded-full bg-red-100 border-2 border-red-300 flex items-center justify-center mt-0.5">
+                <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                    <p class="text-sm font-semibold text-gray-900 leading-snug">Critical Gap Detected</p>
+                    <span class="text-[11px] text-gray-400 shrink-0 mt-0.5">2m ago</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">Bagong Silang barangay gap score reached 82% — immediate audit recommended.</p>
+            </div>
+            <!-- Unread dot -->
+            <span class="unread-dot shrink-0 w-2.5 h-2.5 rounded-full bg-blue-600 mt-1.5"></span>
+        </div>
+
+        <!-- Warning -->
+        <div class="notif-item flex items-start gap-3 px-4 py-3.5 hover:bg-blue-50/60 transition-colors cursor-pointer bg-blue-50/30"
+            data-unread="true" onclick="markRead(this)">
+            <!-- Icon: Warning -->
+            <div class="shrink-0 w-9 h-9 rounded-full bg-amber-100 border-2 border-amber-300 flex items-center justify-center mt-0.5">
+                <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                    <p class="text-sm font-semibold text-gray-900 leading-snug">Equipment Retired</p>
+                    <span class="text-[11px] text-gray-400 shrink-0 mt-0.5">1h ago</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">3 network switches in San Roque NHS have been flagged as retired due to poor condition.</p>
+            </div>
+            <!-- Unread dot -->
+            <span class="unread-dot shrink-0 w-2.5 h-2.5 rounded-full bg-blue-600 mt-1.5"></span>
+        </div>
+
+        <!-- Info -->
+        <div class="notif-item flex items-start gap-3 px-4 py-3.5 hover:bg-blue-50/60 transition-colors cursor-pointer bg-blue-50/30"
+            data-unread="true" onclick="markRead(this)">
+            <!-- Icon: Info -->
+            <div class="shrink-0 w-9 h-9 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center mt-0.5">
+                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                    <p class="text-sm font-semibold text-gray-900 leading-snug">New Institution Added</p>
+                    <span class="text-[11px] text-gray-400 shrink-0 mt-0.5">3h ago</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">Batasan Hills Community Learning Center has been registered in the system.</p>
+            </div>
+            <!-- Unread dot -->
+            <span class="unread-dot shrink-0 w-2.5 h-2.5 rounded-full bg-blue-600 mt-1.5"></span>
+        </div>
+
+        <!-- Success -->
+        <div class="notif-item flex items-start gap-3 px-4 py-3.5 hover:bg-gray-50/80 transition-colors cursor-pointer"
+            data-unread="false" onclick="markRead(this)">
+            <!-- Icon: Success -->
+            <div class="shrink-0 w-9 h-9 rounded-full bg-green-100 border-2 border-green-300 flex items-center justify-center mt-0.5">
+                <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+            </div>
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                    <p class="text-sm font-medium text-gray-700 leading-snug">Audit Completed</p>
+                    <span class="text-[11px] text-gray-400 shrink-0 mt-0.5">Yesterday</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">Maliwanag TVET School audit for Q2 2026 was successfully submitted.</p>
+            </div>
+            <span class="unread-dot hidden shrink-0 w-2.5 h-2.5 rounded-full bg-blue-600 mt-1.5"></span>
+        </div>
+
+        <!-- Warning 2 -->
+        <div class="notif-item flex items-start gap-3 px-4 py-3.5 hover:bg-gray-50/80 transition-colors cursor-pointer"
+            data-unread="false" onclick="markRead(this)">
+            <!-- Icon: Warning -->
+            <div class="shrink-0 w-9 h-9 rounded-full bg-amber-100 border-2 border-amber-300 flex items-center justify-center mt-0.5">
+                <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                    <p class="text-sm font-medium text-gray-700 leading-snug">Audit Deadline Approaching</p>
+                    <span class="text-[11px] text-gray-400 shrink-0 mt-0.5">Yesterday</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">12 institutions have pending audits due before June 30, 2026.</p>
+            </div>
+            <span class="unread-dot hidden shrink-0 w-2.5 h-2.5 rounded-full bg-blue-600 mt-1.5"></span>
+        </div>
+
+        <!-- Info 2 -->
+        <div class="notif-item flex items-start gap-3 px-4 py-3.5 hover:bg-gray-50/80 transition-colors cursor-pointer"
+            data-unread="false" onclick="markRead(this)">
+            <!-- Icon: Info -->
+            <div class="shrink-0 w-9 h-9 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center mt-0.5">
+                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2">
+                    <p class="text-sm font-medium text-gray-700 leading-snug">System Update</p>
+                    <span class="text-[11px] text-gray-400 shrink-0 mt-0.5">2 days ago</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">GIS layer data has been refreshed with June 2026 barangay boundary updates.</p>
+            </div>
+            <span class="unread-dot hidden shrink-0 w-2.5 h-2.5 rounded-full bg-blue-600 mt-1.5"></span>
+        </div>
+
+    </div>
+
+    <!-- Empty State (hidden until Clear All) -->
+    <div id="notifEmpty" class="hidden py-12 flex flex-col items-center justify-center text-center px-6">
+        <div class="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+            <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+        </div>
+        <p class="text-sm font-semibold text-gray-500">No new notifications</p>
+        <p class="text-xs text-gray-400 mt-1">You're all caught up!</p>
+    </div>
+
+</div>
+
+<script>
+(function () {
+    // Move the panel to <body> to escape stacking contexts (same pattern as user dropdown)
+    const panel = document.getElementById('notificationsPanel');
+    document.body.appendChild(panel);
+
+    // ── State ─────────────────────────────────────────────────────────────
+    let unreadCount = document.querySelectorAll('.notif-item[data-unread="true"]').length;
+    updateBadge();
+
+    // ── Toggle ────────────────────────────────────────────────────────────
+    window.toggleNotifications = function () {
+        const btn = document.querySelector('#notificationTrigger button');
+        const isOpen = !panel.classList.contains('hidden');
+
+        if (isOpen) {
+            panel.classList.add('hidden');
+            return;
+        }
+
+        // Close user dropdown if open
+        const userMenu = document.getElementById('dropdownMenu');
+        if (userMenu && !userMenu.classList.contains('hidden')) {
+            userMenu.classList.add('hidden');
+            const arrow = document.getElementById('dropdownArrow');
+            if (arrow) arrow.style.transform = 'rotate(0deg)';
+        }
+
+        // Position panel below the bell button
+        const rect = btn.getBoundingClientRect();
+        panel.style.top  = (rect.bottom + window.scrollY + 8) + 'px';
+        panel.style.left = 'auto';
+        panel.style.right = (window.innerWidth - rect.right - 4) + 'px';
+        panel.classList.remove('hidden');
+    };
+
+    window.closeNotifications = function () {
+        panel.classList.add('hidden');
+    };
+
+    // ── Mark single item as read ──────────────────────────────────────────
+    window.markRead = function (item) {
+        if (item.dataset.unread === 'true') {
+            item.dataset.unread = 'false';
+            item.classList.remove('bg-blue-50/30');
+            // Hide the unread dot
+            const dot = item.querySelector('.unread-dot');
+            if (dot) dot.classList.add('hidden');
+            // De-bold the title
+            const title = item.querySelector('p.font-semibold');
+            if (title) {
+                title.classList.remove('font-semibold', 'text-gray-900');
+                title.classList.add('font-medium', 'text-gray-700');
+            }
+            unreadCount = Math.max(0, unreadCount - 1);
+            updateBadge();
+        }
+    };
+
+    // ── Mark all read ─────────────────────────────────────────────────────
+    window.markAllRead = function () {
+        document.querySelectorAll('.notif-item[data-unread="true"]').forEach(item => markRead(item));
+    };
+
+    // ── Clear all ─────────────────────────────────────────────────────────
+    window.clearAllNotifications = function () {
+        const list = document.getElementById('notifList');
+        const emptyState = document.getElementById('notifEmpty');
+        list.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        unreadCount = 0;
+        updateBadge();
+    };
+
+    // ── Badge helper ──────────────────────────────────────────────────────
+    function updateBadge() {
+        const badge    = document.getElementById('notifBadge');
+        const newBadge = document.getElementById('notifNewBadge');
+
+        if (unreadCount > 0) {
+            badge.textContent = unreadCount;
+            badge.classList.remove('hidden');
+            newBadge.textContent = unreadCount + ' new';
+        } else {
+            badge.classList.add('hidden');
+            newBadge.textContent = '0 new';
+        }
+    }
+
+    // ── Close on outside click ────────────────────────────────────────────
+    document.addEventListener('click', function (e) {
+        const trigger = document.getElementById('notificationTrigger');
+        if (!panel.contains(e.target) && !trigger.contains(e.target)) {
+            panel.classList.add('hidden');
+        }
+    });
+})();
+</script>
+<script>
+(function () {
+    const toastContainer = document.getElementById('toastContainer');
+
+    const toastStyles = {
+        success: {
+            border: 'border-emerald-200',
+            ring: 'ring-emerald-500/10',
+            icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />',
+            title: 'Success',
+            color: 'text-emerald-600',
+        },
+        error: {
+            border: 'border-rose-200',
+            ring: 'ring-rose-500/10',
+            icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />',
+            title: 'Error',
+            color: 'text-rose-600',
+        },
+        warning: {
+            border: 'border-amber-200',
+            ring: 'ring-amber-500/10',
+            icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M4.93 19.07a10 10 0 1114.14 0 10 10 0 01-14.14 0z" />',
+            title: 'Warning',
+            color: 'text-amber-600',
+        },
+        info: {
+            border: 'border-sky-200',
+            ring: 'ring-sky-500/10',
+            icon: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />',
+            title: 'Info',
+            color: 'text-sky-600',
+        },
+    };
+
+    function removeToast(toast) {
+        if (!toast) return;
+        toast.classList.add('opacity-0', 'translate-x-3');
+        setTimeout(() => toast.remove(), 180);
+    }
+
+    function installToastGestures(toast) {
+        let startX = 0;
+        let currentX = 0;
+        let dragging = false;
+
+        function updateTransform() {
+            toast.style.transform = `translateX(${currentX}px)`;
+            toast.style.opacity = `${Math.max(0, 1 - Math.abs(currentX) / 240)}`;
+        }
+
+        function onPointerMove(event) {
+            if (!dragging) return;
+            currentX = Math.max(0, event.clientX - startX);
+            updateTransform();
+        }
+
+        function onPointerUp() {
+            if (!dragging) return;
+            dragging = false;
+            toast.releasePointerCapture(toast.pointerId);
+            toast.style.transition = 'transform .2s ease, opacity .2s ease';
+
+            if (currentX > 100) {
+                toast.style.transform = 'translateX(120%)';
+                toast.style.opacity = '0';
+                setTimeout(() => removeToast(toast), 180);
+            } else {
+                currentX = 0;
+                toast.style.transform = 'translateX(0)';
+                toast.style.opacity = '1';
+            }
+
+            window.removeEventListener('pointermove', onPointerMove);
+            window.removeEventListener('pointerup', onPointerUp);
+        }
+
+        toast.addEventListener('pointerdown', function (event) {
+            event.preventDefault();
+            startX = event.clientX;
+            currentX = 0;
+            dragging = true;
+            toast.style.transition = 'none';
+            toast.setPointerCapture(event.pointerId);
+            window.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerup', onPointerUp);
+        });
+    }
+
+    window.showToast = function (type, message, duration = 4500) {
+        if (!toastContainer || !message) return;
+
+        const style = toastStyles[type] || toastStyles.info;
+        const toast = document.createElement('div');
+        toast.className = `pointer-events-auto w-full overflow-hidden rounded-3xl border bg-white px-4 py-3 shadow-2xl ring-1 ${style.ring} transition-all duration-200 ease-out opacity-0 translate-x-3`
+        toast.innerHTML = `
+            <div class="flex gap-3 items-start">
+                <div class="mt-0.5 shrink-0 rounded-2xl bg-slate-100 p-2 text-slate-700 ${style.color}">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">${style.icon}</svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center justify-between gap-3">
+                        <p class="text-sm font-semibold text-slate-900">${style.title}</p>
+                        <button type="button" class="text-slate-400 hover:text-slate-600 focus:outline-none" aria-label="Close toast">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="text-sm text-slate-600 mt-1 break-words">${message}</p>
+                </div>
+            </div>
+        `;
+
+        const closeButton = toast.querySelector('button');
+        closeButton.addEventListener('click', () => removeToast(toast));
+        installToastGestures(toast);
+
+        toastContainer.appendChild(toast);
+        requestAnimationFrame(() => {
+            toast.classList.remove('opacity-0', 'translate-x-3');
+            toast.style.transform = 'translateX(0)';
+        });
+
+        setTimeout(() => removeToast(toast), duration);
+    };
+
+    @if(session('success'))
+        window.showToast('success', @json(session('success')));
+    @endif
+    @if(session('error'))
+        window.showToast('error', @json(session('error')));
+    @endif
+    @if(session('warning'))
+        window.showToast('warning', @json(session('warning')));
+    @endif
+    @if(session('info'))
+        window.showToast('info', @json(session('info')));
+    @endif
+})();
+</script>

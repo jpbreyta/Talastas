@@ -1,7 +1,9 @@
 @extends('layouts.app')
 
+@section('dashboard-layout', 'enabled')
+
 @section('content')
-    <div class="w-full flex flex-col flex-1">
+    <div class="w-full flex flex-col flex-1 min-h-0 overflow-hidden">
         <!-- Dashboard Header -->
         <div class="w-full bg-white flex-shrink-0"
             style="box-shadow: 0 1px 3px 0 rgba(0,0,0,0.06), 0 1px 2px -1px rgba(0,0,0,0.04);">
@@ -182,21 +184,23 @@
         </div>
 
         <!-- Main Map Container -->
-        <div class="relative w-full flex-1 min-h-[600px] overflow-x-hidden">
-            <div id="map" style="position:absolute;inset:0;"></div>
+        <div class="relative w-full flex-1 min-h-0 overflow-hidden">
+            <div id="map" class="absolute inset-0 w-full h-full"></div>
 
             <!-- Sliding Side Panel -->
-            <div id="sidePanel" class="absolute top-4 bottom-4 right-0 h-[calc(100%-2rem)] w-80 bg-white shadow-lg transform translate-x-full transition-all duration-300 ease-in-out z-[1500] overflow-y-auto invisible rounded-l-lg">
+            <div id="sidePanel"
+                class="absolute top-4 bottom-4 right-0 h-[calc(100%-2rem)] w-80 bg-white shadow-lg transform translate-x-full transition-all duration-300 ease-in-out z-[1500] overflow-y-auto invisible rounded-l-lg">
                 <div class="p-4 border-b border-gray-200 flex items-center justify-between">
                     <h2 class="text-lg font-semibold text-gray-900">Institution Details</h2>
                     <button id="closePanel" class="text-gray-400 hover:text-gray-600">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
                     </button>
                 </div>
                 <div id="panelContent" class="p-4">
-                    </div>
+                </div>
             </div>
 
             <!-- Floating Barangay Navigator Card -->
@@ -365,10 +369,72 @@
             updateHeatmapButtonState();
             updateBarangayButtonState();
 
+            let outsideMask = null;
+
             // Load barangay boundaries
             fetch('/data/lipa-city-barangays.geojson')
                 .then(r => r.json())
                 .then(data => {
+                    function createOutsideMask(geoJsonData) {
+                        if (outsideMask) {
+                            map.removeLayer(outsideMask);
+                            outsideMask = null;
+                        }
+
+                        const maskRings = [
+                            [
+                                [-90, -180],
+                                [-90, 180],
+                                [90, 180],
+                                [90, -180],
+                                [-90, -180]
+                            ]
+                        ];
+
+                        geoJsonData.features.forEach((feature) => {
+                            const geometry = feature.geometry;
+
+                            if (!geometry) {
+                                return;
+                            }
+
+                            if (geometry.type === 'Polygon') {
+                                const outerRing = geometry.coordinates[0];
+
+                                maskRings.push(
+                                    outerRing.map(([longitude, latitude]) => [
+                                        latitude,
+                                        longitude
+                                    ])
+                                );
+                            }
+
+                            if (geometry.type === 'MultiPolygon') {
+                                geometry.coordinates.forEach((polygon) => {
+                                    const outerRing = polygon[0];
+
+                                    maskRings.push(
+                                        outerRing.map(([longitude, latitude]) => [
+                                            latitude,
+                                            longitude
+                                        ])
+                                    );
+                                });
+                            }
+                        });
+
+                        outsideMask = L.polygon(maskRings, {
+                            stroke: false,
+                            fillColor: '#0f172a',
+                            fillOpacity: 0.58,
+                            fillRule: 'evenodd',
+                            interactive: false
+                        }).addTo(map);
+
+                        outsideMask.bringToBack();
+                    }
+
+                    createOutsideMask(data);
                     barangayOverlay = L.geoJSON(data, {
                         style: {
                             color: '#2563eb',
@@ -401,48 +467,38 @@
                                 },
                             };
                             const conn = connectivity ? connectivityMap[connectivity
-                            .toLowerCase()] : null;
+                                .toLowerCase()] : null;
 
                             // Register layer by name for dropdown lookup
                             barangayLayerMap[name] = layer;
 
-                            // Styled barangay popup
-                            const connBadge = conn ?
-                                `<span style="display:inline-flex;align-items:center;gap:4px;">
-                                 <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${conn.color};"></span>
-                                 <span style="color:#475569;">${conn.label}</span>
-                               </span>` :
-                                '<span style="color:#94a3b8;">No data</span>';
-
-                            layer.bindPopup(`
-                            <div style="min-width:180px;font-family:inherit;">
-                                <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#1e293b;">${name}</p>
-                                <div style="border-top:1px solid #f1f5f9;padding-top:6px;display:flex;justify-content:space-between;align-items:center;font-size:12px;">
-                                    <span style="color:#64748b;">Connectivity</span>
-                                    ${connBadge}
-                                </div>
-                            </div>
-                        `, {
-                                className: 'map-popup'
-                            });
-
                             // Click → fly to this barangay
-                            layer.on('click', () => {
-                                // Reset previous highlight
-                                if (activeBarangayLayer && activeBarangayLayer !== layer) {
+                            layer.on('click', (event) => {
+                                L.DomEvent.stopPropagation(event);
+
+                                map.closePopup();
+
+                                if (
+                                    activeBarangayLayer &&
+                                    activeBarangayLayer !== layer
+                                ) {
                                     activeBarangayLayer.setStyle({
                                         weight: 2,
                                         color: '#2563eb',
                                         fillOpacity: 0.05
                                     });
                                 }
+
                                 activeBarangayLayer = layer;
+
                                 layer.setStyle({
                                     weight: 3,
                                     color: '#1d4ed8',
                                     fillOpacity: 0.15
                                 });
+
                                 barangaySelect.value = name;
+
                                 flyToBarangay(layer);
                             });
 
@@ -541,30 +597,45 @@
                     console.log('Number of institution features:', data.features ? data.features.length : 0);
                     const features = data.features.map(f => {
                         const props = f.properties;
-                        const gapScore = props.gap_score || 0;
+                        const hasGapScore =
+                            props.gap_score !== null &&
+                            props.gap_score !== undefined;
+
+                        const gapScore = hasGapScore ?
+                            Number(props.gap_score) :
+                            null;
                         const completeness = props.data_completeness || 0;
                         const qualityLabel = completeness >= 80 ? 'Good' : (completeness >= 50 ?
                             'Partial' : 'Incomplete');
 
-                        let color = '#ef4444';
+                        let color = '#94a3b8';
                         let radius = 10;
-                        if (gapScore < 30) {
-                            color = '#22c55e';
-                            radius = 10;
-                        } else if (gapScore < 50) {
-                            color = '#eab308';
-                            radius = 11;
-                        } else if (gapScore < 70) {
-                            color = '#f97316';
-                            radius = 12;
-                        } else {
-                            color = '#dc2626';
-                            radius = 13;
+
+                        if (gapScore !== null) {
+                            if (gapScore < 30) {
+                                color = '#22c55e';
+                                radius = 10;
+                            } else if (gapScore < 50) {
+                                color = '#eab308';
+                                radius = 11;
+                            } else if (gapScore < 70) {
+                                color = '#f97316';
+                                radius = 12;
+                            } else {
+                                color = '#dc2626';
+                                radius = 13;
+                            }
                         }
 
                         const weight = completeness < 50 ? 4 : 2;
                         const borderColor = completeness < 50 ? '#000000' : '#ffffff';
-                        heatData.push([props.latitude, props.longitude, gapScore]);
+                        if (gapScore !== null) {
+                            heatData.push([
+                                Number(props.latitude),
+                                Number(props.longitude),
+                                gapScore
+                            ]);
+                        }
 
                         return {
                             ...f,
@@ -602,9 +673,20 @@
                     window.institutionsLayer.eachLayer(function(layer) {
                         if (layer instanceof L.CircleMarker) {
                             const props = layer.properties;
-                            const gapScore = props.gap_score || 0;
-                            const gapLevel = gapScore >= 80 ? 'Critical' : (gapScore >= 50 ?
-                                'Needs Attention' : 'Adequate');
+                            const hasGapScore =
+                                props.gap_score !== null &&
+                                props.gap_score !== undefined;
+
+                            const gapScore = hasGapScore ?
+                                Number(props.gap_score) :
+                                null;
+                            const gapLevel = gapScore === null ?
+                                'Insufficient Data' :
+                                gapScore >= 80 ?
+                                'Critical' :
+                                gapScore >= 50 ?
+                                'Needs Attention' :
+                                'Adequate';
                             const completeness = props.data_completeness || 0;
                             const qualityLabel = completeness >= 80 ? 'Good' : (completeness >= 50 ?
                                 'Partial' : 'Incomplete');
@@ -626,7 +708,7 @@
                                 <div class="space-y-1 text-sm mb-3">
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Sector:</span>
-                                        <span class="font-medium">${props.type || props.type}</span>
+                                        <span class="font-medium">${props.type || 'Not Available'}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Barangay:</span>
@@ -659,21 +741,23 @@
                                         gapScore >= 80 ? 'bg-red-100 text-red-700' :
                                         (gapScore >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700')
                                     }">
-                                        ${gapScore.toFixed(1)}% (${gapLevel})
+                                        ${gapScore !== null
+                                            ? `${gapScore.toFixed(1)}% (${gapLevel})`
+                                            : gapLevel}
                                     </span>
                                 </div>
                                 ${props.infrastructure_narrative ? `
-                                <div class="mb-2">
-                                    <span class="text-xs font-semibold text-gray-700">Analysis:</span>
-                                    <p class="text-xs text-gray-600 mt-1 leading-relaxed">${props.infrastructure_narrative.substring(0, 120)}${props.infrastructure_narrative.length > 120 ? '...' : ''}</p>
-                                </div>
-                                ` : ''}
+                                                                <div class="mb-2">
+                                                                    <span class="text-xs font-semibold text-gray-700">Analysis:</span>
+                                                                    <p class="text-xs text-gray-600 mt-1 leading-relaxed">${props.infrastructure_narrative.substring(0, 120)}${props.infrastructure_narrative.length > 120 ? '...' : ''}</p>
+                                                                </div>
+                                                                ` : ''}
                                 ${props.policy_recommendation ? `
-                                <div class="mb-2">
-                                    <span class="text-xs font-semibold text-gray-700">Recommendation:</span>
-                                    <p class="text-xs text-blue-600 mt-1 leading-relaxed">${props.policy_recommendation.substring(0, 100)}${props.policy_recommendation.length > 100 ? '...' : ''}</p>
-                                </div>
-                                ` : ''}
+                                                                <div class="mb-2">
+                                                                    <span class="text-xs font-semibold text-gray-700">Recommendation:</span>
+                                                                    <p class="text-xs text-blue-600 mt-1 leading-relaxed">${props.policy_recommendation.substring(0, 100)}${props.policy_recommendation.length > 100 ? '...' : ''}</p>
+                                                                </div>
+                                                                ` : ''}
                                 <div class="border-t border-gray-200 my-2"></div>
                                 ${props.requires_audit ? '<p class="text-xs text-orange-600"><strong>⚠️ Audit required</strong> — Field verification needed</p>' : ''}
                                 ${props.last_audited ? '<p class="text-xs text-gray-500">Last audited: ' + props.last_audited + '</p>' : ''}
@@ -684,22 +768,28 @@
                                 console.log('Institution clicked:', props.name);
                                 e.originalEvent.stopPropagation(); // Prevent map click
                                 // Populate side panel
-                                document.getElementById('panelContent').innerHTML = popupContent;
+                                document.getElementById('panelContent').innerHTML =
+                                    popupContent;
                                 // Show side panel
                                 const panel = document.getElementById('sidePanel');
                                 panel.classList.remove('translate-x-full', 'invisible');
                                 // Add zoom button event after content is inserted
                                 setTimeout(() => {
-                                    const zoomBtn = document.querySelector('#panelContent .zoom-btn');
+                                    const zoomBtn = document.querySelector(
+                                        '#panelContent .zoom-btn');
                                     if (zoomBtn) {
                                         zoomBtn.addEventListener('click', function() {
-                                            const lat = parseFloat(this.getAttribute('data-lat'));
-                                            const lng = parseFloat(this.getAttribute('data-lng'));
+                                            const lat = parseFloat(this
+                                                .getAttribute('data-lat'));
+                                            const lng = parseFloat(this
+                                                .getAttribute('data-lng'));
                                             map.flyTo([lat, lng], 18, {
                                                 duration: 0.8
                                             });
                                             // Close side panel
-                                            panel.classList.add('translate-x-full', 'invisible');
+                                            panel.classList.add(
+                                                'translate-x-full',
+                                                'invisible');
                                         });
                                     }
                                 }, 10);
@@ -707,11 +797,6 @@
                             layer.on('mouseover', () => layer.setRadius(layer.getRadius() + 3));
                             layer.on('mouseout', () => layer.setRadius(props.markerRadius));
                         }
-                    });
-                    // Fix: assign the returned layer, not an undefined variable
-                    window.institutionsLayer = L.geoJSON({
-                        type: 'FeatureCollection',
-                        features
                     });
                     console.log('Institutions layer added to map with', features.length, 'features');
                     setTimeout(() => map.invalidateSize(), 200);
@@ -790,7 +875,7 @@
                     }
                     layer.bindPopup(
                         `<div class="p-2"><strong>Area of Interest</strong><br>Area: ${area.toFixed(2)} km²<br>Institutions within: ${count}</div>`
-                        ).openPopup();
+                    ).openPopup();
                 }
             });
 

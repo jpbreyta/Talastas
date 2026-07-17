@@ -8,10 +8,15 @@ use App\Http\Controllers\InstitutionController;
 use App\Models\Barangay;
 use App\Models\IctInventory;
 use App\Models\Institution;
-use App\Models\InstitutionAnalytics;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
+    /*
+    |--------------------------------------------------------------------------
+    | Service Health
+    |--------------------------------------------------------------------------
+    */
+
     Route::get('/health', function () {
         return response()->json([
             'status' => 'ok',
@@ -19,23 +24,39 @@ Route::prefix('v1')->group(function () {
         ]);
     });
 
+    /*
+    |--------------------------------------------------------------------------
+    | Authentication
+    |--------------------------------------------------------------------------
+    */
+
     Route::post(
         '/auth/login',
         [AuthController::class, 'apiLogin']
     );
 
     /*
-     * Public read-only routes.
-     */
+    |--------------------------------------------------------------------------
+    | Public Read-Only Routes
+    |--------------------------------------------------------------------------
+    */
+
     Route::get(
         '/institutions',
         [InstitutionController::class, 'indexApi']
     );
 
+    Route::get(
+        '/institutions/{institution}',
+        [InstitutionController::class, 'showApi']
+    )->whereNumber('institution');
+
     Route::get('/barangays', function () {
         return response()->json([
             'success' => true,
-            'data' => Barangay::orderBy('name')->get(),
+            'data' => Barangay::query()
+                ->orderBy('name')
+                ->get(),
         ]);
     });
 
@@ -50,8 +71,11 @@ Route::prefix('v1')->group(function () {
     );
 
     /*
-     * Protected routes require a Sanctum Bearer token.
-     */
+    |--------------------------------------------------------------------------
+    | Protected Routes
+    |--------------------------------------------------------------------------
+    */
+
     Route::middleware('auth:sanctum')->group(function () {
         Route::get(
             '/auth/me',
@@ -64,8 +88,11 @@ Route::prefix('v1')->group(function () {
         );
 
         /*
-         * Put geocode before the dynamic institution route.
-         */
+        |--------------------------------------------------------------------------
+        | Institution Management
+        |--------------------------------------------------------------------------
+        */
+
         Route::post(
             '/institutions/geocode',
             [InstitutionController::class, 'geocode']
@@ -79,27 +106,43 @@ Route::prefix('v1')->group(function () {
         Route::put(
             '/institutions/{institution}',
             [InstitutionController::class, 'updateApi']
-        );
+        )->whereNumber('institution');
+
+        Route::patch(
+            '/institutions/{institution}',
+            [InstitutionController::class, 'updateApi']
+        )->whereNumber('institution');
 
         Route::delete(
             '/institutions/{institution}',
             [InstitutionController::class, 'destroyApi']
-        );
+        )->whereNumber('institution');
+
+        /*
+        |--------------------------------------------------------------------------
+        | ICT Inventory
+        |--------------------------------------------------------------------------
+        */
 
         Route::get('/ict-inventory', function () {
-            return response()->json(
-                IctInventory::with('institution')->get()
-            );
+            return response()->json([
+                'success' => true,
+                'data' => IctInventory::query()
+                    ->with('institution')
+                    ->latest()
+                    ->get(),
+            ]);
         });
 
         Route::get(
             '/ict-inventory/{ictInventory}',
             function (IctInventory $ictInventory) {
-                return response()->json(
-                    $ictInventory->load('institution')
-                );
+                return response()->json([
+                    'success' => true,
+                    'data' => $ictInventory->load('institution'),
+                ]);
             }
-        );
+        )->whereNumber('ictInventory');
 
         Route::post(
             '/ict-inventory',
@@ -109,56 +152,74 @@ Route::prefix('v1')->group(function () {
         Route::put(
             '/ict-inventory/{ictInventory}',
             [IctInventoryController::class, 'updateApi']
-        );
+        )->whereNumber('ictInventory');
+
+        Route::patch(
+            '/ict-inventory/{ictInventory}',
+            [IctInventoryController::class, 'updateApi']
+        )->whereNumber('ictInventory');
 
         Route::delete(
             '/ict-inventory/{ictInventory}',
             [IctInventoryController::class, 'destroyApi']
-        );
+        )->whereNumber('ictInventory');
+
+        /*
+        |--------------------------------------------------------------------------
+        | Analytics
+        |--------------------------------------------------------------------------
+        */
 
         Route::get(
             '/analytics',
             [AnalyticsController::class, 'getAnalytics']
         );
 
+        Route::get(
+            '/analytics/export',
+            [AnalyticsController::class, 'export']
+        );
+
         Route::post(
             '/analytics/analyze/{institution}',
             [AnalyticsController::class, 'analyzeInstitution']
-        );
+        )->whereNumber('institution');
 
         Route::post(
             '/analytics/analyze-all',
             [AnalyticsController::class, 'analyzeAll']
         );
 
-        Route::get('/analytics/export', function () {
-            InstitutionAnalytics::with('institution')->get();
-
-            return response()->json([
-                'export_url' => 'report would be generated here',
-            ]);
-        });
+        /*
+        |--------------------------------------------------------------------------
+        | Barangay Summary
+        |--------------------------------------------------------------------------
+        */
 
         Route::get('/barangays/summary', function () {
-            $summary = Institution::join(
-                'barangays',
-                'institutions.barangay_id',
-                '=',
-                'barangays.id'
-            )
-                ->select('barangays.name as barangay_name')
-                ->groupBy('barangays.name')
+            $summary = Institution::query()
+                ->join(
+                    'barangays',
+                    'institutions.barangay_id',
+                    '=',
+                    'barangays.id'
+                )
+                ->selectRaw(
+                    'barangays.id,
+                     barangays.name AS barangay_name,
+                     COUNT(institutions.id) AS institution_count'
+                )
+                ->groupBy(
+                    'barangays.id',
+                    'barangays.name'
+                )
+                ->orderBy('barangays.name')
                 ->get();
 
-            return response()->json($summary);
+            return response()->json([
+                'success' => true,
+                'data' => $summary,
+            ]);
         });
     });
-
-    /*
-     * Keep the dynamic GET route after the fixed routes.
-     */
-    Route::get(
-        '/institutions/{institution}',
-        [InstitutionController::class, 'showApi']
-    );
 });

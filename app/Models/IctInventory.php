@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class IctInventory extends Model
 {
     protected $table = 'ict_inventory';
+
     protected $primaryKey = 'asset_id';
 
     protected $fillable = [
@@ -17,8 +19,17 @@ class IctInventory extends Model
         'status',
     ];
 
-    public function institution()
+    protected $casts = [
+        'institution_id' => 'integer',
+        'acquisition_year' => 'integer',
+    ];
+
+    public function institution(): BelongsTo
     {
-        return $this->belongsTo(Institution::class);
+        return $this->belongsTo(
+            Institution::class,
+            'institution_id',
+            'id'
+        );
     }
 }

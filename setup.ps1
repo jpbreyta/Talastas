@@ -68,18 +68,88 @@ else {
 Write-Host ""
 Write-Host "Preparing Python virtual environment..."
 
-if (-not (Test-Path ".venv\Scripts\python.exe")) {
-    python -m venv .venv
+# Use a manually supplied Python path when available.
+if ($env:PYTHON_EXE -and (Test-Path -LiteralPath $env:PYTHON_EXE)) {
+    $pythonExe = $env:PYTHON_EXE
+}
+else {
+    # Find a normal Windows Python installation.
+    $pythonExe = Get-ChildItem `
+        "$env:LOCALAPPDATA\Programs\Python" `
+        -Recurse `
+        -Filter "python.exe" `
+        -File `
+        -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.FullName -notmatch "\\Launcher\\" -and
+            $_.FullName -notmatch "\\msys64\\"
+        } |
+        Select-Object -First 1 -ExpandProperty FullName
+}
+
+if (-not $pythonExe) {
+    throw "Native Windows Python was not found."
+}
+
+if (-not (Test-Path -LiteralPath $pythonExe)) {
+    throw "Python executable does not exist: $pythonExe"
+}
+
+Write-Host "Using Python:"
+Write-Host $pythonExe
+
+& $pythonExe --version
+
+if ($LASTEXITCODE -ne 0) {
+    throw "The selected Python installation could not run."
+}
+
+$venvPath = Join-Path $PSScriptRoot ".venv"
+$venvPython = Join-Path $venvPath "Scripts\python.exe"
+
+if (-not (Test-Path -LiteralPath $venvPython)) {
+    if (Test-Path -LiteralPath $venvPath) {
+        Write-Host "Removing incomplete virtual environment..."
+        Remove-Item -LiteralPath $venvPath -Recurse -Force
+    }
+
+    Write-Host "Creating Python virtual environment..."
+
+    & $pythonExe -m venv $venvPath
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to create the Python virtual environment."
+    }
 }
 else {
     Write-Host "Python virtual environment already exists."
 }
 
+if (-not (Test-Path -LiteralPath $venvPython)) {
+    throw "Virtual environment Python was not created: $venvPython"
+}
+
 Write-Host ""
 Write-Host "Installing Python packages..."
 
-& ".\.venv\Scripts\python.exe" -m pip install --upgrade pip
-& ".\.venv\Scripts\python.exe" -m pip install -r "python_service\requirements.txt"
+& $venvPython -m ensurepip --upgrade
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to install pip."
+}
+
+& $venvPython -m pip install --upgrade pip
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to upgrade pip."
+}
+
+& $venvPython -m pip install `
+    -r (Join-Path $PSScriptRoot "python_service\requirements.txt")
+
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to install Python requirements."
+}
 
 Write-Host ""
 Write-Host "Preparing Laravel environment..."

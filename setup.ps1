@@ -1,308 +1,113 @@
-Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-# Always run commands from the folder containing this script.
-$ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-Set-Location $ProjectRoot
+Write-Host ""
+Write-Host "Checking required development tools..."
 
-function Write-Section {
-    param(
-        [Parameter(Mandatory)]
-        [string] $Message
-    )
-
-    Write-Host ""
-    Write-Host "=================================================="
-    Write-Host $Message
-    Write-Host "=================================================="
+$requiredCommands = @{
+    "PHP"      = "php"
+    "Composer" = "composer"
+    "Node.js"  = "node"
+    "npm"      = "npm"
+    "Python"   = "python"
 }
 
-function Confirm-CommandSuccess {
-    param(
-        [Parameter(Mandatory)]
-        [string] $CommandName
-    )
+$missingTools = @()
 
-    if ($LASTEXITCODE -ne 0) {
-        throw "$CommandName failed with exit code $LASTEXITCODE."
-    }
-}
-
-function Find-NativeWindowsPython {
-    $candidates = [System.Collections.Generic.List[string]]::new()
-
-    # Allow a developer to manually specify Python.
-    if ($env:PYTHON_EXE) {
-        $candidates.Add($env:PYTHON_EXE)
-    }
-
-    # Find Python commands currently available in PATH.
-    foreach ($commandName in @("python", "python3")) {
-        $commands = Get-Command $commandName -All -ErrorAction SilentlyContinue
-
-        foreach ($command in $commands) {
-            if ($command.Source) {
-                $candidates.Add($command.Source)
-            }
-        }
-    }
-
-    # Search common native Windows Python locations.
-    $commonPythonPaths = @(
-        "$env:LOCALAPPDATA\Programs\Python\Python*\python.exe",
-        "$env:LOCALAPPDATA\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.*\python.exe",
-        "$env:ProgramFiles\Python*\python.exe"
-    )
-
-    foreach ($pathPattern in $commonPythonPaths) {
-        $matchingPaths = Get-ChildItem -Path $pathPattern -ErrorAction SilentlyContinue
-
-        foreach ($matchingPath in $matchingPaths) {
-            $candidates.Add($matchingPath.FullName)
-        }
-    }
-
-    $uniqueCandidates = $candidates |
-        Where-Object { $_ } |
-        Select-Object -Unique
-
-    foreach ($candidate in $uniqueCandidates) {
-        # Skip Python installations supplied by MSYS2, Git Bash, or Cygwin.
-        if ($candidate -match "\\msys64\\" -or
-            $candidate -match "\\cygwin" -or
-            $candidate -match "\\Git\\usr\\bin\\") {
-            continue
-        }
-
-        try {
-            $output = & $candidate -c "import sys; print(sys.executable)" 2>$null
-
-            if ($LASTEXITCODE -ne 0 -or -not $output) {
-                continue
-            }
-
-            $resolvedPython = [string]($output | Select-Object -Last 1)
-            $resolvedPython = $resolvedPython.Trim()
-
-            if (-not $resolvedPython) {
-                continue
-            }
-
-            if ($resolvedPython -match "\\msys64\\" -or
-                $resolvedPython -match "\\cygwin" -or
-                $resolvedPython -match "\\Git\\usr\\bin\\") {
-                continue
-            }
-
-            return $resolvedPython
-        }
-        catch {
-            continue
-        }
-    }
-
-    return $null
-}
-
-Write-Section "Checking required development tools"
-
-$requiredCommands = @(
-    @{
-        Name    = "PHP"
-        Command = "php"
-    },
-    @{
-        Name    = "Composer"
-        Command = "composer"
-    },
-    @{
-        Name    = "Node.js"
-        Command = "node"
-    },
-    @{
-        Name    = "npm"
-        Command = "npm"
-    }
-)
-
-$missingTools = [System.Collections.Generic.List[string]]::new()
-
-foreach ($tool in $requiredCommands) {
-    $command = Get-Command $tool.Command -ErrorAction SilentlyContinue
-
-    if (-not $command) {
-        $missingTools.Add($tool.Name)
-        Write-Host "[MISSING] $($tool.Name)"
+foreach ($tool in $requiredCommands.GetEnumerator()) {
+    if (-not (Get-Command $tool.Value -ErrorAction SilentlyContinue)) {
+        $missingTools += $tool.Key
+        Write-Host "[MISSING] $($tool.Key)"
     }
     else {
-        Write-Host "[FOUND]   $($tool.Name)"
+        Write-Host "[FOUND] $($tool.Key)"
     }
-}
-
-$pythonExe = Find-NativeWindowsPython
-
-if (-not $pythonExe) {
-    $missingTools.Add("Native Windows Python")
-    Write-Host "[MISSING] Native Windows Python"
-}
-else {
-    Write-Host "[FOUND]   Native Windows Python"
-    Write-Host "          $pythonExe"
-
-    & $pythonExe --version
-    Confirm-CommandSuccess "Python version check"
 }
 
 if ($missingTools.Count -gt 0) {
     Write-Host ""
-    Write-Host "Install the following tools before continuing:"
-
-    foreach ($missingTool in $missingTools) {
-        Write-Host "- $missingTool"
+    Write-Host "Install these missing tools first:"
+    $missingTools | ForEach-Object {
+        Write-Host "- $_"
     }
 
-    Write-Host ""
-    Write-Host "The MSYS2 Python installation is not supported by this setup script."
     exit 1
 }
 
-Write-Section "Checking required project files"
+Write-Host ""
+Write-Host "Checking required project files..."
 
 $requiredFiles = @(
     "composer.json",
     "package.json",
-    "python_service\requirements.txt",
-    ".env.example",
-    "artisan"
+    "python_service\requirements.txt"
 )
 
 foreach ($file in $requiredFiles) {
-    if (-not (Test-Path -LiteralPath $file)) {
-        throw "Required project file is missing: $file"
+    if (-not (Test-Path $file)) {
+        Write-Host "[MISSING] $file"
+        exit 1
     }
 
     Write-Host "[FOUND] $file"
 }
 
-Write-Section "Installing Laravel packages"
+Write-Host ""
+Write-Host "Installing Laravel packages..."
+composer install
 
-& composer install
+Write-Host ""
+Write-Host "Installing Node packages..."
 
-Confirm-CommandSuccess "Composer installation"
-
-Write-Section "Installing Node packages"
-
-if (Test-Path -LiteralPath "package-lock.json") {
-    Write-Host "Using package-lock.json with npm ci..."
-    & npm ci
+if (Test-Path "package-lock.json") {
+    npm ci
 }
 else {
-    Write-Host "package-lock.json was not found. Using npm install..."
-    & npm install
+    npm install
 }
 
-Confirm-CommandSuccess "Node package installation"
+Write-Host ""
+Write-Host "Preparing Python virtual environment..."
 
-Write-Section "Preparing Python virtual environment"
+if (-not (Test-Path ".venv\Scripts\python.exe")) {
+    python -m venv .venv
+}
+else {
+    Write-Host "Python virtual environment already exists."
+}
 
-$venvPath = Join-Path $ProjectRoot ".venv"
-$venvPython = Join-Path $venvPath "Scripts\python.exe"
-$recreateVenv = $false
+Write-Host ""
+Write-Host "Installing Python packages..."
 
-if (Test-Path -LiteralPath $venvPython) {
-    Write-Host "Checking the existing Python virtual environment..."
+& ".\.venv\Scripts\python.exe" -m pip install --upgrade pip
+& ".\.venv\Scripts\python.exe" -m pip install -r "python_service\requirements.txt"
 
-    & $venvPython -m pip --version *> $null
+Write-Host ""
+Write-Host "Preparing Laravel environment..."
 
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "The existing virtual environment is incomplete."
-        $recreateVenv = $true
+if (-not (Test-Path ".env")) {
+    if (Test-Path ".env.example") {
+        Copy-Item ".env.example" ".env"
+        php artisan key:generate
     }
-}
-elseif (Test-Path -LiteralPath $venvPath) {
-    Write-Host "The existing virtual environment is incomplete."
-    $recreateVenv = $true
-}
-else {
-    $recreateVenv = $true
-}
-
-if ($recreateVenv) {
-    if (Test-Path -LiteralPath $venvPath) {
-        Write-Host "Removing the incomplete virtual environment..."
-        Remove-Item -LiteralPath $venvPath -Recurse -Force
+    else {
+        Write-Host ".env.example was not found. Create .env manually."
     }
-
-    Write-Host "Creating a new virtual environment..."
-    Write-Host "Using: $pythonExe"
-
-    & $pythonExe -m venv $venvPath
-
-    Confirm-CommandSuccess "Python virtual environment creation"
-}
-else {
-    Write-Host "Python virtual environment already exists and is working."
-}
-
-if (-not (Test-Path -LiteralPath $venvPython)) {
-    throw "Virtual environment Python was not created successfully."
-}
-
-Write-Section "Installing Python packages"
-
-& $venvPython -m pip install --upgrade pip
-
-Confirm-CommandSuccess "pip upgrade"
-
-& $venvPython -m pip install `
-    -r "python_service\requirements.txt"
-
-Confirm-CommandSuccess "Python requirements installation"
-
-Write-Section "Preparing Laravel environment"
-
-if (-not (Test-Path -LiteralPath ".env")) {
-    Write-Host "Creating .env from .env.example..."
-    Copy-Item -LiteralPath ".env.example" -Destination ".env"
 }
 else {
     Write-Host ".env already exists."
 }
 
-$envContent = Get-Content -LiteralPath ".env" -Raw
+Write-Host ""
+Write-Host "Clearing Laravel caches..."
 
-if ($envContent -notmatch "(?m)^APP_KEY=\S+") {
-    Write-Host "Generating the Laravel application key..."
-
-    & php artisan key:generate
-
-    Confirm-CommandSuccess "Laravel application key generation"
-}
-else {
-    Write-Host "Laravel application key already exists."
-}
-
-Write-Section "Clearing Laravel caches"
-
-& php artisan optimize:clear
-
-Confirm-CommandSuccess "Laravel cache clearing"
-
-Write-Section "Setup completed successfully"
-
-Write-Host "Native Python used:"
-Write-Host $pythonExe
+php artisan optimize:clear
 
 Write-Host ""
-Write-Host "Virtual environment:"
-Write-Host $venvPython
-
+Write-Host "Setup completed successfully."
 Write-Host ""
-Write-Host "Configure the database connection in .env."
-Write-Host ""
-Write-Host "After configuring the database, run:"
+Write-Host "Configure your database in .env if necessary."
+Write-Host "Then run:"
 Write-Host "php artisan migrate --seed"
-
 Write-Host ""
-Write-Host "Start the complete development stack with:"
+Write-Host "Start the project with:"
 Write-Host "npm run dev:all"

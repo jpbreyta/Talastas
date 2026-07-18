@@ -731,6 +731,11 @@
                                 </th>
 
                                 <th
+                                    class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                    Source
+                                </th>
+
+                                <th
                                     class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                                     Analysis and Recommendation
                                 </th>
@@ -782,6 +787,54 @@
                                         'warning' => 'bg-amber-400',
                                         'adequate' => 'bg-green-500',
                                         default => 'bg-gray-400',
+                                    };
+
+                                    $recommendationDetails = is_array($analytic->recommendations_detail)
+                                        ? $analytic->recommendations_detail
+                                        : [];
+
+                                    $analysisMethod = strtolower(
+                                        (string) ($recommendationDetails['method'] ?? '')
+                                    );
+
+                                    $analysisProvider = strtolower(
+                                        (string) ($recommendationDetails['provider'] ?? '')
+                                    );
+
+                                    $analysisModel = $recommendationDetails['model'] ?? null;
+
+                                    $scoreSource = strtolower(
+                                        (string) ($recommendationDetails['score_source'] ?? '')
+                                    );
+
+                                    $providerLabel = match ($analysisProvider) {
+                                        'gemini' => 'Gemini',
+                                        'groq' => 'Groq',
+                                        'local' => 'Local',
+                                        default => $analysisMethod === 'generative_ai'
+                                            ? 'AI'
+                                            : 'Local',
+                                    };
+
+                                    $providerBadge = match ($analysisProvider) {
+                                        'gemini' => 'bg-blue-100 text-blue-700',
+                                        'groq' => 'bg-orange-100 text-orange-700',
+                                        'local' => 'bg-gray-100 text-gray-700',
+                                        default => $analysisMethod === 'generative_ai'
+                                            ? 'bg-purple-100 text-purple-700'
+                                            : 'bg-gray-100 text-gray-700',
+                                    };
+
+                                    $providerIcon = match ($analysisProvider) {
+                                        'gemini' => 'fa-solid fa-wand-magic-sparkles',
+                                        'groq' => 'fa-solid fa-bolt',
+                                        default => 'fa-solid fa-microchip',
+                                    };
+
+                                    $scoreSourceLabel = match ($scoreSource) {
+                                        'python_service' => 'Python scores',
+                                        'local_deterministic_fallback' => 'Local scores',
+                                        default => 'Score source unavailable',
                                     };
                                 @endphp
 
@@ -841,6 +894,23 @@
                                         @endif
                                     </td>
 
+                                    <td class="whitespace-nowrap px-4 py-4 text-center">
+                                        <div class="flex flex-col items-center gap-1.5">
+                                            <span
+                                                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold {{ $providerBadge }}"
+                                                @if ($analysisModel)
+                                                    title="{{ $providerLabel }} model: {{ $analysisModel }}"
+                                                @endif>
+                                                <i class="{{ $providerIcon }}"></i>
+                                                {{ $providerLabel }}
+                                            </span>
+
+                                            <span class="text-[11px] font-medium text-gray-400">
+                                                {{ $scoreSourceLabel }}
+                                            </span>
+                                        </div>
+                                    </td>
+
                                     <td class="min-w-80 px-5 py-4">
                                         @if ($analytic->infrastructure_narrative)
                                             <div class="mb-3">
@@ -882,7 +952,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-5 py-16 text-center">
+                                    <td colspan="7" class="px-5 py-16 text-center">
                                         <i class="fa-solid fa-chart-column text-4xl text-gray-300"></i>
 
                                         <p class="mt-4 text-sm font-semibold text-gray-600">

@@ -70,7 +70,11 @@
         {{-- ── Top row: 3 stat cards ──────────────────────────────────── --}}
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
             {{-- Data completeness --}}
-            @php $score = $institution->data_completeness_score ?? 0; @endphp
+            @php
+                $score = $institution->institutionAnalytics->data_completeness_score
+                    ?? $institution->data_completeness_score
+                    ?? 0;
+            @endphp
             <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex items-center gap-3">
                 <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

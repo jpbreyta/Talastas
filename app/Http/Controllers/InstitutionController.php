@@ -83,6 +83,7 @@ class InstitutionController extends Controller
     public function show(Institution $institution)
     {
         $institution->load([
+            'barangay',
             'ictInventory',
             'institutionAnalytics',
             'auditor',
@@ -106,6 +107,10 @@ class InstitutionController extends Controller
      */
     public function update(Request $request, Institution $institution)
     {
+        if ($request->boolean('notes_only')) {
+            return $this->updateNotes($request, $institution);
+        }
+
         $validated = $request->validate($this->rules($request));
         $validated = $this->applyCheckboxDefaults($validated, $request);
 
@@ -131,6 +136,46 @@ class InstitutionController extends Controller
         return redirect()
             ->route('institutions.index')
             ->with('success', 'Institution updated successfully.');
+    }
+
+    /**
+     * Update only the institution notes from the details page.
+     */
+    protected function updateNotes(
+        Request $request,
+        Institution $institution
+    ) {
+        $validated = $request->validate([
+            'notes' => 'nullable|string|max:5000',
+        ]);
+
+        $notes = isset($validated['notes'])
+            ? trim((string) $validated['notes'])
+            : null;
+
+        if ($notes === '') {
+            $notes = null;
+        }
+
+        $institution->update([
+            'notes' => $notes,
+        ]);
+
+        $message = $notes === null
+            ? 'Institution notes cleared.'
+            : 'Institution notes updated successfully.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'notes' => $institution->notes,
+            ]);
+        }
+
+        return redirect()
+            ->route('institutions.show', $institution)
+            ->with('success', $message);
     }
 
     /**
@@ -187,7 +232,7 @@ class InstitutionController extends Controller
             'needs_maintenance' => 'nullable|boolean',
             'notes' => 'nullable|string',
             'is_pilot_site' => 'nullable|boolean',
-            'data_completeness_score' => 'nullable|integer|min:0|max:100',
+            'data_completeness_score' => 'nullable|numeric|min:0|max:100',
             'requires_audit' => 'nullable|boolean',
             'last_audited_at' => 'nullable|date',
             'audited_by' => 'nullable|exists:users,id',

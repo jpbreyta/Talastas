@@ -94,34 +94,6 @@
                     </div>
                 </div>
 
-                <!-- Connectivity Legend -->
-                <div
-                    class="flex items-center gap-1 text-[10px] text-slate-400 font-semibold uppercase tracking-widest flex-shrink-0">
-                    Connectivity
-                </div>
-                <div class="flex items-center gap-3 flex-shrink-0">
-                    <div class="flex items-center gap-1">
-                        <span class="block rounded-full flex-shrink-0"
-                            style="width:7px;height:7px;background:#22c55e;"></span>
-                        <span class="text-xs text-slate-500">High</span>
-                    </div>
-                    <div class="flex items-center gap-1">
-                        <span class="block rounded-full flex-shrink-0"
-                            style="width:7px;height:7px;background:#eab308;"></span>
-                        <span class="text-xs text-slate-500">Moderate</span>
-                    </div>
-                    <div class="flex items-center gap-1">
-                        <span class="block rounded-full flex-shrink-0"
-                            style="width:7px;height:7px;background:#f97316;"></span>
-                        <span class="text-xs text-slate-500">Low</span>
-                    </div>
-                    <div class="flex items-center gap-1">
-                        <span class="block rounded-full flex-shrink-0"
-                            style="width:7px;height:7px;background:#ef4444;"></span>
-                        <span class="text-xs text-slate-500">Critical</span>
-                    </div>
-                </div>
-
                 <!-- System Note — info icon + popover (far right) -->
                 <div class="ml-auto flex-shrink-0 relative" id="info-popover-wrap">
                     <button id="info-popover-btn"
@@ -586,7 +558,12 @@
                 .catch(err => console.error('Error loading barangays:', err));
 
             // Load institution data
-            fetch('/api/v1/map/institutions')
+            fetch(@json(route('map.data.institutions')), {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
                 .then(r => {
                     if (!r.ok) {
                         throw new Error('API error: ' + r.status);

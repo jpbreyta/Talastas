@@ -6,6 +6,8 @@ use App\Jobs\ProcessInstitutionAnalytics;
 use App\Models\Barangay;
 use App\Models\Institution;
 use App\Models\InstitutionAnalytics;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Response;
 use Illuminate\View\View;
@@ -15,258 +17,36 @@ class AnalyticsController extends Controller
 {
     public function index(): View
     {
-        /*
-        |--------------------------------------------------------------------------
-        | Institution Analytics
-        |--------------------------------------------------------------------------
-        */
-
-        $analytics = InstitutionAnalytics::query()
-            ->with([
-                'institution:id,name,type,barangay_id,is_active',
-                'institution.barangay:id,name',
-            ])
-            ->whereHas('institution', function ($query) {
-                $query->where('is_active', true);
-            })
+        $analytics = $this->activeAnalyticsQuery()
             ->orderByRaw(
                 'CASE WHEN gap_score IS NULL THEN 1 ELSE 0 END'
             )
             ->orderByDesc('gap_score')
             ->paginate(15);
 
-        /*
-        |--------------------------------------------------------------------------
-        | Executive Summary
-        |--------------------------------------------------------------------------
-        */
+        $summary = $this->summaryData();
 
-        $institutionCount = Institution::query()
-            ->where('is_active', true)
-            ->count();
-
-        $analyzedInstitutionCount = InstitutionAnalytics::query()
-            ->whereNotNull('gap_score')
-            ->whereHas('institution', function ($query) {
-                $query->where('is_active', true);
-            })
-            ->count();
-
-        $averageGapScore = $this->averageAnalyticsField(
-            'gap_score'
-        );
-
-        $criticalAreas = $this->riskCount('critical');
-
-        $needsAttention = $this->riskCount('warning');
-
-        $adequateAreas = $this->riskCount('adequate');
-
-        $insufficientData = $this->riskCount(
-            'insufficient_data'
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Gap Category Breakdown
-        |--------------------------------------------------------------------------
-        */
-
-        $infrastructureDeficit = $this->averageAnalyticsField(
-            'infrastructure_deficit_score'
-        );
-
-        $connectivityDivide = $this->averageAnalyticsField(
-            'connectivity_divide_score'
-        );
-
+        $institutionCount = $summary['institution_count'];
+        $analyzedInstitutionCount =
+            $summary['analyzed_institution_count'];
+        $averageGapScore = $summary['average_gap_score'];
+        $criticalAreas = $summary['critical'];
+        $needsAttention = $summary['warning'];
+        $adequateAreas = $summary['adequate'];
+        $insufficientData = $summary['insufficient_data'];
+        $infrastructureDeficit =
+            $summary['infrastructure_deficit_score'];
+        $connectivityDivide =
+            $summary['connectivity_divide_score'];
         $technologicalObsolescence =
-            $this->averageAnalyticsField(
-                'technological_obsolescence_score'
-            );
+            $summary['technological_obsolescence_score'];
+        $averageCompleteness =
+            $summary['data_completeness_score'];
 
-        $averageCompleteness = $this->averageAnalyticsField(
-            'data_completeness_score'
-        );
-
-        /*
-        |--------------------------------------------------------------------------
-        | Barangay Priority Ranking
-        |--------------------------------------------------------------------------
-        */
-
-        $barangayScores = Institution::query()
-            ->join(
-                'institution_analytics',
-                'institutions.id',
-                '=',
-                'institution_analytics.institution_id'
-            )
-            ->join(
-                'barangays',
-                'institutions.barangay_id',
-                '=',
-                'barangays.id'
-            )
-            ->where('institutions.is_active', true)
-            ->whereNotNull(
-                'institution_analytics.gap_score'
-            )
-            ->select([
-                'barangays.id',
-                'barangays.name',
-            ])
-            ->selectRaw(
-                'AVG(
-                    institution_analytics.gap_score
-                ) AS average_gap_score'
-            )
-            ->selectRaw(
-                'COUNT(
-                    institutions.id
-                ) AS institution_count'
-            )
-            ->groupBy(
-                'barangays.id',
-                'barangays.name'
-            )
-            ->orderByDesc('average_gap_score')
-            ->get()
-            ->map(function ($barangay) {
-                $score = round(
-                    (float) $barangay->average_gap_score,
-                    2
-                );
-
-                return [
-                    'id' => $barangay->id,
-                    'name' => $barangay->name,
-                    'gap_score' => $score,
-                    'institution_count' =>
-                        (int) $barangay->institution_count,
-                    'risk_level' =>
-                        $this->riskLevelFromScore($score),
-                ];
-            });
-
-        /*
-        |--------------------------------------------------------------------------
-        | ICT Infrastructure Availability
-        |--------------------------------------------------------------------------
-        */
-
-        $infrastructureStatus = [
-            'computer_laboratories' =>
-                $this->institutionAvailabilityPercentage(
-                    'has_computer_lab'
-                ),
-
-            'internet_connectivity' =>
-                $this->internetAvailabilityPercentage(),
-
-            'smart_tvs' =>
-                $this->institutionAvailabilityPercentage(
-                    'has_smart_tv'
-                ),
-
-            'projected_whiteboards' =>
-                $this->institutionAvailabilityPercentage(
-                    'has_projected_whiteboard'
-                ),
-
-            'public_address_systems' =>
-                $this->institutionAvailabilityPercentage(
-                    'has_public_address_system'
-                ),
-        ];
-
-        /*
-        |--------------------------------------------------------------------------
-        | Priority ICT Needs
-        |--------------------------------------------------------------------------
-        */
-
-        $priorityNeeds = collect([
-            [
-                'label' => 'Improve internet connectivity',
-                'count' => Institution::query()
-                    ->where('is_active', true)
-                    ->where(function ($query) {
-                        $query
-                            ->whereNull('internet_speed')
-                            ->orWhere(
-                                'internet_speed',
-                                '<=',
-                                0
-                            );
-                    })
-                    ->count(),
-            ],
-            [
-                'label' => 'Provide computer laboratories',
-                'count' => Institution::query()
-                    ->where('is_active', true)
-                    ->where(
-                        'has_computer_lab',
-                        false
-                    )
-                    ->count(),
-            ],
-            [
-                'label' => 'Replace or repair aging equipment',
-                'count' => InstitutionAnalytics::query()
-                    ->where(
-                        'technological_obsolescence_score',
-                        '>=',
-                        50
-                    )
-                    ->whereHas(
-                        'institution',
-                        function ($query) {
-                            $query->where(
-                                'is_active',
-                                true
-                            );
-                        }
-                    )
-                    ->count(),
-            ],
-            [
-                'label' => 'Perform ICT maintenance',
-                'count' => Institution::query()
-                    ->where('is_active', true)
-                    ->where(
-                        'needs_maintenance',
-                        true
-                    )
-                    ->count(),
-            ],
-            [
-                'label' => 'Provide display technology',
-                'count' => Institution::query()
-                    ->where('is_active', true)
-                    ->where(
-                        'has_smart_tv',
-                        false
-                    )
-                    ->where(
-                        'has_projected_whiteboard',
-                        false
-                    )
-                    ->count(),
-            ],
-        ])
-            ->filter(function ($need) {
-                return $need['count'] > 0;
-            })
-            ->sortByDesc('count')
-            ->values();
-
-        /*
-        |--------------------------------------------------------------------------
-        | Filters
-        |--------------------------------------------------------------------------
-        */
+        $barangayScores = $this->barangayScores();
+        $infrastructureStatus =
+            $this->infrastructureStatus();
+        $priorityNeeds = $this->priorityNeeds();
 
         $barangays = Barangay::query()
             ->orderBy('name')
@@ -295,14 +75,7 @@ class AnalyticsController extends Controller
 
     public function getAnalytics(): JsonResponse
     {
-        $analytics = InstitutionAnalytics::query()
-            ->with([
-                'institution:id,name,type,barangay_id',
-                'institution.barangay:id,name',
-            ])
-            ->whereHas('institution', function ($query) {
-                $query->where('is_active', true);
-            })
+        $analytics = $this->activeAnalyticsQuery()
             ->orderByRaw(
                 'CASE WHEN gap_score IS NULL THEN 1 ELSE 0 END'
             )
@@ -312,51 +85,12 @@ class AnalyticsController extends Controller
         return response()->json([
             'success' => true,
             'data' => $analytics,
-            'summary' => [
-                'average_gap_score' =>
-                    $this->averageAnalyticsField(
-                        'gap_score'
-                    ),
-
-                'infrastructure_deficit_score' =>
-                    $this->averageAnalyticsField(
-                        'infrastructure_deficit_score'
-                    ),
-
-                'connectivity_divide_score' =>
-                    $this->averageAnalyticsField(
-                        'connectivity_divide_score'
-                    ),
-
-                'technological_obsolescence_score' =>
-                    $this->averageAnalyticsField(
-                        'technological_obsolescence_score'
-                    ),
-
-                'data_completeness_score' =>
-                    $this->averageAnalyticsField(
-                        'data_completeness_score'
-                    ),
-
-                'institution_count' =>
-                    Institution::query()
-                        ->where('is_active', true)
-                        ->count(),
-
-                'critical' =>
-                    $this->riskCount('critical'),
-
-                'warning' =>
-                    $this->riskCount('warning'),
-
-                'adequate' =>
-                    $this->riskCount('adequate'),
-
-                'insufficient_data' =>
-                    $this->riskCount(
-                        'insufficient_data'
-                    ),
-            ],
+            'summary' => $this->summaryData(),
+            'barangay_scores' => $this->barangayScores(),
+            'infrastructure_status' =>
+                $this->infrastructureStatus(),
+            'priority_needs' => $this->priorityNeeds(),
+            'generated_at' => now()->toIso8601String(),
         ]);
     }
 
@@ -401,19 +135,12 @@ class AnalyticsController extends Controller
             . now()->format('Y-m-d-His')
             . '.csv';
 
-        $analytics = InstitutionAnalytics::query()
-            ->with([
-                'institution:id,name,type,barangay_id',
-                'institution.barangay:id,name',
-            ])
-            ->whereHas('institution', function ($query) {
-                $query->where('is_active', true);
-            })
+        $analytics = $this->activeAnalyticsQuery()
             ->orderByDesc('gap_score')
             ->get();
 
         return Response::streamDownload(
-            function () use ($analytics) {
+            function () use ($analytics): void {
                 $file = fopen(
                     'php://output',
                     'w'
@@ -436,16 +163,24 @@ class AnalyticsController extends Controller
                 foreach ($analytics as $analytic) {
                     fputcsv($file, [
                         $analytic->institution?->name,
-                        $analytic->institution?->barangay?->name,
+                        $analytic->institution
+                            ?->barangay
+                            ?->name,
                         $analytic->institution?->type,
                         $analytic->gap_score,
                         $analytic->risk_level,
-                        $analytic->infrastructure_deficit_score,
-                        $analytic->connectivity_divide_score,
-                        $analytic->technological_obsolescence_score,
-                        $analytic->data_completeness_score,
-                        $analytic->infrastructure_narrative,
-                        $analytic->policy_recommendation,
+                        $analytic
+                            ->infrastructure_deficit_score,
+                        $analytic
+                            ->connectivity_divide_score,
+                        $analytic
+                            ->technological_obsolescence_score,
+                        $analytic
+                            ->data_completeness_score,
+                        $analytic
+                            ->infrastructure_narrative,
+                        $analytic
+                            ->policy_recommendation,
                     ]);
                 }
 
@@ -459,14 +194,321 @@ class AnalyticsController extends Controller
         );
     }
 
+    private function activeAnalyticsQuery(): Builder
+    {
+        return InstitutionAnalytics::query()
+            ->with([
+                'institution:id,name,type,barangay_id,is_active',
+                'institution.barangay:id,name',
+            ])
+            ->whereHas(
+                'institution',
+                function (Builder $query): void {
+                    $query->where('is_active', true);
+                }
+            );
+    }
+
+    private function summaryData(): array
+    {
+        $institutionCount = Institution::query()
+            ->where('is_active', true)
+            ->count();
+
+        $analyzedInstitutionCount =
+            InstitutionAnalytics::query()
+                ->whereNotNull('gap_score')
+                ->whereHas(
+                    'institution',
+                    function (Builder $query): void {
+                        $query->where(
+                            'is_active',
+                            true
+                        );
+                    }
+                )
+                ->count();
+
+        $latestAnalysisDate =
+            InstitutionAnalytics::query()
+                ->whereNotNull('analysis_date')
+                ->whereHas(
+                    'institution',
+                    function (Builder $query): void {
+                        $query->where(
+                            'is_active',
+                            true
+                        );
+                    }
+                )
+                ->max('analysis_date');
+
+        return [
+            'average_gap_score' =>
+                $this->averageAnalyticsField(
+                    'gap_score'
+                ),
+
+            'infrastructure_deficit_score' =>
+                $this->averageAnalyticsField(
+                    'infrastructure_deficit_score'
+                ),
+
+            'connectivity_divide_score' =>
+                $this->averageAnalyticsField(
+                    'connectivity_divide_score'
+                ),
+
+            'technological_obsolescence_score' =>
+                $this->averageAnalyticsField(
+                    'technological_obsolescence_score'
+                ),
+
+            'data_completeness_score' =>
+                $this->averageAnalyticsField(
+                    'data_completeness_score'
+                ),
+
+            'institution_count' => $institutionCount,
+
+            'analyzed_institution_count' =>
+                $analyzedInstitutionCount,
+
+            'pending_assessment_count' =>
+                max(
+                    0,
+                    $institutionCount
+                        - $analyzedInstitutionCount
+                ),
+
+            'critical' =>
+                $this->riskCount('critical'),
+
+            'warning' =>
+                $this->riskCount('warning'),
+
+            'adequate' =>
+                $this->riskCount('adequate'),
+
+            'insufficient_data' =>
+                $this->riskCount(
+                    'insufficient_data'
+                ),
+
+            'latest_analysis_date' =>
+                $latestAnalysisDate
+                    ? Carbon::parse(
+                        $latestAnalysisDate
+                    )->toIso8601String()
+                    : null,
+        ];
+    }
+
+    private function barangayScores()
+    {
+        return Institution::query()
+            ->join(
+                'institution_analytics',
+                'institutions.id',
+                '=',
+                'institution_analytics.institution_id'
+            )
+            ->join(
+                'barangays',
+                'institutions.barangay_id',
+                '=',
+                'barangays.id'
+            )
+            ->where('institutions.is_active', true)
+            ->whereNotNull(
+                'institution_analytics.gap_score'
+            )
+            ->select([
+                'barangays.id',
+                'barangays.name',
+            ])
+            ->selectRaw(
+                'AVG(
+                    institution_analytics.gap_score
+                ) AS average_gap_score'
+            )
+            ->selectRaw(
+                'COUNT(
+                    institutions.id
+                ) AS institution_count'
+            )
+            ->groupBy(
+                'barangays.id',
+                'barangays.name'
+            )
+            ->orderByDesc('average_gap_score')
+            ->get()
+            ->map(function ($barangay): array {
+                $score = round(
+                    (float)
+                        $barangay->average_gap_score,
+                    2
+                );
+
+                return [
+                    'id' => (int) $barangay->id,
+                    'name' => $barangay->name,
+                    'gap_score' => $score,
+                    'institution_count' =>
+                        (int)
+                            $barangay
+                                ->institution_count,
+                    'risk_level' =>
+                        $this
+                            ->riskLevelFromScore(
+                                $score
+                            ),
+                ];
+            })
+            ->values();
+    }
+
+    private function infrastructureStatus(): array
+    {
+        return [
+            'computer_laboratories' =>
+                $this
+                    ->institutionAvailabilityPercentage(
+                        'has_computer_lab'
+                    ),
+
+            'internet_connectivity' =>
+                $this
+                    ->internetAvailabilityPercentage(),
+
+            'smart_tvs' =>
+                $this
+                    ->institutionAvailabilityPercentage(
+                        'has_smart_tv'
+                    ),
+
+            'projected_whiteboards' =>
+                $this
+                    ->institutionAvailabilityPercentage(
+                        'has_projected_whiteboard'
+                    ),
+
+            'public_address_systems' =>
+                $this
+                    ->institutionAvailabilityPercentage(
+                        'has_public_address_system'
+                    ),
+        ];
+    }
+
+    private function priorityNeeds()
+    {
+        return collect([
+            [
+                'label' =>
+                    'Improve internet connectivity',
+                'count' => Institution::query()
+                    ->where('is_active', true)
+                    ->where(
+                        function (
+                            Builder $query
+                        ): void {
+                            $query
+                                ->whereNull(
+                                    'internet_speed'
+                                )
+                                ->orWhere(
+                                    'internet_speed',
+                                    '<=',
+                                    0
+                                );
+                        }
+                    )
+                    ->count(),
+            ],
+            [
+                'label' =>
+                    'Provide computer laboratories',
+                'count' => Institution::query()
+                    ->where('is_active', true)
+                    ->where(
+                        'has_computer_lab',
+                        false
+                    )
+                    ->count(),
+            ],
+            [
+                'label' =>
+                    'Replace or repair aging equipment',
+                'count' =>
+                    InstitutionAnalytics::query()
+                        ->where(
+                            'technological_obsolescence_score',
+                            '>=',
+                            50
+                        )
+                        ->whereHas(
+                            'institution',
+                            function (
+                                Builder $query
+                            ): void {
+                                $query->where(
+                                    'is_active',
+                                    true
+                                );
+                            }
+                        )
+                        ->count(),
+            ],
+            [
+                'label' =>
+                    'Perform ICT maintenance',
+                'count' => Institution::query()
+                    ->where('is_active', true)
+                    ->where(
+                        'needs_maintenance',
+                        true
+                    )
+                    ->count(),
+            ],
+            [
+                'label' =>
+                    'Provide display technology',
+                'count' => Institution::query()
+                    ->where('is_active', true)
+                    ->where(
+                        'has_smart_tv',
+                        false
+                    )
+                    ->where(
+                        'has_projected_whiteboard',
+                        false
+                    )
+                    ->count(),
+            ],
+        ])
+            ->filter(
+                fn (array $need): bool =>
+                    $need['count'] > 0
+            )
+            ->sortByDesc('count')
+            ->values();
+    }
+
     private function averageAnalyticsField(
         string $field
     ): float {
         $average = InstitutionAnalytics::query()
             ->whereNotNull($field)
-            ->whereHas('institution', function ($query) {
-                $query->where('is_active', true);
-            })
+            ->whereHas(
+                'institution',
+                function (Builder $query): void {
+                    $query->where(
+                        'is_active',
+                        true
+                    );
+                }
+            )
             ->avg($field);
 
         return round(
@@ -480,9 +522,15 @@ class AnalyticsController extends Controller
     ): int {
         return InstitutionAnalytics::query()
             ->where('risk_level', $riskLevel)
-            ->whereHas('institution', function ($query) {
-                $query->where('is_active', true);
-            })
+            ->whereHas(
+                'institution',
+                function (Builder $query): void {
+                    $query->where(
+                        'is_active',
+                        true
+                    );
+                }
+            )
             ->count();
     }
 

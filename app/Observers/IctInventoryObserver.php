@@ -2,59 +2,49 @@
 
 namespace App\Observers;
 
-use App\Jobs\ProcessInstitutionAnalytics;
 use App\Models\IctInventory;
-use App\Models\Institution;
+use App\Services\InstitutionInventorySummaryService;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
-class IctInventoryObserver
+class IctInventoryObserver implements ShouldHandleEventsAfterCommit
 {
+    public function __construct(
+        private readonly InstitutionInventorySummaryService $summaryService
+    ) {
+    }
+
     public function created(IctInventory $inventory): void
     {
-        $this->refreshInstitutionAnalytics($inventory);
+        $this->summaryService->sync((int) $inventory->institution_id);
     }
 
     public function updated(IctInventory $inventory): void
     {
-        $this->refreshInstitutionAnalytics($inventory);
+        $currentInstitutionId = (int) $inventory->institution_id;
+        $originalInstitutionId = (int) $inventory->getOriginal('institution_id');
+
+        $this->summaryService->sync($currentInstitutionId);
+
+        if (
+            $originalInstitutionId > 0
+            && $originalInstitutionId !== $currentInstitutionId
+        ) {
+            $this->summaryService->sync($originalInstitutionId);
+        }
     }
 
     public function deleted(IctInventory $inventory): void
     {
-        $this->refreshInstitutionAnalytics($inventory);
+        $this->summaryService->sync((int) $inventory->institution_id);
     }
 
-    private function refreshInstitutionAnalytics(
-        IctInventory $inventory
-    ): void {
-        $institutionId = (int) $inventory->institution_id;
+    public function restored(IctInventory $inventory): void
+    {
+        $this->summaryService->sync((int) $inventory->institution_id);
+    }
 
-        $institution = Institution::find($institutionId);
-
-        if (!$institution) {
-            return;
-        }
-
-        $computerCount = IctInventory::query()
-            ->where('institution_id', $institutionId)
-            ->whereIn('category', [
-                'computer',
-                'desktop',
-                'laptop',
-            ])
-            ->whereIn('status', [
-                'active',
-                'operational',
-                'working',
-                'in use',
-            ])
-            ->count();
-
-        $institution->updateQuietly([
-            'number_of_computers' => $computerCount,
-        ]);
-
-        ProcessInstitutionAnalytics::dispatch(
-            $institutionId
-        )->afterCommit();
+    public function forceDeleted(IctInventory $inventory): void
+    {
+        $this->summaryService->sync((int) $inventory->institution_id);
     }
 }

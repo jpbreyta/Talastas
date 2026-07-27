@@ -33,6 +33,19 @@ Route::get('/institutions/{institution}', [InstitutionController::class, 'show']
 */
 
 Route::middleware('rbac:admin')->group(function (): void {
+    /*
+    |--------------------------------------------------------------------------
+    | Institution Location Search
+    |--------------------------------------------------------------------------
+    |
+    | This endpoint uses Laravel's Nominatim integration and returns the same
+    | location choices used by the web institution form.
+    |
+    */
+
+    Route::post('/institutions/geocode', [InstitutionController::class, 'geocode'])
+        ->name('institutions.geocode');
+
     Route::post('/institutions', [InstitutionController::class, 'store'])
         ->name('institutions.store');
 

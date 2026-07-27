@@ -242,6 +242,10 @@
             }).addTo(map);
 
             // Create custom pane for institution markers to ensure they're on top
+            map.createPane('institutionBoundaries');
+            map.getPane('institutionBoundaries').style.zIndex = 650;
+            map.getPane('institutionBoundaries').style.pointerEvents = 'none';
+
             map.createPane('institutionMarkers');
             map.getPane('institutionMarkers').style.zIndex = 700;
 
@@ -253,6 +257,7 @@
             let heatmapLayer = null;
             let heatData = [];
             let barangayOverlay = null;
+            let activeInstitutionBoundary = null;
             // Registry: barangay name → layer, populated after GeoJSON loads
             const barangayLayerMap = {};
 
@@ -262,6 +267,55 @@
             const hoverInfo = document.getElementById('barangay-hover-info');
             let heatmapVisible = false;
             let activeBarangayLayer = null;
+
+            function clearInstitutionBoundary() {
+                if (!activeInstitutionBoundary) {
+                    return;
+                }
+
+                map.removeLayer(activeInstitutionBoundary);
+                activeInstitutionBoundary = null;
+            }
+
+            function showInstitutionBoundary(properties) {
+                clearInstitutionBoundary();
+
+                const geometry = properties.location_geojson;
+                const hasBoundary = Boolean(
+                    geometry &&
+                    ['Polygon', 'MultiPolygon'].includes(geometry.type) &&
+                    Array.isArray(geometry.coordinates)
+                );
+
+                if (!hasBoundary) {
+                    map.flyTo(
+                        [properties.latitude, properties.longitude],
+                        18,
+                        { duration: 0.8 }
+                    );
+                    return false;
+                }
+
+                activeInstitutionBoundary = L.geoJSON(geometry, {
+                    pane: 'institutionBoundaries',
+                    style: {
+                        color: '#1d4ed8',
+                        weight: 4,
+                        opacity: 1,
+                        fillColor: '#3b82f6',
+                        fillOpacity: 0.22
+                    }
+                }).addTo(map);
+
+                map.flyToBounds(activeInstitutionBoundary.getBounds(), {
+                    paddingTopLeft: [50, 50],
+                    paddingBottomRight: [370, 50],
+                    maxZoom: 19,
+                    duration: 0.8
+                });
+
+                return true;
+            }
 
             // ── Shared fly-to logic ──────────────────────────────────────────────
             // Uses flyToBounds for a smooth animated zoom into a barangay polygon.
@@ -278,6 +332,11 @@
 
             // ── Reset to city-wide view ──────────────────────────────────────────
             function resetView() {
+                clearInstitutionBoundary();
+
+                const panel = document.getElementById('sidePanel');
+                panel.classList.add('translate-x-full', 'invisible');
+
                 if (barangayOverlay) {
                     map.flyToBounds(barangayOverlay.getBounds(), {
                         paddingTopLeft: [40, 40],
@@ -679,8 +738,22 @@
                                 </div>
                                 <div class="mb-3">
                                     <button class="zoom-btn w-full px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors" data-lat="${props.latitude}" data-lng="${props.longitude}">
-                                        Zoom to Location
+                                        ${props.has_location_boundary ? 'Focus Institution Boundary' : 'Zoom to Location'}
                                     </button>
+                                </div>
+                                <div class="mb-3 rounded-lg border ${
+                                    props.has_location_boundary
+                                        ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                        : 'border-gray-200 bg-gray-50 text-gray-600'
+                                } px-3 py-2 text-xs">
+                                    <div class="flex items-center gap-2">
+                                        <i class="fa-solid ${props.has_location_boundary ? 'fa-draw-polygon' : 'fa-location-dot'}"></i>
+                                        <span>${
+                                            props.has_location_boundary
+                                                ? `${props.location_geojson.type} boundary from OpenStreetMap`
+                                                : 'Exact institution boundary is unavailable; showing the saved point.'
+                                        }</span>
+                                    </div>
                                 </div>
                                 <div class="space-y-1 text-sm mb-3">
                                     <div class="flex justify-between">
@@ -743,7 +816,10 @@
 
                             layer.on('click', function(e) {
                                 console.log('Institution clicked:', props.name);
-                                e.originalEvent.stopPropagation(); // Prevent map click
+                                e.originalEvent.stopPropagation();
+
+                                showInstitutionBoundary(props);
+
                                 // Populate side panel
                                 document.getElementById('panelContent').innerHTML =
                                     popupContent;
@@ -760,13 +836,11 @@
                                                 .getAttribute('data-lat'));
                                             const lng = parseFloat(this
                                                 .getAttribute('data-lng'));
-                                            map.flyTo([lat, lng], 18, {
-                                                duration: 0.8
-                                            });
-                                            // Close side panel
-                                            panel.classList.add(
-                                                'translate-x-full',
-                                                'invisible');
+                                            if (!showInstitutionBoundary(props)) {
+                                                map.flyTo([lat, lng], 18, {
+                                                    duration: 0.8
+                                                });
+                                            }
                                         });
                                     }
                                 }, 10);
@@ -876,6 +950,7 @@
                 e.stopPropagation();
                 const panel = document.getElementById('sidePanel');
                 panel.classList.add('translate-x-full', 'invisible');
+                clearInstitutionBoundary();
             });
 
             // Close popovers when clicking outside

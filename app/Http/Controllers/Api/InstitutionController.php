@@ -99,6 +99,11 @@ class InstitutionController extends Controller
             $validated['api_key'] = config('services.rdbma.api_key');
         }
 
+        $validated = array_merge(
+            $validated,
+            $this->inventorySummaryDefaults()
+        );
+
         $institution = DB::transaction(
             fn () => Institution::create($validated)
         );
@@ -263,11 +268,13 @@ class InstitutionController extends Controller
             'staff_population' => $prefix . 'nullable|integer|min:0',
             'isp_provider' => $prefix . 'nullable|string|max:255',
             'internet_speed' => $prefix . 'nullable|numeric|min:0',
-            'has_computer_lab' => $prefix . 'nullable|boolean',
-            'number_of_computers' => $prefix . 'nullable|integer|min:0',
-            'has_projected_whiteboard' => $prefix . 'nullable|boolean',
-            'has_smart_tv' => $prefix . 'nullable|boolean',
-            'has_public_address_system' => $prefix . 'nullable|boolean',
+
+            'number_of_computers' => 'prohibited',
+            'has_computer_lab' => 'prohibited',
+            'has_projected_whiteboard' => 'prohibited',
+            'has_smart_tv' => 'prohibited',
+            'has_public_address_system' => 'prohibited',
+
             'needs_maintenance' => $prefix . 'nullable|boolean',
             'notes' => $prefix . 'nullable|string',
             'is_pilot_site' => $prefix . 'nullable|boolean',
@@ -354,13 +361,23 @@ class InstitutionController extends Controller
     protected function booleanFields(): array
     {
         return [
-            'has_computer_lab',
-            'has_projected_whiteboard',
-            'has_smart_tv',
-            'has_public_address_system',
             'needs_maintenance',
             'is_pilot_site',
             'is_active',
+        ];
+    }
+
+    /**
+     * Return inventory-controlled defaults for a new institution.
+     */
+    protected function inventorySummaryDefaults(): array
+    {
+        return [
+            'number_of_computers' => 0,
+            'has_computer_lab' => false,
+            'has_projected_whiteboard' => false,
+            'has_smart_tv' => false,
+            'has_public_address_system' => false,
         ];
     }
 

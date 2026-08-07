@@ -1,12 +1,12 @@
-@props(['name', 'label', 'checked' => false, 'color' => 'blue'])
+@props(['name', 'label', 'checked' => false, 'color' => 'red'])
 @php
     $colorMap = [
-        'blue'   => ['active' => 'bg-blue-50 border-blue-400',   'text' => 'text-blue-700',   'track' => 'bg-blue-500'],
+        'red'    => ['active' => 'bg-red-50 border-red-400',     'text' => 'text-red-700',     'track' => 'bg-red-500'],
         'green'  => ['active' => 'bg-green-50 border-green-400',  'text' => 'text-green-700',  'track' => 'bg-green-500'],
         'red'    => ['active' => 'bg-red-50 border-red-400',      'text' => 'text-red-700',    'track' => 'bg-red-500'],
         'yellow' => ['active' => 'bg-yellow-50 border-yellow-400','text' => 'text-yellow-700', 'track' => 'bg-yellow-500'],
     ];
-    $c = $colorMap[$color] ?? $colorMap['blue'];
+    $c = $colorMap[$color] ?? $colorMap['red'];
     $uid = 'tc_' . $name . '_' . uniqid();
 @endphp
 <label for="{{ $uid }}" class="toggle-card-label relative cursor-pointer select-none block">

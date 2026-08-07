@@ -41,18 +41,18 @@
     @endphp
 
     <div class="flex h-full min-h-0 flex-col bg-gray-100">
-        <div class="shrink-0 bg-blue-700 px-6 py-4">
+        <div class="shrink-0 bg-red-700 px-6 py-4">
             <div class="flex items-center justify-between gap-4">
                 <div class="flex min-w-0 items-center gap-3">
                     <a
                         href="{{ route('institutions.index') }}"
-                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-blue-100 transition hover:bg-blue-500 hover:text-white"
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-600 text-red-100 transition hover:bg-red-500 hover:text-white"
                         title="Back to institutions"
                     >
                         <i class="fa-solid fa-arrow-left"></i>
                     </a>
 
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-blue-100">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-600 text-red-100">
                         <i class="fa-solid fa-building"></i>
                     </div>
 
@@ -63,16 +63,16 @@
                             </h1>
 
                             @if ($institution->is_pilot_site)
-                                <span class="inline-flex items-center gap-1 rounded-full border border-blue-300/30 bg-blue-500/30 px-2 py-0.5 text-xs font-medium text-blue-100">
+                                <span class="inline-flex items-center gap-1 rounded-full border border-red-300/30 bg-red-500/30 px-2 py-0.5 text-xs font-medium text-red-100">
                                     <i class="fa-solid fa-flask text-[10px]"></i>
                                     Pilot
                                 </span>
                             @endif
                         </div>
 
-                        <p class="mt-0.5 text-xs text-blue-200">
+                        <p class="mt-0.5 text-xs text-red-200">
                             {{ $institution->type }}
-                            <span class="mx-1 text-blue-300">•</span>
+                            <span class="mx-1 text-red-300">•</span>
                             {{ $institution->barangay?->name ?? 'Barangay not recorded' }}
                         </p>
                     </div>
@@ -81,7 +81,7 @@
                 <div class="flex shrink-0 items-center gap-2">
                     <a
                         href="{{ route('institutions.edit', $institution) }}"
-                        class="inline-flex items-center gap-2 rounded-lg border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-blue-700 shadow-sm transition hover:bg-blue-50"
+                        class="inline-flex items-center gap-2 rounded-lg border border-red-100 bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-50"
                     >
                         <i class="fa-solid fa-pen"></i>
                         Edit
@@ -114,7 +114,7 @@
         <div class="min-h-0 flex-1 overflow-y-auto px-5 py-5">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
                         <i class="fa-solid fa-clipboard-check"></i>
                     </div>
                     <div>
@@ -163,7 +163,7 @@
                     <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                         <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
                             <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-circle-info text-blue-600"></i>
+                                <i class="fa-solid fa-circle-info text-red-600"></i>
                                 <h2 class="text-sm font-semibold text-gray-800">Institution Information</h2>
                             </div>
                         </div>
@@ -193,7 +193,7 @@
                     <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                         <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
                             <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-location-dot text-blue-600"></i>
+                                <i class="fa-solid fa-location-dot text-red-600"></i>
                                 <h2 class="text-sm font-semibold text-gray-800">Location</h2>
                             </div>
                         </div>
@@ -214,7 +214,7 @@
                                 href="https://www.google.com/maps?q={{ $institution->latitude }},{{ $institution->longitude }}"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                class="inline-flex items-center gap-2 text-xs font-medium text-blue-600 transition hover:text-blue-800"
+                                class="inline-flex items-center gap-2 text-xs font-medium text-red-600 transition hover:text-red-800"
                             >
                                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                 Open location in Google Maps
@@ -227,7 +227,7 @@
                     <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                         <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
                             <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-computer text-blue-600"></i>
+                                <i class="fa-solid fa-computer text-red-600"></i>
                                 <h2 class="text-sm font-semibold text-gray-800">Available ICT Facilities</h2>
                             </div>
                         </div>
@@ -259,7 +259,7 @@
                     <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                         <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
                             <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-clipboard-list text-blue-600"></i>
+                                <i class="fa-solid fa-clipboard-list text-red-600"></i>
                                 <h2 class="text-sm font-semibold text-gray-800">Institution Status</h2>
                             </div>
                         </div>
@@ -286,7 +286,7 @@
                         <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
                                 <div class="flex items-center gap-2">
-                                    <i class="fa-solid fa-note-sticky text-blue-600"></i>
+                                    <i class="fa-solid fa-note-sticky text-red-600"></i>
                                     <h2 class="text-sm font-semibold text-gray-800">Notes</h2>
                                 </div>
                             </div>
@@ -299,7 +299,7 @@
             <section class="mt-5 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div class="flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-boxes-stacked text-blue-600"></i>
+                        <i class="fa-solid fa-boxes-stacked text-red-600"></i>
                         <div>
                             <h2 class="text-sm font-semibold text-gray-800">ICT Inventory</h2>
                             <p class="text-xs text-gray-500">
@@ -313,7 +313,7 @@
                             'institution_id' => $institution->id,
                             'return_to' => 'institution',
                         ]) }}"
-                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
                     >
                         <i class="fa-solid fa-plus"></i>
                         Add Inventory Item
@@ -344,7 +344,7 @@
                                         };
 
                                         $statusClass = match ($item->status) {
-                                            'active' => 'border-blue-200 bg-blue-50 text-blue-700',
+                                            'active' => 'border-red-200 bg-red-50 text-red-700',
                                             'under_repair' => 'border-yellow-200 bg-yellow-50 text-yellow-700',
                                             'inactive' => 'border-gray-200 bg-gray-50 text-gray-600',
                                             'retired' => 'border-red-200 bg-red-50 text-red-700',
@@ -352,10 +352,10 @@
                                         };
                                     @endphp
 
-                                    <tr class="transition hover:bg-blue-50/40">
+                                    <tr class="transition hover:bg-red-50/40">
                                         <td class="px-4 py-3">
                                             <div class="flex items-center gap-3">
-                                                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                                                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
                                                     <i class="fa-solid fa-computer"></i>
                                                 </div>
                                                 <span class="font-medium text-gray-900">
@@ -411,7 +411,7 @@
                     </div>
                 @else
                     <div class="flex flex-col items-center justify-center px-5 py-12 text-center">
-                        <div class="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+                        <div class="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500">
                             <i class="fa-solid fa-box-open text-xl"></i>
                         </div>
                         <h3 class="mt-4 text-sm font-semibold text-gray-900">No inventory items yet</h3>
@@ -423,7 +423,7 @@
                                 'institution_id' => $institution->id,
                                 'return_to' => 'institution',
                             ]) }}"
-                            class="mt-5 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+                            class="mt-5 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
                         >
                             <i class="fa-solid fa-plus"></i>
                             Add First Inventory Item

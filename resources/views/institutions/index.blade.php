@@ -30,7 +30,7 @@
                         </div>
 
                         <input id="institutionSearch" type="text" placeholder="Search institutions..."
-                            class="w-56 rounded-lg border border-red-600 bg-red-800 py-2 pl-9 pr-4 text-sm text-white placeholder-blue-300 transition focus:outline-none focus:ring-2 focus:ring-red-300">
+                            class="w-56 rounded-lg border border-red-600 bg-red-800 py-2 pl-9 pr-4 text-sm text-white placeholder-red-300 transition focus:outline-none focus:ring-2 focus:ring-red-300">
                     </div>
 
                     <button type="button" id="openAddModal" data-open-institution-modal
@@ -146,7 +146,7 @@
                                             <td class="px-4 py-3">
                                                 <div class="flex items-center justify-end gap-3">
                                                     <a href="{{ route('institutions.show', $institution) }}"
-                                                        class="inline-flex items-center gap-1 text-xs font-medium text-red-600 transition hover:text-blue-800">
+                                                        class="inline-flex items-center gap-1 text-xs font-medium text-red-600 transition hover:text-red-800">
                                                         <i class="fa-solid fa-eye"></i>
                                                         View
                                                     </a>
@@ -187,7 +187,7 @@
                 </div>
             @else
                 <div class="flex flex-1 flex-col items-center justify-center px-5 text-center">
-                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-blue-500">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500">
                         <i class="fa-solid fa-building text-xl"></i>
                     </div>
 

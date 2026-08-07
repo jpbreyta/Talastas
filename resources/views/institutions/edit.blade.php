@@ -8,12 +8,12 @@
         @method('PUT')
 
         {{-- ── Fixed Action Bar (top) ───────────────────────────────── --}}
-        <div class="flex-shrink-0 bg-blue-700 px-6 py-4">
+        <div class="flex-shrink-0 bg-red-700 px-6 py-4">
             <div class="flex items-center justify-between gap-4">
                 {{-- Back + Title --}}
                 <div class="flex items-center gap-3 min-w-0">
                     <a href="{{ route('institutions.show', $institution) }}"
-                       class="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition shrink-0"
+                       class="flex items-center justify-center w-8 h-8 rounded-lg bg-red-600 hover:bg-red-500 text-white transition shrink-0"
                        title="Back to view">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
@@ -21,21 +21,21 @@
                     </a>
                     <div class="min-w-0">
                         <h1 class="text-lg font-semibold text-white leading-tight">Edit Institution</h1>
-                        <p class="text-blue-200 text-xs mt-0.5 truncate">{{ $institution->name }}</p>
+                        <p class="text-red-200 text-xs mt-0.5 truncate">{{ $institution->name }}</p>
                     </div>
                 </div>
 
                 {{-- Save / Cancel --}}
                 <div class="flex items-center gap-2 shrink-0">
                     <a href="{{ route('institutions.show', $institution) }}"
-                       class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition border border-blue-500">
+                       class="flex items-center gap-2 bg-red-600 hover:bg-red-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition border border-red-500">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                         Cancel
                     </a>
                     <button type="submit"
-                            class="flex items-center gap-2 bg-white text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-50 font-medium text-sm shadow-sm transition border border-blue-100">
+                            class="flex items-center gap-2 bg-white text-red-700 px-4 py-2 rounded-lg hover:bg-red-50 font-medium text-sm shadow-sm transition border border-red-100">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
@@ -55,8 +55,8 @@
                 <button type="button" onclick="toggleSection('sec-basic')"
                         class="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-gray-50 transition">
                     <div class="flex items-center gap-2.5">
-                        <div class="w-7 h-7 rounded-lg bg-blue-100 flex items-center justify-center">
-                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <div class="w-7 h-7 rounded-lg bg-red-100 flex items-center justify-center">
+                            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
                         </div>
@@ -257,7 +257,7 @@
 
                     <div class="flex flex-wrap items-center gap-2">
                         <a href="{{ route('ict-inventory.create', ['institution_id' => $institution->id]) }}"
-                            class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-blue-700">
+                            class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-red-700">
                             <i class="fa-solid fa-plus"></i>
                             Add Inventory Item
                         </a>
@@ -273,7 +273,7 @@
                 <div class="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2 xl:grid-cols-5">
                     <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
                         <div class="flex items-center justify-between gap-3">
-                            <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                            <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-600">
                                 <i class="fa-solid fa-computer"></i>
                             </span>
                             <span class="text-2xl font-bold text-gray-900">
@@ -403,7 +403,7 @@
                     Cancel
                 </a>
                 <button type="submit"
-                        class="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 font-medium text-sm transition shadow-sm">
+                        class="flex items-center gap-2 bg-red-600 text-white px-5 py-2.5 rounded-lg hover:bg-red-700 font-medium text-sm transition shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                     </svg>
@@ -418,7 +418,7 @@
 <style>
     .form-input {
         @apply block border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white
-               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
+               focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500
                placeholder-gray-400 transition;
     }
     select.form-input { @apply pr-8; }

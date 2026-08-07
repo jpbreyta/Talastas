@@ -8,11 +8,11 @@
                 <div
                     class="relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
                     {{-- Modal Header --}}
-                    <div class="shrink-0 border-b border-blue-600 bg-blue-700 px-6 py-4">
+                    <div class="shrink-0 border-b border-red-600 bg-red-700 px-6 py-4">
                         <div class="flex items-center justify-between gap-4">
                             <div class="flex min-w-0 items-center gap-3">
                                 <div
-                                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-blue-100">
+                                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-600 text-red-100">
                                     <i class="fa-solid fa-building-circle-check"></i>
                                 </div>
 
@@ -20,14 +20,14 @@
                                     <h2 id="addInstitutionModalTitle" class="text-lg font-semibold text-white">
                                         Add New Institution
                                     </h2>
-                                    <p class="mt-0.5 text-xs text-blue-200">
+                                    <p class="mt-0.5 text-xs text-red-200">
                                         Register an institution and its ICT information
                                     </p>
                                 </div>
                             </div>
 
                             <button type="button" id="closeAddModal"
-                                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-blue-200 transition hover:bg-blue-600 hover:text-white"
+                                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-red-200 transition hover:bg-red-600 hover:text-white"
                                 aria-label="Close modal">
                                 <i class="fa-solid fa-xmark text-lg"></i>
                             </button>
@@ -45,7 +45,7 @@
                                 <div class="border-b border-gray-200 bg-gray-50 px-5 py-4">
                                     <div class="flex items-center gap-3">
                                         <div
-                                            class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                                            class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-700">
                                             <i class="fa-solid fa-location-dot"></i>
                                         </div>
 
@@ -84,7 +84,7 @@
                                                 </div>
 
                                                 <button type="button" id="geocodeSearchBtn"
-                                                    class="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition hover:border-blue-300 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60">
+                                                    class="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:border-red-300 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60">
                                                     <i class="fa-solid fa-magnifying-glass"></i>
                                                     <span id="geocodeSearchButtonText">Search Location</span>
                                                 </button>
@@ -101,7 +101,7 @@
                                         <div
                                             class="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
                                             <div class="flex items-center gap-2">
-                                                <i class="fa-solid fa-map-location-dot text-blue-600"></i>
+                                                <i class="fa-solid fa-map-location-dot text-red-600"></i>
                                                 <h4 class="text-sm font-semibold text-gray-800">Location Preview</h4>
                                             </div>
                                             <span class="text-xs text-gray-400">OpenStreetMap</span>
@@ -114,7 +114,7 @@
                                                 class="pointer-events-none absolute inset-0 z-[500] flex items-center justify-center bg-gray-50">
                                                 <div class="px-4 text-center">
                                                     <div
-                                                        class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+                                                        class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-500">
                                                         <i class="fa-solid fa-map-pin"></i>
                                                     </div>
                                                     <p class="mt-3 text-sm font-medium text-gray-600">
@@ -136,7 +136,7 @@
                                             class="flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                                             <div class="flex items-center gap-3">
                                                 <div
-                                                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                                                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-700">
                                                     <i class="fa-solid fa-location-crosshairs"></i>
                                                 </div>
                                                 <div>
@@ -160,7 +160,7 @@
                                             <div class="bg-white p-4">
                                                 <div class="flex items-start gap-3">
                                                     <div
-                                                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                                                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
                                                         <i class="fa-solid fa-map-pin"></i>
                                                     </div>
                                                     <div class="min-w-0">
@@ -177,7 +177,7 @@
                                             <div class="bg-white p-4">
                                                 <div class="flex items-start gap-3">
                                                     <div
-                                                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                                                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
                                                         <i class="fa-solid fa-city"></i>
                                                     </div>
                                                     <div class="min-w-0">
@@ -194,7 +194,7 @@
                                             <div class="bg-white p-4">
                                                 <div class="flex items-start gap-3">
                                                     <div
-                                                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                                                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
                                                         <i class="fa-solid fa-map"></i>
                                                     </div>
                                                     <div class="min-w-0">
@@ -211,7 +211,7 @@
                                             <div class="bg-white p-4">
                                                 <div class="flex items-start gap-3">
                                                     <div
-                                                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                                                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
                                                         <i class="fa-solid fa-earth-asia"></i>
                                                     </div>
                                                     <div class="min-w-0">
@@ -280,7 +280,7 @@
                                 <div class="border-b border-gray-200 bg-gray-50 px-5 py-4">
                                     <div class="flex items-center gap-3">
                                         <div
-                                            class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                                            class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-700">
                                             <i class="fa-solid fa-layer-group"></i>
                                         </div>
                                         <div>
@@ -350,7 +350,7 @@
                                 <div class="border-b border-gray-200 bg-gray-50 px-5 py-4">
                                     <div class="flex items-center gap-3">
                                         <div
-                                            class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                                            class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-700">
                                             <i class="fa-solid fa-wifi"></i>
                                         </div>
                                         <div>
@@ -366,17 +366,17 @@
 
                                 <div class="space-y-4 p-5">
                                     <div
-                                        class="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+                                        class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
                                         <span
-                                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
+                                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-red-600 shadow-sm">
                                             <i class="fa-solid fa-boxes-stacked"></i>
                                         </span>
 
                                         <div>
-                                            <p class="text-sm font-semibold text-blue-900">
+                                            <p class="text-sm font-semibold text-red-900">
                                                 ICT equipment is inventory-controlled
                                             </p>
-                                            <p class="mt-1 text-xs leading-5 text-blue-700">
+                                            <p class="mt-1 text-xs leading-5 text-red-700">
                                                 Save the institution first, then add its equipment through ICT Inventory.
                                                 Computer counts and facility availability are calculated automatically.
                                             </p>
@@ -429,7 +429,7 @@
                                 <div class="border-b border-gray-200 bg-gray-50 px-5 py-4">
                                     <div class="flex items-center gap-3">
                                         <div
-                                            class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                                            class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-700">
                                             <i class="fa-solid fa-clipboard-check"></i>
                                         </div>
                                         <div>
@@ -479,7 +479,7 @@
                                 <div class="border-b border-gray-200 bg-gray-50 px-5 py-4">
                                     <div class="flex items-center gap-3">
                                         <div
-                                            class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                                            class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-700">
                                             <i class="fa-solid fa-note-sticky"></i>
                                         </div>
                                         <div>
@@ -512,7 +512,7 @@
                         </button>
 
                         <button type="submit" form="addInstitutionForm" id="createInstitutionBtn" disabled
-                            class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500">
+                            class="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-5 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500">
                             <i class="fa-solid fa-plus"></i>
                             <span>Create Institution</span>
                         </button>
@@ -1229,7 +1229,7 @@
                     button.className = [
                         'flex w-full items-start gap-3 border-b border-gray-100 px-4 py-3 text-left transition last:border-b-0',
                         hasBarangay ?
-                        'cursor-pointer hover:bg-blue-50' :
+                        'cursor-pointer hover:bg-red-50' :
                         'cursor-not-allowed bg-gray-50 opacity-60'
                     ].join(' ');
 
@@ -1239,7 +1239,7 @@
 
                     button.innerHTML = `
                         <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
-                            hasBarangay ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-500'
+                            hasBarangay ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-500'
                         }">
                             <i class="fa-solid fa-location-dot"></i>
                         </span>
@@ -1373,7 +1373,7 @@
             function showDropdownLoading() {
                 searchResults.innerHTML = `
                     <div class="flex items-center justify-center gap-2 px-4 py-5 text-sm text-gray-500">
-                        <i class="fa-solid fa-spinner fa-spin text-blue-600"></i>
+                        <i class="fa-solid fa-spinner fa-spin text-red-600"></i>
                         Searching for matching locations
                     </div>
                 `;

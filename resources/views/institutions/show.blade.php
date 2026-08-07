@@ -415,7 +415,7 @@
                             </div>
 
                             <button type="button" data-open-notes-modal
-                                class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-blue-300 hover:bg-red-50 hover:text-red-700">
+                                class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700">
                                 <i class="fa-solid {{ $institution->notes ? 'fa-pen' : 'fa-plus' }}"></i>
                                 <span id="notesActionLabel">{{ $institution->notes ? 'Edit Notes' : 'Add Notes' }}</span>
                             </button>
@@ -688,7 +688,7 @@
                 @else
                     <div class="flex flex-col items-center justify-center px-5 py-14 text-center">
                         <span
-                            class="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-blue-500">
+                            class="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500">
                             <i class="fa-solid fa-chart-pie text-xl"></i>
                         </span>
                         <h3 class="mt-4 text-sm font-semibold text-gray-900">No analytics report yet</h3>
@@ -786,7 +786,7 @@
                                 class="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-red-600 shadow-sm">
                                 <i class="fa-solid fa-computer"></i>
                             </span>
-                            <span class="text-xl font-bold text-blue-800">
+                            <span class="text-xl font-bold text-red-800">
                                 {{ number_format((int) ($institution->number_of_computers ?? 0)) }}
                             </span>
                         </div>

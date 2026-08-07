@@ -19,7 +19,7 @@
             <div class="flex items-start justify-between gap-4 border-b border-gray-200 px-6 py-5">
                 <div class="flex items-start gap-3">
                     <span
-                        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
                         <i class="fa-solid fa-note-sticky"></i>
                     </span>
 
@@ -58,7 +58,7 @@
                         name="notes"
                         rows="8"
                         maxlength="5000"
-                        class="block w-full resize-y rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 text-gray-800 placeholder-gray-400 transition focus:border-blue-500 focus:outline-none focus:ring-4 focus:ring-blue-100"
+                        class="block w-full resize-y rounded-xl border border-gray-300 px-4 py-3 text-sm leading-6 text-gray-800 placeholder-gray-400 transition                         focus:border-red-500 focus:outline-none focus:ring-4 focus:ring-red-100"
                         placeholder="Enter institution notes...">{{ $institution->notes }}</textarea>
 
                     <div class="mt-2 flex items-center justify-between gap-3">
@@ -81,7 +81,7 @@
                     </button>
 
                     <button type="submit" id="saveInstitutionNotesButton"
-                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-5 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60">
                         <i class="fa-solid fa-floppy-disk"></i>
                         <span>Save Notes</span>
                     </button>

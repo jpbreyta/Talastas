@@ -6,7 +6,7 @@
             <div class="flex items-center gap-3 shrink-0 w-64">
                 <a href="{{ route('home') }}" class="flex items-center gap-2.5">
                     <div class="w-9 h-9 bg-white rounded-lg flex items-center justify-center shrink-0">
-                        <svg class="w-5 h-5 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-red-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V5.618a1 1 0 00-.553-.894L15 7m0 13V7" />
                         </svg>
@@ -190,7 +190,7 @@
             3 new
         </span>
         <button onclick="closeNotifications()"
-            class="ml-2 text-blue-200 hover:text-white transition-colors focus:outline-none"
+            class="ml-2 text-red-200 hover:text-white transition-colors focus:outline-none"
             aria-label="Close notifications">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -299,7 +299,7 @@
                 </div>
                 <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">Maliwanag TVET School audit for Q2 2026 was successfully submitted.</p>
             </div>
-            <span class="unread-dot hidden shrink-0 w-2.5 h-2.5 rounded-full bg-blue-600 mt-1.5"></span>
+            <span class="unread-dot hidden shrink-0 w-2.5 h-2.5 rounded-full bg-red-600 mt-1.5"></span>
         </div>
 
         <!-- Warning 2 -->
@@ -320,7 +320,7 @@
                 </div>
                 <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">12 institutions have pending audits due before June 30, 2026.</p>
             </div>
-            <span class="unread-dot hidden shrink-0 w-2.5 h-2.5 rounded-full bg-blue-600 mt-1.5"></span>
+            <span class="unread-dot hidden shrink-0 w-2.5 h-2.5 rounded-full bg-red-600 mt-1.5"></span>
         </div>
 
         <!-- Info 2 -->
@@ -341,7 +341,7 @@
                 </div>
                 <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">GIS layer data has been refreshed with June 2026 barangay boundary updates.</p>
             </div>
-            <span class="unread-dot hidden shrink-0 w-2.5 h-2.5 rounded-full bg-blue-600 mt-1.5"></span>
+            <span class="unread-dot hidden shrink-0 w-2.5 h-2.5 rounded-full bg-red-600 mt-1.5"></span>
         </div>
 
     </div>

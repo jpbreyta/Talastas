@@ -6,10 +6,10 @@
 @section('content')
     <div class="flex h-full min-h-0 flex-col bg-gray-100">
         {{-- Page Header --}}
-        <div class="shrink-0 bg-blue-700 px-6 py-4">
+        <div class="shrink-0 bg-red-700 px-6 py-4">
             <div class="flex items-center justify-between gap-4">
                 <div class="flex min-w-0 items-center gap-3">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-blue-100">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-600 text-red-100">
                         <i class="fa-solid fa-building"></i>
                     </div>
 
@@ -17,7 +17,7 @@
                         <h1 class="text-xl font-semibold leading-tight tracking-tight text-white">
                             Institutions
                         </h1>
-                        <p class="mt-0.5 text-xs text-blue-200">
+                        <p class="mt-0.5 text-xs text-red-200">
                             Manage registered institutions and their ICT profiles
                         </p>
                     </div>
@@ -25,16 +25,16 @@
 
                 <div class="flex shrink-0 items-center gap-3">
                     <div class="relative hidden sm:block">
-                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-blue-300">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-red-300">
                             <i class="fa-solid fa-magnifying-glass text-sm"></i>
                         </div>
 
                         <input id="institutionSearch" type="text" placeholder="Search institutions..."
-                            class="w-56 rounded-lg border border-blue-600 bg-blue-800 py-2 pl-9 pr-4 text-sm text-white placeholder-blue-300 transition focus:outline-none focus:ring-2 focus:ring-blue-300">
+                            class="w-56 rounded-lg border border-red-600 bg-red-800 py-2 pl-9 pr-4 text-sm text-white placeholder-blue-300 transition focus:outline-none focus:ring-2 focus:ring-red-300">
                     </div>
 
                     <button type="button" id="openAddModal" data-open-institution-modal
-                        class="inline-flex items-center gap-2 rounded-lg border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-blue-700 shadow-sm transition hover:bg-blue-50">
+                        class="inline-flex items-center gap-2 rounded-lg border border-red-100 bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-50">
                         <i class="fa-solid fa-plus"></i>
                         Add Institution
                     </button>
@@ -92,7 +92,7 @@
 
                                 <tbody class="divide-y divide-gray-100">
                                     @foreach ($institutions as $institution)
-                                        <tr id="institution-row-{{ $institution->id }}" class="inst-row transition hover:bg-blue-50/40">
+                                        <tr id="institution-row-{{ $institution->id }}" class="inst-row transition hover:bg-red-50/40">
                                             <td class="px-4 py-3">
                                                 <span class="font-medium text-gray-900">
                                                     {{ $institution->name }}
@@ -135,7 +135,7 @@
 
                                                     @if ($institution->is_pilot_site)
                                                         <span
-                                                            class="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                                            class="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
                                                             <i class="fa-solid fa-flask text-[10px]"></i>
                                                             Pilot
                                                         </span>
@@ -146,7 +146,7 @@
                                             <td class="px-4 py-3">
                                                 <div class="flex items-center justify-end gap-3">
                                                     <a href="{{ route('institutions.show', $institution) }}"
-                                                        class="inline-flex items-center gap-1 text-xs font-medium text-blue-600 transition hover:text-blue-800">
+                                                        class="inline-flex items-center gap-1 text-xs font-medium text-red-600 transition hover:text-blue-800">
                                                         <i class="fa-solid fa-eye"></i>
                                                         View
                                                     </a>
@@ -187,7 +187,7 @@
                 </div>
             @else
                 <div class="flex flex-1 flex-col items-center justify-center px-5 text-center">
-                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-blue-500">
                         <i class="fa-solid fa-building text-xl"></i>
                     </div>
 
@@ -200,7 +200,7 @@
                     </p>
 
                     <button type="button" id="openAddModalEmpty" data-open-institution-modal
-                        class="mt-5 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">
+                        class="mt-5 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700">
                         <i class="fa-solid fa-plus"></i>
                         Add Institution
                     </button>

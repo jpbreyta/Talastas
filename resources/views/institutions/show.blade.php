@@ -23,7 +23,7 @@
         };
 
         $providerClasses = match ($providerKey) {
-            'gemini' => 'border-blue-200 bg-blue-50 text-blue-700',
+            'gemini' => 'border-red-200 bg-red-50 text-red-700',
             'groq' => 'border-orange-200 bg-orange-50 text-orange-700',
             'local' => 'border-gray-200 bg-gray-50 text-gray-600',
             default => 'border-gray-200 bg-white text-gray-500',
@@ -148,7 +148,7 @@
             'excellent' => [
                 'label' => 'Excellent',
                 'class' =>
-                    'border-blue-200 bg-blue-50 text-blue-700',
+                    'border-red-200 bg-red-50 text-red-700',
             ],
             'good' => [
                 'label' => 'Good',
@@ -201,11 +201,11 @@
     @endphp
 
     <div class="flex h-full min-h-0 flex-col bg-gray-100">
-        <div class="shrink-0 bg-blue-700 px-5 py-4 sm:px-6">
+        <div class="shrink-0 bg-red-700 px-5 py-4 sm:px-6">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div class="flex min-w-0 items-center gap-3">
                     <a href="{{ route('institutions.index') }}"
-                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white transition hover:bg-blue-500"
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-600 text-white transition hover:bg-red-500"
                         title="Back to institutions">
                         <i class="fa-solid fa-arrow-left"></i>
                     </a>
@@ -218,7 +218,7 @@
 
                             @if ($institution->is_pilot_site)
                                 <span
-                                    class="inline-flex items-center gap-1 rounded-full border border-blue-300/30 bg-blue-500/30 px-2 py-0.5 text-xs font-medium text-blue-100">
+                                    class="inline-flex items-center gap-1 rounded-full border border-red-300/30 bg-red-500/30 px-2 py-0.5 text-xs font-medium text-red-100">
                                     <i class="fa-solid fa-flask text-[10px]"></i>
                                     Pilot Site
                                 </span>
@@ -233,7 +233,7 @@
                             @endif
                         </div>
 
-                        <p class="mt-1 text-xs text-blue-200">
+                        <p class="mt-1 text-xs text-red-200">
                             {{ $institution->type }}
                             <span class="px-1">•</span>
                             {{ $institution->barangay?->name ?? 'Barangay not available' }}
@@ -243,7 +243,7 @@
 
                 <div class="flex flex-wrap items-center gap-2">
                     <a href="{{ route('institutions.edit', $institution) }}"
-                        class="inline-flex items-center gap-2 rounded-lg border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-blue-700 shadow-sm transition hover:bg-blue-50">
+                        class="inline-flex items-center gap-2 rounded-lg border border-red-100 bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-50">
                         <i class="fa-solid fa-pen-to-square"></i>
                         Edit Institution
                     </a>
@@ -277,7 +277,7 @@
                 </div>
 
                 <div class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                    <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-600">
                         <i class="fa-solid fa-chart-column"></i>
                     </div>
                     <div>
@@ -323,7 +323,7 @@
                 <div class="space-y-5 xl:col-span-1">
                     <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                         <div class="flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-4 py-3">
-                            <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                            <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100 text-red-600">
                                 <i class="fa-solid fa-circle-info text-xs"></i>
                             </span>
                             <h2 class="text-sm font-semibold text-gray-800">Basic Information</h2>
@@ -357,7 +357,7 @@
                             <div class="border-t border-gray-200 bg-gray-50 px-4 py-3">
                                 <a href="https://www.google.com/maps?q={{ $institution->latitude }},{{ $institution->longitude }}"
                                     target="_blank" rel="noopener noreferrer"
-                                    class="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 transition hover:text-blue-800">
+                                    class="inline-flex items-center gap-1.5 text-xs font-medium text-red-600 transition hover:text-red-800">
                                     <i class="fa-solid fa-arrow-up-right-from-square"></i>
                                     Open in Google Maps
                                 </a>
@@ -415,7 +415,7 @@
                             </div>
 
                             <button type="button" data-open-notes-modal
-                                class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700">
+                                class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-blue-300 hover:bg-red-50 hover:text-red-700">
                                 <i class="fa-solid {{ $institution->notes ? 'fa-pen' : 'fa-plus' }}"></i>
                                 <span id="notesActionLabel">{{ $institution->notes ? 'Edit Notes' : 'Add Notes' }}</span>
                             </button>
@@ -449,7 +449,7 @@
                 <div
                     class="flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-center gap-3">
-                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-100 text-red-700">
                             <i class="fa-solid fa-chart-pie"></i>
                         </span>
                         <div>
@@ -472,7 +472,7 @@
                                 title="{{ $institution->ictInventory->isEmpty()
                                     ? 'Add at least one inventory item before running analytics.'
                                     : 'Run infrastructure analytics using the current institution and inventory data.' }}"
-                                class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 sm:w-auto">
+                                class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 sm:w-auto">
                                 <i class="fa-solid fa-wand-magic-sparkles"></i>
                                 <span>Run Infrastructure Analytics</span>
                             </button>
@@ -510,7 +510,7 @@
                                 </div>
 
                                 <div class="mt-5 h-2 overflow-hidden rounded-full bg-gray-200">
-                                    <div class="h-full rounded-full bg-blue-600 transition-all"
+                                    <div class="h-full rounded-full bg-red-600 transition-all"
                                         style="width: {{ $gapProgress }}%"></div>
                                 </div>
 
@@ -573,7 +573,7 @@
                             <article class="rounded-xl border border-gray-200 bg-white p-5">
                                 <div class="mb-3 flex items-center gap-2">
                                     <span
-                                        class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                                        class="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600">
                                         <i class="fa-solid fa-file-waveform text-sm"></i>
                                     </span>
                                     <h3 class="text-sm font-semibold text-gray-900">Infrastructure Analysis</h3>
@@ -584,10 +584,10 @@
                                 </p>
                             </article>
 
-                            <article class="rounded-xl border border-blue-200 bg-blue-50/40 p-5">
+                            <article class="rounded-xl border border-red-200 bg-red-50/40 p-5">
                                 <div class="mb-3 flex items-center gap-2">
                                     <span
-                                        class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                                        class="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-700">
                                         <i class="fa-solid fa-lightbulb text-sm"></i>
                                     </span>
                                     <h3 class="text-sm font-semibold text-gray-900">Policy Recommendation</h3>
@@ -627,7 +627,7 @@
 
                                         <div class="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
                                             <span
-                                                class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-blue-600 shadow-sm">
+                                                class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-red-600 shadow-sm">
                                                 <i class="fa-solid fa-check text-xs"></i>
                                             </span>
                                             <div class="min-w-0 flex-1">
@@ -688,7 +688,7 @@
                 @else
                     <div class="flex flex-col items-center justify-center px-5 py-14 text-center">
                         <span
-                            class="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+                            class="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-blue-500">
                             <i class="fa-solid fa-chart-pie text-xl"></i>
                         </span>
                         <h3 class="mt-4 text-sm font-semibold text-gray-900">No analytics report yet</h3>
@@ -705,7 +705,7 @@
                     class="flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-center gap-2">
                         <span
-                            class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                            class="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600">
                             <i class="fa-solid fa-boxes-stacked text-xs"></i>
                         </span>
 
@@ -727,7 +727,7 @@
                         </a>
 
                         <a href="{{ route('ict-inventory.create', ['institution_id' => $institution->id]) }}"
-                            class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-blue-700">
+                            class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-red-700">
                             <i class="fa-solid fa-plus"></i>
                             Add Item
                         </a>
@@ -780,17 +780,17 @@
                         </p>
                     </div>
 
-                    <div class="rounded-xl border border-blue-200 bg-blue-50 p-3">
+                    <div class="rounded-xl border border-red-200 bg-red-50 p-3">
                         <div class="flex items-center justify-between gap-3">
                             <span
-                                class="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
+                                class="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-red-600 shadow-sm">
                                 <i class="fa-solid fa-computer"></i>
                             </span>
                             <span class="text-xl font-bold text-blue-800">
                                 {{ number_format((int) ($institution->number_of_computers ?? 0)) }}
                             </span>
                         </div>
-                        <p class="mt-2 text-xs font-medium text-blue-700">
+                        <p class="mt-2 text-xs font-medium text-red-700">
                             Active Computers
                         </p>
                     </div>
@@ -862,7 +862,7 @@
                                         ];
                                     @endphp
 
-                                    <tr class="transition hover:bg-blue-50/30">
+                                    <tr class="transition hover:bg-red-50/30">
                                         <td class="px-4 py-3">
                                             <span class="font-mono text-xs text-gray-500">
                                                 #{{ $item->asset_id }}
@@ -872,7 +872,7 @@
                                         <td class="px-4 py-3">
                                             <div class="flex items-center gap-2.5">
                                                 <span
-                                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
                                                     <i class="fa-solid {{ $category['icon'] }} text-xs"></i>
                                                 </span>
 
@@ -904,14 +904,14 @@
                                         <td class="px-4 py-3">
                                             <div class="flex items-center justify-end gap-1.5">
                                                 <a href="{{ route('ict-inventory.show', $item) }}"
-                                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white transition hover:bg-blue-700"
+                                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-600 text-white transition hover:bg-red-700"
                                                     title="View inventory item"
                                                     aria-label="View inventory item {{ $item->asset_id }}">
                                                     <i class="fa-solid fa-eye text-xs"></i>
                                                 </a>
 
                                                 <a href="{{ route('ict-inventory.edit', $item) }}"
-                                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 hover:text-blue-600"
+                                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 hover:text-red-600"
                                                     title="Edit inventory item"
                                                     aria-label="Edit inventory item {{ $item->asset_id }}">
                                                     <i class="fa-solid fa-pen text-xs"></i>
@@ -957,7 +957,7 @@
                         </p>
 
                         <a href="{{ route('ict-inventory.create', ['institution_id' => $institution->id]) }}"
-                            class="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-blue-700">
+                            class="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-red-700">
                             <i class="fa-solid fa-plus"></i>
                             Add First Item
                         </a>

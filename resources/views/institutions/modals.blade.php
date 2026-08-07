@@ -345,81 +345,58 @@
                                 </div>
                             </section>
 
-                            {{-- ICT Infrastructure --}}
+                            {{-- Connectivity Information --}}
                             <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                                 <div class="border-b border-gray-200 bg-gray-50 px-5 py-4">
                                     <div class="flex items-center gap-3">
                                         <div
                                             class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
-                                            <i class="fa-solid fa-computer"></i>
+                                            <i class="fa-solid fa-wifi"></i>
                                         </div>
                                         <div>
-                                            <h3 class="text-sm font-semibold text-gray-900">ICT Infrastructure</h3>
-                                            <p class="mt-0.5 text-xs text-gray-500">Select available ICT facilities and
-                                                enter connectivity information</p>
+                                            <h3 class="text-sm font-semibold text-gray-900">
+                                                Connectivity Information
+                                            </h3>
+                                            <p class="mt-0.5 text-xs text-gray-500">
+                                                Enter the institution's current internet service details.
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="space-y-5 p-5">
-                                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                                        <label class="feature-card">
-                                            <input type="checkbox" name="has_computer_lab" class="feature-checkbox"
-                                                @checked(old('has_computer_lab'))>
-                                            <span class="feature-icon"><i class="fa-solid fa-desktop"></i></span>
-                                            <span class="text-sm font-medium text-gray-700">Computer Lab</span>
-                                        </label>
+                                <div class="space-y-4 p-5">
+                                    <div
+                                        class="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+                                        <span
+                                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
+                                            <i class="fa-solid fa-boxes-stacked"></i>
+                                        </span>
 
-                                        <label class="feature-card">
-                                            <input type="checkbox" name="has_smart_tv" class="feature-checkbox"
-                                                @checked(old('has_smart_tv'))>
-                                            <span class="feature-icon"><i class="fa-solid fa-tv"></i></span>
-                                            <span class="text-sm font-medium text-gray-700">Smart TV</span>
-                                        </label>
-
-                                        <label class="feature-card">
-                                            <input type="checkbox" name="has_projected_whiteboard"
-                                                class="feature-checkbox" @checked(old('has_projected_whiteboard'))>
-                                            <span class="feature-icon"><i class="fa-solid fa-chalkboard"></i></span>
-                                            <span class="text-sm font-medium text-gray-700">Whiteboard</span>
-                                        </label>
-
-                                        <label class="feature-card">
-                                            <input type="checkbox" name="has_public_address_system"
-                                                class="feature-checkbox" @checked(old('has_public_address_system'))>
-                                            <span class="feature-icon"><i class="fa-solid fa-bullhorn"></i></span>
-                                            <span class="text-sm font-medium text-gray-700">PA System</span>
-                                        </label>
+                                        <div>
+                                            <p class="text-sm font-semibold text-blue-900">
+                                                ICT equipment is inventory-controlled
+                                            </p>
+                                            <p class="mt-1 text-xs leading-5 text-blue-700">
+                                                Save the institution first, then add its equipment through ICT Inventory.
+                                                Computer counts and facility availability are calculated automatically.
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                                        <div>
-                                            <label for="modalComputers"
-                                                class="mb-1.5 block text-xs font-semibold text-gray-600">
-                                                Number of Computers
-                                            </label>
-                                            <div class="relative">
-                                                <div
-                                                    class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                                                    <i class="fa-solid fa-computer text-sm"></i>
-                                                </div>
-                                                <input type="number" name="number_of_computers" id="modalComputers"
-                                                    value="{{ old('number_of_computers') }}" min="0"
-                                                    class="form-input w-full pl-9" placeholder="e.g. 30">
-                                            </div>
-                                        </div>
-
+                                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                                         <div>
                                             <label for="modalInternet"
                                                 class="mb-1.5 block text-xs font-semibold text-gray-600">
                                                 Internet Speed
                                                 <span class="font-normal text-gray-400">(Mbps)</span>
                                             </label>
+
                                             <div class="relative">
                                                 <div
                                                     class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                                                     <i class="fa-solid fa-gauge-high text-sm"></i>
                                                 </div>
+
                                                 <input type="number" step="0.1" name="internet_speed"
                                                     id="modalInternet" value="{{ old('internet_speed') }}"
                                                     min="0" class="form-input w-full pl-9" placeholder="e.g. 100">
@@ -431,11 +408,13 @@
                                                 class="mb-1.5 block text-xs font-semibold text-gray-600">
                                                 ISP Provider
                                             </label>
+
                                             <div class="relative">
                                                 <div
                                                     class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                                                    <i class="fa-solid fa-wifi text-sm"></i>
+                                                    <i class="fa-solid fa-tower-broadcast text-sm"></i>
                                                 </div>
+
                                                 <input type="text" name="isp_provider" id="modalIsp"
                                                     value="{{ old('isp_provider') }}" class="form-input w-full pl-9"
                                                     placeholder="e.g. PLDT, Globe">

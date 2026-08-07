@@ -6,9 +6,12 @@ use App\Jobs\ProcessInstitutionAnalytics;
 use App\Models\Barangay;
 use App\Models\Institution;
 use App\Models\InstitutionAnalytics;
+use App\Services\InstitutionInventorySummaryService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -95,18 +98,49 @@ class AnalyticsController extends Controller
     }
 
     public function analyzeInstitution(
-        Institution $institution
-    ): JsonResponse {
+        Request $request,
+        Institution $institution,
+        InstitutionInventorySummaryService $summaryService
+    ): JsonResponse|RedirectResponse {
+        $institution->loadMissing('ictInventory');
+
+        if ($institution->ictInventory->isEmpty()) {
+            $message =
+                'Add at least one inventory item before running infrastructure analytics.';
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $message,
+                    'institution_id' => $institution->id,
+                ], 422);
+            }
+
+            return redirect()
+                ->route('institutions.show', $institution)
+                ->with('error', $message);
+        }
+
+        $summaryService->sync($institution);
+
         ProcessInstitutionAnalytics::dispatch(
             $institution->id
         )->afterCommit();
 
-        return response()->json([
-            'success' => true,
-            'message' =>
-                'Institution analysis was added to the queue.',
-            'institution_id' => $institution->id,
-        ]);
+        $message =
+            'Infrastructure analytics was added to the processing queue.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'institution_id' => $institution->id,
+            ], 202);
+        }
+
+        return redirect()
+            ->route('institutions.show', $institution)
+            ->with('success', $message);
     }
 
     public function analyzeAll(): JsonResponse

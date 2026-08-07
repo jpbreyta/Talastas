@@ -12,6 +12,14 @@ class Institution extends Model
 {
     use HasFactory;
 
+    public const INVENTORY_SUMMARY_FIELDS = [
+        'number_of_computers',
+        'has_computer_lab',
+        'has_projected_whiteboard',
+        'has_smart_tv',
+        'has_public_address_system',
+    ];
+
     protected $table = 'institutions';
 
     protected $fillable = [
@@ -20,16 +28,16 @@ class Institution extends Model
         'barangay_id',
         'latitude',
         'longitude',
+        'location_geojson',
+        'location_bounding_box',
+        'nominatim_place_id',
+        'osm_type',
+        'osm_id',
         'student_population',
         'staff_population',
         'isp_provider',
         'internet_speed',
         'api_key',
-        'has_computer_lab',
-        'number_of_computers',
-        'has_projected_whiteboard',
-        'has_smart_tv',
-        'has_public_address_system',
         'needs_maintenance',
         'notes',
         'is_pilot_site',
@@ -44,6 +52,10 @@ class Institution extends Model
     protected $casts = [
         'latitude' => 'float',
         'longitude' => 'float',
+        'location_geojson' => 'array',
+        'location_bounding_box' => 'array',
+        'nominatim_place_id' => 'integer',
+        'osm_id' => 'integer',
         'internet_speed' => 'float',
 
         'student_population' => 'integer',
@@ -63,6 +75,26 @@ class Institution extends Model
 
         'last_audited_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Institution $institution): void {
+            $institution->forceFill(
+                $institution->inventorySummaryDefaults()
+            );
+        });
+
+        static::updating(function (Institution $institution): void {
+            foreach (self::INVENTORY_SUMMARY_FIELDS as $field) {
+                if ($institution->isDirty($field)) {
+                    $institution->setAttribute(
+                        $field,
+                        $institution->getOriginal($field)
+                    );
+                }
+            }
+        });
+    }
 
     public function institutionAnalytics(): HasOne
     {
@@ -107,5 +139,26 @@ class Institution extends Model
         }
 
         return $this->staff_population ?? 0;
+    }
+
+    public function applyInventorySummary(array $summary): void
+    {
+        $allowedSummary = array_intersect_key(
+            $summary,
+            array_flip(self::INVENTORY_SUMMARY_FIELDS)
+        );
+
+        $this->forceFill($allowedSummary)->saveQuietly();
+    }
+
+    protected function inventorySummaryDefaults(): array
+    {
+        return [
+            'number_of_computers' => 0,
+            'has_computer_lab' => false,
+            'has_projected_whiteboard' => false,
+            'has_smart_tv' => false,
+            'has_public_address_system' => false,
+        ];
     }
 }

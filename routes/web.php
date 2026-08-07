@@ -78,6 +78,13 @@ Route::middleware(['auth', 'rbac:admin'])->group(function (): void {
     Route::get('/analytics', [AnalyticsController::class, 'index'])
         ->name('analytics');
 
+    Route::post(
+        '/institutions/{institution}/analytics/run',
+        [AnalyticsController::class, 'analyzeInstitution']
+    )
+        ->whereNumber('institution')
+        ->name('institutions.analytics.run');
+
     /*
     |--------------------------------------------------------------------------
     | Institutions

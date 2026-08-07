@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class InstitutionController extends Controller
 {
@@ -38,10 +39,6 @@ class InstitutionController extends Controller
     public function store(Request $request)
     {
         $request->merge([
-            'has_computer_lab' => $request->boolean('has_computer_lab'),
-            'has_projected_whiteboard' => $request->boolean('has_projected_whiteboard'),
-            'has_smart_tv' => $request->boolean('has_smart_tv'),
-            'has_public_address_system' => $request->boolean('has_public_address_system'),
             'needs_maintenance' => $request->boolean('needs_maintenance'),
             'is_pilot_site' => $request->boolean('is_pilot_site'),
             'requires_audit' => $request->boolean('requires_audit'),
@@ -57,14 +54,14 @@ class InstitutionController extends Controller
             $locations = $this->geocodeLocation($validated['name']);
 
             if (!empty($locations)) {
-                $validated['latitude'] = $locations[0]['lat'];
-                $validated['longitude'] = $locations[0]['lng'];
-
-                if (!empty($locations[0]['barangay_id'])) {
-                    $validated['barangay_id'] = $locations[0]['barangay_id'];
-                }
+                $validated = $this->applyGeocodedLocation(
+                    $validated,
+                    $locations[0]
+                );
             }
         }
+
+        $validated = $this->normalizeLocationMetadata($validated);
 
         if (config('services.rdbma.api_key')) {
             $validated['api_key'] = config('services.rdbma.api_key');
@@ -84,7 +81,9 @@ class InstitutionController extends Controller
     {
         $institution->load([
             'barangay',
-            'ictInventory',
+            'ictInventory' => function ($query): void {
+                $query->latest('asset_id');
+            },
             'institutionAnalytics',
             'auditor',
         ]);
@@ -118,14 +117,19 @@ class InstitutionController extends Controller
             $locations = $this->geocodeLocation($validated['name']);
 
             if (!empty($locations)) {
-                $validated['latitude'] = $locations[0]['lat'];
-                $validated['longitude'] = $locations[0]['lng'];
-
-                if (!empty($locations[0]['barangay_id'])) {
-                    $validated['barangay_id'] = $locations[0]['barangay_id'];
-                }
+                $validated = $this->applyGeocodedLocation(
+                    $validated,
+                    $locations[0]
+                );
             }
         }
+
+        $validated = $this->preserveExistingLocationMetadata(
+            $validated,
+            $request,
+            $institution
+        );
+        $validated = $this->normalizeLocationMetadata($validated);
 
         if (config('services.rdbma.api_key')) {
             $validated['api_key'] = config('services.rdbma.api_key');
@@ -222,13 +226,13 @@ class InstitutionController extends Controller
             'type' => 'required|in:School,Barangay Hall,Local Government Office',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
+            'location_geojson' => 'nullable|json',
+            'location_bounding_box' => 'nullable|json',
+            'nominatim_place_id' => 'nullable|integer|min:1',
+            'osm_type' => 'nullable|string|in:node,way,relation|max:20',
+            'osm_id' => 'nullable|integer|min:1',
             'isp_provider' => 'nullable|string|max:255',
             'internet_speed' => 'nullable|numeric|min:0',
-            'has_computer_lab' => 'nullable|boolean',
-            'number_of_computers' => 'nullable|integer|min:0',
-            'has_projected_whiteboard' => 'nullable|boolean',
-            'has_smart_tv' => 'nullable|boolean',
-            'has_public_address_system' => 'nullable|boolean',
             'needs_maintenance' => 'nullable|boolean',
             'notes' => 'nullable|string',
             'is_pilot_site' => 'nullable|boolean',
@@ -269,15 +273,130 @@ class InstitutionController extends Controller
     protected function booleanFields(): array
     {
         return [
-            'has_computer_lab',
-            'has_projected_whiteboard',
-            'has_smart_tv',
-            'has_public_address_system',
             'needs_maintenance',
             'is_pilot_site',
             'requires_audit',
             'is_active',
         ];
+    }
+
+    /**
+     * Copy all location metadata returned by Nominatim into validated data.
+     */
+    protected function applyGeocodedLocation(
+        array $validated,
+        array $location
+    ): array {
+        $validated['latitude'] = $location['lat'];
+        $validated['longitude'] = $location['lng'];
+
+        if (!empty($location['barangay_id'])) {
+            $validated['barangay_id'] = $location['barangay_id'];
+        }
+
+        $validated['location_geojson'] = $location['geojson'] ?? null;
+        $validated['location_bounding_box'] = $location['boundingbox'] ?? null;
+        $validated['nominatim_place_id'] = $location['place_id'] ?? null;
+        $validated['osm_type'] = $location['osm_type'] ?? null;
+        $validated['osm_id'] = $location['osm_id'] ?? null;
+
+        return $validated;
+    }
+
+    /**
+     * Keep saved location metadata when an edit form does not submit it.
+     */
+    protected function preserveExistingLocationMetadata(
+        array $validated,
+        Request $request,
+        Institution $institution
+    ): array {
+        foreach ([
+            'location_geojson',
+            'location_bounding_box',
+            'nominatim_place_id',
+            'osm_type',
+            'osm_id',
+        ] as $field) {
+            if (!array_key_exists($field, $request->all())) {
+                $validated[$field] = $institution->{$field};
+            }
+        }
+
+        return $validated;
+    }
+
+    /**
+     * Convert JSON form fields to arrays before Eloquent JSON casting.
+     */
+    protected function normalizeLocationMetadata(array $validated): array
+    {
+        $validated['location_geojson'] = $this->decodeJsonArray(
+            $validated['location_geojson'] ?? null,
+            'location_geojson'
+        );
+
+        $validated['location_bounding_box'] = $this->decodeJsonArray(
+            $validated['location_bounding_box'] ?? null,
+            'location_bounding_box'
+        );
+
+        $geometry = $validated['location_geojson'];
+
+        if ($geometry !== null) {
+            $geometryType = $geometry['type'] ?? null;
+            $coordinates = $geometry['coordinates'] ?? null;
+
+            if (
+                !in_array($geometryType, ['Point', 'Polygon', 'MultiPolygon'], true)
+                || !is_array($coordinates)
+            ) {
+                throw ValidationException::withMessages([
+                    'location_geojson' => [
+                        'The selected location geometry is invalid.',
+                    ],
+                ]);
+            }
+        }
+
+        return $validated;
+    }
+
+    /**
+     * Decode a JSON form value while also accepting an already-decoded array.
+     */
+    protected function decodeJsonArray(
+        mixed $value,
+        string $field
+    ): ?array {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        try {
+            $decoded = json_decode(
+                (string) $value,
+                true,
+                512,
+                JSON_THROW_ON_ERROR
+            );
+        } catch (\JsonException) {
+            throw ValidationException::withMessages([
+                $field => ['The selected location data is invalid.'],
+            ]);
+        }
+
+        if (!is_array($decoded)) {
+            throw ValidationException::withMessages([
+                $field => ['The selected location data is invalid.'],
+            ]);
+        }
+
+        return $decoded;
     }
 
     /**
@@ -304,6 +423,12 @@ class InstitutionController extends Controller
                         'format' => config('services.nominatim.output_format', 'json'),
                         'q' => $query,
                         'addressdetails' => 1,
+                        'countrycodes' => config(
+                            'services.nominatim.country_code',
+                            'ph'
+                        ),
+                        'polygon_geojson' => 1,
+                        'polygon_threshold' => 0.00001,
                         'limit' => 5,
                         'email' => config('services.nominatim.app_email'),
                     ]
@@ -361,14 +486,39 @@ class InstitutionController extends Controller
                     )
                     ->first();
 
-                $address = $item['address'] ?? [];
+                $address = $item['address']
+                    ?? $result['address']
+                    ?? [];
+
+                $geojson = $item['geojson']
+                    ?? $result['geojson']
+                    ?? null;
+
+                if (is_array($geojson)) {
+                    $geometryType = $geojson['type'] ?? null;
+
+                    if (!in_array(
+                        $geometryType,
+                        ['Point', 'Polygon', 'MultiPolygon'],
+                        true
+                    )) {
+                        $geojson = null;
+                    }
+                } else {
+                    $geojson = null;
+                }
+
+                $displayName = $result['display_name']
+                    ?? $item['display_name']
+                    ?? '';
 
                 $results[] = [
+                    'name' => $result['name']
+                        ?? $item['name']
+                        ?? trim(explode(',', $displayName)[0]),
                     'lat' => round($latitude, 7),
                     'lng' => round($longitude, 7),
-                    'display_name' => $result['display_name']
-                        ?? $item['display_name']
-                        ?? '',
+                    'display_name' => $displayName,
                     'address' => $address,
                     'barangay' => $barangay?->name,
                     'barangay_id' => $barangay?->id,
@@ -378,6 +528,25 @@ class InstitutionController extends Controller
                         ?? '',
                     'province' => $address['state'] ?? '',
                     'country' => $address['country'] ?? '',
+                    'place_id' => $result['place_id']
+                        ?? $item['place_id']
+                        ?? null,
+                    'osm_type' => $result['osm_type']
+                        ?? $item['osm_type']
+                        ?? null,
+                    'osm_id' => $result['osm_id']
+                        ?? $item['osm_id']
+                        ?? null,
+                    'boundingbox' => $result['boundingbox']
+                        ?? $item['boundingbox']
+                        ?? null,
+                    'geojson' => $geojson,
+                    'geometry_type' => $geojson['type'] ?? null,
+                    'has_boundary' => in_array(
+                        $geojson['type'] ?? null,
+                        ['Polygon', 'MultiPolygon'],
+                        true
+                    ),
                 ];
             }
 

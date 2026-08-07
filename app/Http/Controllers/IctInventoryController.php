@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\IctInventory;
 use App\Models\Institution;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -11,11 +12,41 @@ class IctInventoryController extends Controller
 {
     public function index()
     {
-        $inventories = IctInventory::with(['institution.barangay'])
-            ->latest('asset_id')
-            ->paginate(20);
+        $institutions = Institution::query()
+            ->with([
+                'barangay:id,name',
+                'ictInventory' => function ($query): void {
+                    $query->latest('asset_id');
+                },
+            ])
+            ->withCount([
+                'ictInventory as total_assets_count',
+                'ictInventory as active_assets_count' => function (
+                    Builder $query
+                ): void {
+                    $query->where('status', 'active');
+                },
+                'ictInventory as attention_assets_count' => function (
+                    Builder $query
+                ): void {
+                    $query->where(function (Builder $query): void {
+                        $query
+                            ->whereIn('status', [
+                                'under_repair',
+                                'inactive',
+                            ])
+                            ->orWhere('condition', 'needs_repair');
+                    });
+                },
+            ])
+            ->orderBy('name')
+            ->paginate(20)
+            ->withQueryString();
 
-        return view('ict-inventory.index', compact('inventories'));
+        return view(
+            'ict-inventory.index',
+            compact('institutions')
+        );
     }
 
     public function create(Request $request)
@@ -45,20 +76,32 @@ class IctInventoryController extends Controller
 
         if ($request->input('return_to') === 'institution') {
             return redirect()
-                ->route('institutions.show', $inventory->institution_id)
-                ->with('success', 'ICT inventory item added successfully.');
+                ->route(
+                    'institutions.show',
+                    $inventory->institution_id
+                )
+                ->with(
+                    'success',
+                    'ICT inventory item added successfully.'
+                );
         }
 
         return redirect()
             ->route('ict-inventory.index')
-            ->with('success', 'ICT inventory item added successfully.');
+            ->with(
+                'success',
+                'ICT inventory item added successfully.'
+            );
     }
 
     public function show(IctInventory $ictInventory)
     {
         $ictInventory->load(['institution.barangay']);
 
-        return view('ict-inventory.show', compact('ictInventory'));
+        return view(
+            'ict-inventory.show',
+            compact('ictInventory')
+        );
     }
 
     public function edit(IctInventory $ictInventory)
@@ -75,15 +118,20 @@ class IctInventoryController extends Controller
         );
     }
 
-    public function update(Request $request, IctInventory $ictInventory)
-    {
+    public function update(
+        Request $request,
+        IctInventory $ictInventory
+    ) {
         $validated = $this->validateInventory($request);
 
         $ictInventory->update($validated);
 
         return redirect()
             ->route('ict-inventory.index')
-            ->with('success', 'ICT inventory item updated successfully.');
+            ->with(
+                'success',
+                'ICT inventory item updated successfully.'
+            );
     }
 
     public function destroy(IctInventory $ictInventory)
@@ -96,12 +144,18 @@ class IctInventoryController extends Controller
         if ($returnTo === 'institution') {
             return redirect()
                 ->route('institutions.show', $institutionId)
-                ->with('success', 'ICT inventory item deleted successfully.');
+                ->with(
+                    'success',
+                    'ICT inventory item deleted successfully.'
+                );
         }
 
         return redirect()
             ->route('ict-inventory.index')
-            ->with('success', 'ICT inventory item deleted successfully.');
+            ->with(
+                'success',
+                'ICT inventory item deleted successfully.'
+            );
     }
 
     public function storeApi(Request $request)
@@ -116,8 +170,10 @@ class IctInventoryController extends Controller
         );
     }
 
-    public function updateApi(Request $request, IctInventory $ictInventory)
-    {
+    public function updateApi(
+        Request $request,
+        IctInventory $ictInventory
+    ) {
         $validated = $request->validate([
             'institution_id' => [
                 'sometimes',
@@ -161,14 +217,21 @@ class IctInventoryController extends Controller
             'status' => [
                 'sometimes',
                 'required',
-                Rule::in(['active', 'under_repair', 'inactive', 'retired']),
+                Rule::in([
+                    'active',
+                    'under_repair',
+                    'inactive',
+                    'retired',
+                ]),
             ],
         ]);
 
         $ictInventory->update($validated);
 
         return response()->json(
-            $ictInventory->fresh()->load(['institution.barangay'])
+            $ictInventory
+                ->fresh()
+                ->load(['institution.barangay'])
         );
     }
 
@@ -177,7 +240,8 @@ class IctInventoryController extends Controller
         $ictInventory->delete();
 
         return response()->json([
-            'message' => 'ICT inventory item deleted successfully.',
+            'message' =>
+                'ICT inventory item deleted successfully.',
         ]);
     }
 
@@ -221,7 +285,12 @@ class IctInventoryController extends Controller
             ],
             'status' => [
                 'required',
-                Rule::in(['active', 'under_repair', 'inactive', 'retired']),
+                Rule::in([
+                    'active',
+                    'under_repair',
+                    'inactive',
+                    'retired',
+                ]),
             ],
         ]);
     }

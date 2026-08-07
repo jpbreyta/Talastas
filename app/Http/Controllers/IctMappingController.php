@@ -59,6 +59,16 @@ class IctMappingController extends Controller
 
                     'latitude' => (float) $inst->latitude,
                     'longitude' => (float) $inst->longitude,
+                    'location_geojson' => $inst->location_geojson,
+                    'location_bounding_box' => $inst->location_bounding_box,
+                    'has_location_boundary' => in_array(
+                        $inst->location_geojson['type'] ?? null,
+                        ['Polygon', 'MultiPolygon'],
+                        true
+                    ),
+                    'nominatim_place_id' => $inst->nominatim_place_id,
+                    'osm_type' => $inst->osm_type,
+                    'osm_id' => $inst->osm_id,
 
                     'internet_speed' => $inst->internet_speed,
                     'isp_provider' => $inst->isp_provider,

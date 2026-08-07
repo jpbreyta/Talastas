@@ -83,6 +83,121 @@
         }
 
         $analyticsModel = $recommendationDetails['model'] ?? null;
+
+        $inventoryItems = $institution->ictInventory;
+
+        $inventoryTotal = $inventoryItems->count();
+
+        $inventoryActive = $inventoryItems
+            ->where('status', 'active')
+            ->count();
+
+        $inventoryAttention = $inventoryItems
+            ->filter(
+                fn ($item) =>
+                    in_array(
+                        $item->status,
+                        ['under_repair', 'inactive'],
+                        true
+                    )
+                    || $item->condition === 'needs_repair'
+            )
+            ->count();
+
+        $inventoryCategoryDetails = [
+            'computer' => [
+                'label' => 'Computer',
+                'icon' => 'fa-computer',
+            ],
+            'laptop' => [
+                'label' => 'Laptop',
+                'icon' => 'fa-laptop',
+            ],
+            'printer' => [
+                'label' => 'Printer',
+                'icon' => 'fa-print',
+            ],
+            'router' => [
+                'label' => 'Router',
+                'icon' => 'fa-wifi',
+            ],
+            'smart_tv' => [
+                'label' => 'Smart TV',
+                'icon' => 'fa-tv',
+            ],
+            'projector' => [
+                'label' => 'Projector',
+                'icon' => 'fa-video',
+            ],
+            'pa_system' => [
+                'label' => 'PA System',
+                'icon' => 'fa-bullhorn',
+            ],
+            'other' => [
+                'label' => 'Other',
+                'icon' => 'fa-box',
+            ],
+        ];
+
+        $inventoryConditionDetails = [
+            'new' => [
+                'label' => 'New',
+                'class' =>
+                    'border-violet-200 bg-violet-50 text-violet-700',
+            ],
+            'excellent' => [
+                'label' => 'Excellent',
+                'class' =>
+                    'border-blue-200 bg-blue-50 text-blue-700',
+            ],
+            'good' => [
+                'label' => 'Good',
+                'class' =>
+                    'border-green-200 bg-green-50 text-green-700',
+            ],
+            'fair' => [
+                'label' => 'Fair',
+                'class' =>
+                    'border-yellow-200 bg-yellow-50 text-yellow-700',
+            ],
+            'poor' => [
+                'label' => 'Poor',
+                'class' =>
+                    'border-red-200 bg-red-50 text-red-700',
+            ],
+            'needs_repair' => [
+                'label' => 'Needs Repair',
+                'class' =>
+                    'border-orange-200 bg-orange-50 text-orange-700',
+            ],
+        ];
+
+        $inventoryStatusDetails = [
+            'active' => [
+                'label' => 'Active',
+                'class' =>
+                    'border-green-200 bg-green-50 text-green-700',
+                'icon' => 'fa-circle-check',
+            ],
+            'under_repair' => [
+                'label' => 'Under Repair',
+                'class' =>
+                    'border-orange-200 bg-orange-50 text-orange-700',
+                'icon' => 'fa-screwdriver-wrench',
+            ],
+            'inactive' => [
+                'label' => 'Inactive',
+                'class' =>
+                    'border-gray-200 bg-gray-100 text-gray-600',
+                'icon' => 'fa-circle-pause',
+            ],
+            'retired' => [
+                'label' => 'Retired',
+                'class' =>
+                    'border-slate-200 bg-slate-100 text-slate-600',
+                'icon' => 'fa-box-archive',
+            ],
+        ];
     @endphp
 
     <div class="flex h-full min-h-0 flex-col bg-gray-100">
@@ -345,11 +460,30 @@
                         </div>
                     </div>
 
-                    <button type="button" id="updateAnalyticsButton"
-                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-blue-700">
-                        <i class="fa-solid fa-rotate"></i>
-                        Update Analytics
-                    </button>
+                    <div class="flex flex-col items-stretch gap-1.5 sm:items-end">
+                        <form method="POST"
+                            action="{{ route('institutions.analytics.run', $institution) }}"
+                            data-infrastructure-analytics-form>
+                            @csrf
+
+                            <button type="submit"
+                                id="runInfrastructureAnalyticsButton"
+                                @disabled($institution->ictInventory->isEmpty())
+                                title="{{ $institution->ictInventory->isEmpty()
+                                    ? 'Add at least one inventory item before running analytics.'
+                                    : 'Run infrastructure analytics using the current institution and inventory data.' }}"
+                                class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 sm:w-auto">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                <span>Run Infrastructure Analytics</span>
+                            </button>
+                        </form>
+
+                        @if ($institution->ictInventory->isEmpty())
+                            <p class="text-[11px] text-orange-600">
+                                Add an inventory item before running analytics.
+                            </p>
+                        @endif
+                    </div>
                 </div>
 
                 @if ($analytics)
@@ -559,8 +693,8 @@
                         </span>
                         <h3 class="mt-4 text-sm font-semibold text-gray-900">No analytics report yet</h3>
                         <p class="mt-1 max-w-md text-sm leading-6 text-gray-500">
-                            This institution does not have a saved analytics result. The Update Analytics button is ready
-                            for its function to be connected later.
+                            Run infrastructure analytics to calculate the current scores and generate an AI-assisted
+                            analysis and policy recommendation from the synchronized inventory data.
                         </p>
                     </div>
                 @endif
@@ -570,79 +704,237 @@
                 <div
                     class="flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-center gap-2">
-                        <span class="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                        <span
+                            class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
                             <i class="fa-solid fa-boxes-stacked text-xs"></i>
                         </span>
+
                         <div>
-                            <h2 class="text-sm font-semibold text-gray-800">ICT Inventory</h2>
+                            <h2 class="text-sm font-semibold text-gray-800">
+                                ICT Inventory
+                            </h2>
                             <p class="text-xs text-gray-500">
-                                {{ $institution->ictInventory->count() }}
-                                {{ $institution->ictInventory->count() === 1 ? 'recorded item' : 'recorded items' }}
+                                Individual equipment assigned to this institution
                             </p>
                         </div>
                     </div>
 
-                    <a href="{{ route('ict-inventory.create') }}?institution_id={{ $institution->id }}"
-                        class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-blue-700">
-                        <i class="fa-solid fa-plus"></i>
-                        Add Item
-                    </a>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <a href="{{ route('ict-inventory.index') }}"
+                            class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50">
+                            <i class="fa-solid fa-list"></i>
+                            Open Inventory
+                        </a>
+
+                        <a href="{{ route('ict-inventory.create', ['institution_id' => $institution->id]) }}"
+                            class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-blue-700">
+                            <i class="fa-solid fa-plus"></i>
+                            Add Item
+                        </a>
+                    </div>
                 </div>
 
-                @if ($institution->ictInventory->count() > 0)
+                <div class="grid grid-cols-2 gap-3 border-b border-gray-200 p-4 lg:grid-cols-4">
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <span
+                                class="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-gray-600 shadow-sm">
+                                <i class="fa-solid fa-boxes-stacked"></i>
+                            </span>
+                            <span class="text-xl font-bold text-gray-900">
+                                {{ number_format($inventoryTotal) }}
+                            </span>
+                        </div>
+                        <p class="mt-2 text-xs font-medium text-gray-500">
+                            Total Assets
+                        </p>
+                    </div>
+
+                    <div class="rounded-xl border border-green-200 bg-green-50 p-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <span
+                                class="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-green-600 shadow-sm">
+                                <i class="fa-solid fa-circle-check"></i>
+                            </span>
+                            <span class="text-xl font-bold text-green-800">
+                                {{ number_format($inventoryActive) }}
+                            </span>
+                        </div>
+                        <p class="mt-2 text-xs font-medium text-green-700">
+                            Active Assets
+                        </p>
+                    </div>
+
+                    <div class="rounded-xl border border-orange-200 bg-orange-50 p-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <span
+                                class="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-orange-600 shadow-sm">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </span>
+                            <span class="text-xl font-bold text-orange-800">
+                                {{ number_format($inventoryAttention) }}
+                            </span>
+                        </div>
+                        <p class="mt-2 text-xs font-medium text-orange-700">
+                            Needs Attention
+                        </p>
+                    </div>
+
+                    <div class="rounded-xl border border-blue-200 bg-blue-50 p-3">
+                        <div class="flex items-center justify-between gap-3">
+                            <span
+                                class="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
+                                <i class="fa-solid fa-computer"></i>
+                            </span>
+                            <span class="text-xl font-bold text-blue-800">
+                                {{ number_format((int) ($institution->number_of_computers ?? 0)) }}
+                            </span>
+                        </div>
+                        <p class="mt-2 text-xs font-medium text-blue-700">
+                            Active Computers
+                        </p>
+                    </div>
+                </div>
+
+                @if ($inventoryItems->isNotEmpty())
                     <div class="overflow-x-auto">
-                        <table class="w-full min-w-[680px] text-sm">
+                        <table class="w-full min-w-[900px] text-sm">
                             <thead>
                                 <tr class="border-b border-gray-200 bg-white text-left">
-                                    <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                    <th
+                                        class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                        Asset
+                                    </th>
+                                    <th
+                                        class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
                                         Category
                                     </th>
-                                    <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                    <th
+                                        class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
                                         Condition
                                     </th>
-                                    <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                    <th
+                                        class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
                                         Acquired
                                     </th>
-                                    <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                    <th
+                                        class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
                                         Status
+                                    </th>
+                                    <th
+                                        class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                        Actions
                                     </th>
                                 </tr>
                             </thead>
 
                             <tbody class="divide-y divide-gray-100">
-                                @foreach ($institution->ictInventory as $item)
+                                @foreach ($inventoryItems as $item)
                                     @php
-                                        $conditionKey = strtolower((string) $item->condition);
-                                        $conditionClasses = match ($conditionKey) {
-                                            'excellent' => 'border-green-200 bg-green-50 text-green-700',
-                                            'good' => 'border-blue-200 bg-blue-50 text-blue-700',
-                                            'fair' => 'border-yellow-200 bg-yellow-50 text-yellow-700',
-                                            default => 'border-red-200 bg-red-50 text-red-700',
-                                        };
+                                        $category = $inventoryCategoryDetails[
+                                            $item->category
+                                        ] ?? [
+                                            'label' => str(
+                                                $item->category
+                                            )->headline(),
+                                            'icon' => 'fa-box',
+                                        ];
 
-                                        $statusKey = strtolower((string) $item->status);
-                                        $statusClasses = match ($statusKey) {
-                                            'active' => 'border-green-200 bg-green-50 text-green-700',
-                                            'inactive' => 'border-gray-200 bg-gray-50 text-gray-600',
-                                            'under repair' => 'border-yellow-200 bg-yellow-50 text-yellow-700',
-                                            default => 'border-red-200 bg-red-50 text-red-700',
-                                        };
+                                        $condition = $inventoryConditionDetails[
+                                            $item->condition
+                                        ] ?? [
+                                            'label' => str(
+                                                $item->condition
+                                            )->headline(),
+                                            'class' =>
+                                                'border-gray-200 bg-gray-100 text-gray-600',
+                                        ];
+
+                                        $status = $inventoryStatusDetails[
+                                            $item->status
+                                        ] ?? [
+                                            'label' => str(
+                                                $item->status
+                                            )->headline(),
+                                            'class' =>
+                                                'border-gray-200 bg-gray-100 text-gray-600',
+                                            'icon' => 'fa-circle',
+                                        ];
                                     @endphp
 
                                     <tr class="transition hover:bg-blue-50/30">
-                                        <td class="px-4 py-3 font-medium text-gray-900">{{ $item->category }}</td>
                                         <td class="px-4 py-3">
-                                            <span
-                                                class="inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium {{ $conditionClasses }}">
-                                                {{ $item->condition }}
+                                            <span class="font-mono text-xs text-gray-500">
+                                                #{{ $item->asset_id }}
                                             </span>
                                         </td>
-                                        <td class="px-4 py-3 text-gray-500">{{ $item->acquisition_year ?: '—' }}</td>
+
+                                        <td class="px-4 py-3">
+                                            <div class="flex items-center gap-2.5">
+                                                <span
+                                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                                                    <i class="fa-solid {{ $category['icon'] }} text-xs"></i>
+                                                </span>
+
+                                                <span class="font-medium text-gray-900">
+                                                    {{ $category['label'] }}
+                                                </span>
+                                            </div>
+                                        </td>
+
                                         <td class="px-4 py-3">
                                             <span
-                                                class="inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium {{ $statusClasses }}">
-                                                {{ $item->status }}
+                                                class="inline-flex rounded-full border px-2.5 py-1 text-xs font-medium {{ $condition['class'] }}">
+                                                {{ $condition['label'] }}
                                             </span>
+                                        </td>
+
+                                        <td class="px-4 py-3 tabular-nums text-gray-500">
+                                            {{ $item->acquisition_year ?: '—' }}
+                                        </td>
+
+                                        <td class="px-4 py-3">
+                                            <span
+                                                class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium {{ $status['class'] }}">
+                                                <i class="fa-solid {{ $status['icon'] }} text-[10px]"></i>
+                                                {{ $status['label'] }}
+                                            </span>
+                                        </td>
+
+                                        <td class="px-4 py-3">
+                                            <div class="flex items-center justify-end gap-1.5">
+                                                <a href="{{ route('ict-inventory.show', $item) }}"
+                                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white transition hover:bg-blue-700"
+                                                    title="View inventory item"
+                                                    aria-label="View inventory item {{ $item->asset_id }}">
+                                                    <i class="fa-solid fa-eye text-xs"></i>
+                                                </a>
+
+                                                <a href="{{ route('ict-inventory.edit', $item) }}"
+                                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 hover:text-blue-600"
+                                                    title="Edit inventory item"
+                                                    aria-label="Edit inventory item {{ $item->asset_id }}">
+                                                    <i class="fa-solid fa-pen text-xs"></i>
+                                                </a>
+
+                                                <form method="POST"
+                                                    action="{{ route('ict-inventory.destroy', $item) }}">
+                                                    @csrf
+                                                    @method('DELETE')
+
+                                                    <input type="hidden"
+                                                        name="return_to"
+                                                        value="institution">
+
+                                                    <button type="submit"
+                                                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-100"
+                                                        title="Delete inventory item"
+                                                        aria-label="Delete inventory item {{ $item->asset_id }}"
+                                                        onclick="return confirm('Delete this inventory item?')">
+                                                        <i class="fa-solid fa-trash-can text-xs"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                 @endforeach
@@ -655,10 +947,20 @@
                             class="flex h-12 w-12 items-center justify-center rounded-full bg-gray-50 text-gray-300">
                             <i class="fa-solid fa-box-open text-xl"></i>
                         </span>
-                        <p class="mt-3 text-sm font-medium text-gray-500">No inventory items yet</p>
-                        <p class="mt-1 text-xs text-gray-400">
-                            Add ICT equipment records for this institution.
+
+                        <p class="mt-3 text-sm font-medium text-gray-600">
+                            No inventory items yet
                         </p>
+
+                        <p class="mt-1 max-w-md text-xs leading-5 text-gray-400">
+                            Add individual equipment records to calculate the institution's ICT summaries automatically.
+                        </p>
+
+                        <a href="{{ route('ict-inventory.create', ['institution_id' => $institution->id]) }}"
+                            class="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-blue-700">
+                            <i class="fa-solid fa-plus"></i>
+                            Add First Item
+                        </a>
                     </div>
                 @endif
             </section>
@@ -666,4 +968,30 @@
 
         @include('institutions.show-modals')
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            'use strict';
+
+            const analyticsForm = document.querySelector(
+                '[data-infrastructure-analytics-form]'
+            );
+
+            const analyticsButton = document.getElementById(
+                'runInfrastructureAnalyticsButton'
+            );
+
+            analyticsForm?.addEventListener('submit', () => {
+                if (!analyticsButton || analyticsButton.disabled) {
+                    return;
+                }
+
+                analyticsButton.disabled = true;
+                analyticsButton.innerHTML = [
+                    '<i class="fa-solid fa-spinner fa-spin"></i>',
+                    '<span>Starting Analytics</span>'
+                ].join('');
+            });
+        });
+    </script>
 @endsection

@@ -23,7 +23,7 @@
             ],
             'excellent' => [
                 'label' => 'Excellent',
-                'class' => 'border-blue-200 bg-blue-50 text-blue-700',
+                'class' => 'border-red-200 bg-red-50 text-red-700',
             ],
             'good' => [
                 'label' => 'Good',
@@ -68,11 +68,11 @@
     @endphp
 
     <div class="flex h-full min-h-0 flex-col bg-gray-100">
-        <header class="shrink-0 bg-blue-700 px-6 py-4">
+        <header class="shrink-0 bg-red-700 px-6 py-4">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div class="flex min-w-0 items-center gap-3">
                     <span
-                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-blue-100">
+                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-600 text-red-100">
                         <i class="fa-solid fa-boxes-stacked"></i>
                     </span>
 
@@ -80,7 +80,7 @@
                         <h1 class="text-xl font-semibold tracking-tight text-white">
                             ICT Inventory
                         </h1>
-                        <p class="mt-0.5 text-xs text-blue-200">
+                        <p class="mt-0.5 text-xs text-red-200">
                             Review equipment grouped by institution
                         </p>
                     </div>
@@ -89,7 +89,7 @@
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <div class="relative">
                         <span
-                            class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-blue-300">
+                            class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-red-300">
                             <i class="fa-solid fa-magnifying-glass text-sm"></i>
                         </span>
 
@@ -98,12 +98,12 @@
                             type="search"
                             placeholder="Search institutions or assets..."
                             autocomplete="off"
-                            class="w-full rounded-lg border border-blue-600 bg-blue-800 py-2 pl-9 pr-4 text-sm text-white placeholder-blue-300 transition focus:outline-none focus:ring-2 focus:ring-blue-300 sm:w-64">
+                            class="w-full rounded-lg border border-red-600 bg-red-800 py-2 pl-9 pr-4 text-sm text-white placeholder-red-300 transition focus:outline-none focus:ring-2 focus:ring-red-300 sm:w-64">
                     </div>
 
                     <select
                         id="inventoryInstitutionFilter"
-                        class="rounded-lg border border-blue-600 bg-blue-800 px-3 py-2 text-sm text-white transition focus:outline-none focus:ring-2 focus:ring-blue-300">
+                        class="rounded-lg border border-red-600 bg-red-800 px-3 py-2 text-sm text-white transition focus:outline-none focus:ring-2 focus:ring-red-300">
                         <option value="all">All Institutions</option>
                         <option value="active">With Active Assets</option>
                         <option value="attention">Needs Attention</option>
@@ -112,7 +112,7 @@
 
                     <a
                         href="{{ route('ict-inventory.create') }}"
-                        class="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-blue-700 shadow-sm transition hover:bg-blue-50">
+                        class="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-red-100 bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-50">
                         <i class="fa-solid fa-plus"></i>
                         Add Item
                     </a>
@@ -192,7 +192,7 @@
                                         data-active="{{ $institution->active_assets_count }}"
                                         data-attention="{{ $institution->attention_assets_count }}">
                                         <tr
-                                            class="cursor-pointer bg-white transition hover:bg-blue-50/50"
+                                            class="cursor-pointer bg-white transition hover:bg-red-50/50"
                                             data-accordion-trigger
                                             tabindex="0"
                                             role="button"
@@ -211,7 +211,7 @@
                                             <td class="px-4 py-4">
                                                 <div class="flex items-center gap-3">
                                                     <span
-                                                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                                                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
                                                         <i class="fa-solid fa-building"></i>
                                                     </span>
 
@@ -258,7 +258,7 @@
                                                 <div class="flex items-center justify-end gap-2">
                                                     <a
                                                         href="{{ route('ict-inventory.create', ['institution_id' => $institution->id]) }}"
-                                                        class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 transition hover:bg-blue-100"
+                                                        class="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100"
                                                         data-stop-accordion>
                                                         <i class="fa-solid fa-plus"></i>
                                                         Add Asset
@@ -266,7 +266,7 @@
 
                                                     <a
                                                         href="{{ route('institutions.show', $institution) }}"
-                                                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-blue-600"
+                                                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:bg-gray-50 hover:text-red-600"
                                                         title="View institution"
                                                         aria-label="View {{ $institution->name }}"
                                                         data-stop-accordion>
@@ -400,7 +400,7 @@
                                                                                         class="flex items-center justify-end gap-1.5">
                                                                                         <a
                                                                                             href="{{ route('ict-inventory.show', $inventory) }}"
-                                                                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white transition hover:bg-blue-700"
+                                                                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-600 text-white transition hover:bg-red-700"
                                                                                             title="View asset"
                                                                                             aria-label="View asset {{ $inventory->asset_id }}">
                                                                                             <i
@@ -409,7 +409,7 @@
 
                                                                                         <a
                                                                                             href="{{ route('ict-inventory.edit', $inventory) }}"
-                                                                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 hover:text-blue-600"
+                                                                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 hover:text-red-600"
                                                                                             title="Edit asset"
                                                                                             aria-label="Edit asset {{ $inventory->asset_id }}">
                                                                                             <i
@@ -458,7 +458,7 @@
 
                                                             <a
                                                                 href="{{ route('ict-inventory.create', ['institution_id' => $institution->id]) }}"
-                                                                class="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-blue-700">
+                                                                class="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-red-700">
                                                                 <i class="fa-solid fa-plus"></i>
                                                                 Add Asset
                                                             </a>
@@ -495,7 +495,7 @@
             @else
                 <div class="flex flex-1 flex-col items-center justify-center px-6 text-center">
                     <span
-                        class="flex h-16 w-16 items-center justify-center rounded-full bg-blue-50 text-blue-500">
+                        class="flex h-16 w-16 items-center justify-center rounded-full bg-red-50 text-red-500">
                         <i class="fa-solid fa-building-circle-xmark text-2xl"></i>
                     </span>
 
@@ -509,7 +509,7 @@
 
                     <a
                         href="{{ route('institutions.create') }}"
-                        class="mt-5 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700">
+                        class="mt-5 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700">
                         <i class="fa-solid fa-plus"></i>
                         Add Institution
                     </a>
@@ -564,15 +564,15 @@
                     expanded
                 );
                 chevronContainer?.classList.toggle(
-                    'border-blue-200',
+                    'border-red-200',
                     expanded
                 );
                 chevronContainer?.classList.toggle(
-                    'bg-blue-50',
+                    'bg-red-50',
                     expanded
                 );
                 chevronContainer?.classList.toggle(
-                    'text-blue-600',
+                    'text-red-600',
                     expanded
                 );
             }

@@ -97,7 +97,7 @@
                 <!-- System Note — info icon + popover (far right) -->
                 <div class="ml-auto flex-shrink-0 relative" id="info-popover-wrap">
                     <button id="info-popover-btn"
-                        class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-slate-200 text-slate-500 bg-white hover:bg-slate-50 hover:border-slate-300 hover:text-[#3b82f6] transition-colors"
+                        class="inline-flex items-center justify-center w-8 h-8 rounded-md border border-slate-200 text-slate-500 bg-white hover:bg-slate-50 hover:border-slate-300 hover:text-[#dc2626] transition-colors"
                         aria-label="System information" aria-expanded="false">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -191,7 +191,7 @@
                 </div>
                 <div class="px-2 py-2 flex items-center gap-1.5">
                     <select id="barangaySelect"
-                        class="flex-1 px-2 py-1 text-xs border border-slate-200 rounded bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:bg-white transition">
+                        class="flex-1 px-2 py-1 text-xs border border-slate-200 rounded bg-slate-50 text-slate-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent focus:bg-white transition">
                         <option value="">— Select —</option>
                     </select>
                     <button id="resetView"
@@ -299,10 +299,10 @@
                 activeInstitutionBoundary = L.geoJSON(geometry, {
                     pane: 'institutionBoundaries',
                     style: {
-                        color: '#1d4ed8',
+                        color: '#b91c1c',
                         weight: 4,
                         opacity: 1,
-                        fillColor: '#3b82f6',
+                        fillColor: '#dc2626',
                         fillOpacity: 0.22
                     }
                 }).addTo(map);
@@ -352,7 +352,7 @@
                 if (activeBarangayLayer) {
                     activeBarangayLayer.setStyle({
                         weight: 2,
-                        color: '#2563eb',
+                        color: '#dc2626',
                         fillOpacity: 0.05
                     });
                     activeBarangayLayer = null;
@@ -366,11 +366,11 @@
 
             function setCtrlActive(btn, active) {
                 if (active) {
-                    btn.classList.add('bg-blue-600', 'text-white', 'border-blue-600');
+                    btn.classList.add('bg-red-600', 'text-white', 'border-red-600');
                     btn.classList.remove('bg-white', 'text-slate-600', 'border-slate-200', 'hover:bg-slate-50');
                     btn.setAttribute('aria-pressed', 'true');
                 } else {
-                    btn.classList.remove('bg-blue-600', 'text-white', 'border-blue-600');
+                    btn.classList.remove('bg-red-600', 'text-white', 'border-red-600');
                     btn.classList.add('bg-white', 'text-slate-600', 'border-slate-200', 'hover:bg-slate-50');
                     btn.setAttribute('aria-pressed', 'false');
                 }
@@ -468,10 +468,10 @@
                     createOutsideMask(data);
                     barangayOverlay = L.geoJSON(data, {
                         style: {
-                            color: '#2563eb',
+                            color: '#dc2626',
                             weight: 2,
                             fillOpacity: 0.05,
-                            fillColor: '#dbeafe'
+                            fillColor: '#fee2e2'
                         },
                         onEachFeature: (feature, layer) => {
                             const props = feature.properties;
@@ -515,7 +515,7 @@
                                 ) {
                                     activeBarangayLayer.setStyle({
                                         weight: 2,
-                                        color: '#2563eb',
+                                        color: '#dc2626',
                                         fillOpacity: 0.05
                                     });
                                 }
@@ -524,7 +524,7 @@
 
                                 layer.setStyle({
                                     weight: 3,
-                                    color: '#1d4ed8',
+                                    color: '#b91c1c',
                                     fillOpacity: 0.15
                                 });
 
@@ -601,14 +601,14 @@
                         if (activeBarangayLayer && activeBarangayLayer !== layer) {
                             activeBarangayLayer.setStyle({
                                 weight: 2,
-                                color: '#2563eb',
+                                color: '#dc2626',
                                 fillOpacity: 0.05
                             });
                         }
                         activeBarangayLayer = layer;
                         layer.setStyle({
                             weight: 3,
-                            color: '#1d4ed8',
+                            color: '#b91c1c',
                             fillOpacity: 0.15
                         });
                         flyToBarangay(layer);
@@ -732,18 +732,18 @@
                                 <div class="flex justify-between items-start mb-2">
                                     <h3 class="font-bold text-base text-gray-900">${props.name}</h3>
                                     <div class="flex gap-1">
-                                        ${props.analysis_method ? '<span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">Sim</span>' : ''}
+                                        ${props.analysis_method ? '<span class="px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded-full">Sim</span>' : ''}
                                         ${props.is_pilot ? '<span class="px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded-full">Pilot</span>' : ''}
                                     </div>
                                 </div>
                                 <div class="mb-3">
-                                    <button class="zoom-btn w-full px-3 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors" data-lat="${props.latitude}" data-lng="${props.longitude}">
+                                    <button class="zoom-btn w-full px-3 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors" data-lat="${props.latitude}" data-lng="${props.longitude}">
                                         ${props.has_location_boundary ? 'Focus Institution Boundary' : 'Zoom to Location'}
                                     </button>
                                 </div>
                                 <div class="mb-3 rounded-lg border ${
                                     props.has_location_boundary
-                                        ? 'border-blue-200 bg-blue-50 text-blue-700'
+                                        ? 'border-red-200 bg-red-50 text-red-700'
                                         : 'border-gray-200 bg-gray-50 text-gray-600'
                                 } px-3 py-2 text-xs">
                                     <div class="flex items-center gap-2">
@@ -805,7 +805,7 @@
                                 ${props.policy_recommendation ? `
                                                                 <div class="mb-2">
                                                                     <span class="text-xs font-semibold text-gray-700">Recommendation:</span>
-                                                                    <p class="text-xs text-blue-600 mt-1 leading-relaxed">${props.policy_recommendation.substring(0, 100)}${props.policy_recommendation.length > 100 ? '...' : ''}</p>
+                                                                    <p class="text-xs text-red-600 mt-1 leading-relaxed">${props.policy_recommendation.substring(0, 100)}${props.policy_recommendation.length > 100 ? '...' : ''}</p>
                                                                 </div>
                                                                 ` : ''}
                                 <div class="border-t border-gray-200 my-2"></div>
@@ -867,7 +867,7 @@
                         blur: 15,
                         maxZoom: 17,
                         gradient: {
-                            0.4: 'blue',
+                            0.4: 'red',
                             0.6: 'cyan',
                             0.7: 'lime',
                             0.8: 'yellow',

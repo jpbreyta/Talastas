@@ -68,7 +68,7 @@
                 </div>
 
                 <div class="mt-6">
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
                         Update Inventory Item
                     </button>
                     <a href="{{ route('ict-inventory.index') }}" class="ml-4 text-gray-600 hover:text-gray-900">Cancel</a>

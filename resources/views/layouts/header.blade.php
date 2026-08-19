@@ -1,4 +1,4 @@
-<header class="bg-blue-900 border-b border-blue-800 sticky top-0 z-100">
+<header class="bg-red-900 border-b border-red-800 sticky top-0 z-100">
     <div class="w-full px-4 sm:px-6 lg:px-8">
         <div class="flex items-center h-16">
 
@@ -6,14 +6,14 @@
             <div class="flex items-center gap-3 shrink-0 w-64">
                 <a href="{{ route('home') }}" class="flex items-center gap-2.5">
                     <div class="w-9 h-9 bg-white rounded-lg flex items-center justify-center shrink-0">
-                        <svg class="w-5 h-5 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-5 h-5 text-red-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V5.618a1 1 0 00-.553-.894L15 7m0 13V7" />
                         </svg>
                     </div>
                     <div>
                         <span class="text-sm font-bold text-white block leading-tight">Lipa City ICT Mapping</span>
-                        <span class="text-xs text-blue-300 leading-tight">Digital Infrastructure &amp; Gap
+                        <span class="text-xs text-red-300 leading-tight">Digital Infrastructure &amp; Gap
                             Analysis</span>
                     </div>
                 </a>
@@ -23,7 +23,7 @@
             <nav class="hidden md:flex items-center justify-center gap-1 flex-1">
                 <a href="{{ route('home') }}"
                     class="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors
-                          {{ request()->routeIs('home') || request()->routeIs('map') ? 'bg-blue-800 text-white' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
+                          {{ request()->routeIs('home') || request()->routeIs('map') ? 'bg-red-800 text-white' : 'text-red-200 hover:text-white hover:bg-red-800' }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
@@ -32,7 +32,7 @@
                 </a>
                 <a href="{{ route('analytics') }}"
                     class="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors
-                          {{ request()->routeIs('analytics') ? 'bg-blue-800 text-white' : 'text-blue-200 hover:text-white hover:bg-blue-800' }}">
+                          {{ request()->routeIs('analytics') ? 'bg-red-800 text-white' : 'text-red-200 hover:text-white hover:bg-red-800' }}">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -44,7 +44,7 @@
             <!-- Notification Bell (right, before user dropdown) -->
             <div class="relative shrink-0 flex items-center" id="notificationTrigger">
                 <button onclick="toggleNotifications()"
-                    class="relative p-2 rounded-md text-blue-200 hover:text-white hover:bg-blue-800 transition-colors focus:outline-none"
+                    class="relative p-2 rounded-md text-red-200 hover:text-white hover:bg-red-800 transition-colors focus:outline-none"
                     aria-label="Notifications">
                     <!-- Bell icon -->
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,13 +62,13 @@
             <!-- User Profile Dropdown (right) -->
             <div class="relative shrink-0 flex justify-end w-64" id="userDropdown">
                 <button onclick="toggleDropdown()"
-                    class="flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-blue-800 transition-colors focus:outline-none">
+                    class="flex items-center gap-2.5 px-3 py-2 rounded-md hover:bg-red-800 transition-colors focus:outline-none">
                     <div
-                        class="h-8 w-8 shrink-0 rounded-full bg-blue-500 border-2 border-blue-300 flex items-center justify-center text-xs font-bold text-white select-none">
+                        class="h-8 w-8 shrink-0 rounded-full bg-red-500 border-2 border-red-300 flex items-center justify-center text-xs font-bold text-white select-none">
                         {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}{{ strtoupper(substr(Auth::user()->name, strrpos(Auth::user()->name, ' ') + 1, 1)) }}
                     </div>
                     <span class="hidden sm:block text-sm font-medium text-white">{{ Auth::user()->name }}</span>
-                    <svg class="w-4 h-4 shrink-0 text-blue-200 transition-transform" id="dropdownArrow"
+                    <svg class="w-4 h-4 shrink-0 text-red-200 transition-transform" id="dropdownArrow"
                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
@@ -87,7 +87,7 @@
 
                     <div class="py-1">
                         <a href="#"
-                            class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                            class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors">
                             <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -96,7 +96,7 @@
                             Profile Settings
                         </a>
                         <a href="#"
-                            class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                            class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors">
                             <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor"
                                 viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -179,18 +179,18 @@
     style="top:0;right:0;">
 
     <!-- Panel Header -->
-    <div class="bg-blue-700 px-4 py-3 flex items-center gap-3">
+    <div class="bg-red-700 px-4 py-3 flex items-center gap-3">
         <svg class="w-5 h-5 text-white shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                 d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
         </svg>
         <span class="text-white font-semibold text-base flex-1">Notifications</span>
         <span id="notifNewBadge"
-            class="bg-blue-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full border border-blue-400">
+            class="bg-red-500 text-white text-xs font-semibold px-2 py-0.5 rounded-full border border-red-400">
             3 new
         </span>
         <button onclick="closeNotifications()"
-            class="ml-2 text-blue-200 hover:text-white transition-colors focus:outline-none"
+            class="ml-2 text-red-200 hover:text-white transition-colors focus:outline-none"
             aria-label="Close notifications">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -201,7 +201,7 @@
     <!-- Action Bar -->
     <div class="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 bg-white">
         <button onclick="markAllRead()"
-            class="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors focus:outline-none">
+            class="flex items-center gap-1.5 text-sm text-red-600 hover:text-red-800 font-medium transition-colors focus:outline-none">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
             </svg>
@@ -217,7 +217,7 @@
     <div id="notifList" class="overflow-y-auto max-h-[420px] divide-y divide-gray-100">
 
         <!-- Critical -->
-        <div class="notif-item flex items-start gap-3 px-4 py-3.5 hover:bg-blue-50/60 transition-colors cursor-pointer bg-blue-50/30"
+        <div class="notif-item flex items-start gap-3 px-4 py-3.5 hover:bg-red-50/60 transition-colors cursor-pointer bg-red-50/30"
             data-unread="true" onclick="markRead(this)">
             <!-- Icon: Critical -->
             <div class="shrink-0 w-9 h-9 rounded-full bg-red-100 border-2 border-red-300 flex items-center justify-center mt-0.5">
@@ -235,11 +235,11 @@
                 <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">Bagong Silang barangay gap score reached 82% — immediate audit recommended.</p>
             </div>
             <!-- Unread dot -->
-            <span class="unread-dot shrink-0 w-2.5 h-2.5 rounded-full bg-blue-600 mt-1.5"></span>
+            <span class="unread-dot shrink-0 w-2.5 h-2.5 rounded-full bg-red-600 mt-1.5"></span>
         </div>
 
         <!-- Warning -->
-        <div class="notif-item flex items-start gap-3 px-4 py-3.5 hover:bg-blue-50/60 transition-colors cursor-pointer bg-blue-50/30"
+        <div class="notif-item flex items-start gap-3 px-4 py-3.5 hover:bg-red-50/60 transition-colors cursor-pointer bg-red-50/30"
             data-unread="true" onclick="markRead(this)">
             <!-- Icon: Warning -->
             <div class="shrink-0 w-9 h-9 rounded-full bg-amber-100 border-2 border-amber-300 flex items-center justify-center mt-0.5">
@@ -257,15 +257,15 @@
                 <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">3 network switches in San Roque NHS have been flagged as retired due to poor condition.</p>
             </div>
             <!-- Unread dot -->
-            <span class="unread-dot shrink-0 w-2.5 h-2.5 rounded-full bg-blue-600 mt-1.5"></span>
+            <span class="unread-dot shrink-0 w-2.5 h-2.5 rounded-full bg-red-600 mt-1.5"></span>
         </div>
 
         <!-- Info -->
-        <div class="notif-item flex items-start gap-3 px-4 py-3.5 hover:bg-blue-50/60 transition-colors cursor-pointer bg-blue-50/30"
+        <div class="notif-item flex items-start gap-3 px-4 py-3.5 hover:bg-red-50/60 transition-colors cursor-pointer bg-red-50/30"
             data-unread="true" onclick="markRead(this)">
             <!-- Icon: Info -->
-            <div class="shrink-0 w-9 h-9 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center mt-0.5">
-                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="shrink-0 w-9 h-9 rounded-full bg-red-100 border-2 border-red-300 flex items-center justify-center mt-0.5">
+                <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
@@ -279,7 +279,7 @@
                 <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">Batasan Hills Community Learning Center has been registered in the system.</p>
             </div>
             <!-- Unread dot -->
-            <span class="unread-dot shrink-0 w-2.5 h-2.5 rounded-full bg-blue-600 mt-1.5"></span>
+            <span class="unread-dot shrink-0 w-2.5 h-2.5 rounded-full bg-red-600 mt-1.5"></span>
         </div>
 
         <!-- Success -->
@@ -299,7 +299,7 @@
                 </div>
                 <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">Maliwanag TVET School audit for Q2 2026 was successfully submitted.</p>
             </div>
-            <span class="unread-dot hidden shrink-0 w-2.5 h-2.5 rounded-full bg-blue-600 mt-1.5"></span>
+            <span class="unread-dot hidden shrink-0 w-2.5 h-2.5 rounded-full bg-red-600 mt-1.5"></span>
         </div>
 
         <!-- Warning 2 -->
@@ -320,15 +320,15 @@
                 </div>
                 <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">12 institutions have pending audits due before June 30, 2026.</p>
             </div>
-            <span class="unread-dot hidden shrink-0 w-2.5 h-2.5 rounded-full bg-blue-600 mt-1.5"></span>
+            <span class="unread-dot hidden shrink-0 w-2.5 h-2.5 rounded-full bg-red-600 mt-1.5"></span>
         </div>
 
         <!-- Info 2 -->
         <div class="notif-item flex items-start gap-3 px-4 py-3.5 hover:bg-gray-50/80 transition-colors cursor-pointer"
             data-unread="false" onclick="markRead(this)">
             <!-- Icon: Info -->
-            <div class="shrink-0 w-9 h-9 rounded-full bg-blue-100 border-2 border-blue-300 flex items-center justify-center mt-0.5">
-                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="shrink-0 w-9 h-9 rounded-full bg-red-100 border-2 border-red-300 flex items-center justify-center mt-0.5">
+                <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
@@ -341,7 +341,7 @@
                 </div>
                 <p class="text-xs text-gray-500 mt-0.5 leading-relaxed">GIS layer data has been refreshed with June 2026 barangay boundary updates.</p>
             </div>
-            <span class="unread-dot hidden shrink-0 w-2.5 h-2.5 rounded-full bg-blue-600 mt-1.5"></span>
+            <span class="unread-dot hidden shrink-0 w-2.5 h-2.5 rounded-full bg-red-600 mt-1.5"></span>
         </div>
 
     </div>
@@ -404,7 +404,7 @@
     window.markRead = function (item) {
         if (item.dataset.unread === 'true') {
             item.dataset.unread = 'false';
-            item.classList.remove('bg-blue-50/30');
+            item.classList.remove('bg-red-50/30');
             // Hide the unread dot
             const dot = item.querySelector('.unread-dot');
             if (dot) dot.classList.add('hidden');

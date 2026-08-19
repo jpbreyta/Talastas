@@ -12,18 +12,18 @@
     @endphp
 
     <div class="flex h-full min-h-0 flex-col bg-gray-100">
-        <div class="shrink-0 bg-blue-700 px-6 py-4">
+        <div class="shrink-0 bg-red-700 px-6 py-4">
             <div class="flex items-center justify-between gap-4">
                 <div class="flex min-w-0 items-center gap-3">
                     <a
                         href="{{ $cancelUrl }}"
-                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-blue-100 transition hover:bg-blue-500 hover:text-white"
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-600 text-red-100 transition hover:bg-red-500 hover:text-white"
                         title="Go back"
                     >
                         <i class="fa-solid fa-arrow-left"></i>
                     </a>
 
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-blue-100">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-600 text-red-100">
                         <i class="fa-solid fa-box-open"></i>
                     </div>
 
@@ -31,7 +31,7 @@
                         <h1 class="text-xl font-semibold leading-tight tracking-tight text-white">
                             Add ICT Inventory Item
                         </h1>
-                        <p class="mt-0.5 text-xs text-blue-200">
+                        <p class="mt-0.5 text-xs text-red-200">
                             Record equipment assigned to an existing institution
                         </p>
                     </div>
@@ -71,7 +71,7 @@
 
                     <div class="border-b border-gray-200 bg-gray-50 px-5 py-4">
                         <div class="flex items-center gap-3">
-                            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-700">
                                 <i class="fa-solid fa-building"></i>
                             </div>
                             <div>
@@ -87,9 +87,9 @@
 
                     <div class="space-y-6 p-5">
                         @if ($isInstitutionLocked)
-                            <div class="rounded-xl border border-blue-200 bg-blue-50 p-4">
+                            <div class="rounded-xl border border-red-200 bg-red-50 p-4">
                                 <div class="flex items-start gap-3">
-                                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
+                                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-red-600 shadow-sm">
                                         <i class="fa-solid fa-building-columns"></i>
                                     </div>
                                     <div class="min-w-0">
@@ -101,7 +101,7 @@
                                             <span class="mx-1 text-gray-300">•</span>
                                             {{ $selectedInstitution->barangay?->name ?? 'Barangay not recorded' }}
                                         </p>
-                                        <p class="mt-2 text-xs text-blue-700">
+                                        <p class="mt-2 text-xs text-red-700">
                                             This institution is locked because you opened the form from its details page.
                                         </p>
                                     </div>
@@ -142,7 +142,7 @@
 
                         <div class="border-t border-gray-200 pt-6">
                             <div class="mb-4 flex items-center gap-3">
-                                <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                                <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-700">
                                     <i class="fa-solid fa-computer"></i>
                                 </div>
                                 <div>
@@ -260,7 +260,7 @@
 
                         <button
                             type="submit"
-                            class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-5 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+                            class="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-5 py-2 text-sm font-medium text-white transition hover:bg-red-700"
                         >
                             <i class="fa-solid fa-plus"></i>
                             Add Inventory Item

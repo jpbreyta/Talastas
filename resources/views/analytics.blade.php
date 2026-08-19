@@ -23,7 +23,7 @@
                     </span>
 
                     <a href="{{ url('/api/v1/analytics/export') }}"
-                        class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+                        class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-700">
                         <i class="fa-solid fa-file-export"></i>
                         Export CSV
                     </a>
@@ -40,7 +40,7 @@
                             Overall Gap Score
                         </span>
 
-                        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 text-red-600">
                             <i class="fa-solid fa-chart-line"></i>
                         </span>
                     </div>
@@ -67,7 +67,7 @@
                             Institutions
                         </span>
 
-                        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+                        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 text-red-600">
                             <i class="fa-solid fa-building"></i>
                         </span>
                     </div>
@@ -170,7 +170,7 @@
                             </div>
 
                             <span
-                                class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                                class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
                                 <i class="fa-solid fa-computer"></i>
                             </span>
                         </div>
@@ -217,7 +217,7 @@
                             </div>
 
                             <span
-                                class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-cyan-50 text-cyan-600">
+                                class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
                                 <i class="fa-solid fa-wifi"></i>
                             </span>
                         </div>
@@ -398,7 +398,7 @@
                             @foreach ($priorityNeeds as $index => $need)
                                 <div class="flex items-center gap-4 rounded-lg border border-gray-200 p-4">
                                     <span
-                                        class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-blue-600">
+                                        class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-red-50 text-sm font-bold text-red-600">
                                         {{ $index + 1 }}
                                     </span>
 
@@ -563,7 +563,7 @@
 
                     <div class="mb-6 flex justify-center">
                         <div
-                            class="flex h-32 w-32 flex-col items-center justify-center rounded-full border-[14px] border-blue-100">
+                            class="flex h-32 w-32 flex-col items-center justify-center rounded-full border-[14px] border-red-100">
                             <span class="text-3xl font-bold text-gray-900">
                                 {{ $riskTotal }}
                             </span>
@@ -601,20 +601,20 @@
             </div>
 
             {{-- Data Quality --}}
-            <div class="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <div class="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
                 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div class="flex items-start gap-3">
                         <span
-                            class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                            class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
                             <i class="fa-solid fa-database"></i>
                         </span>
 
                         <div>
-                            <p class="text-sm font-semibold text-blue-900">
+                            <p class="text-sm font-semibold text-red-900">
                                 Analytics Data Completeness
                             </p>
 
-                            <p class="mt-1 text-xs leading-relaxed text-blue-700">
+                            <p class="mt-1 text-xs leading-relaxed text-red-700">
                                 Institutions with incomplete records may be classified as insufficient data instead of
                                 receiving an inaccurate gap score.
                             </p>
@@ -622,11 +622,11 @@
                     </div>
 
                     <div class="flex-shrink-0 text-left sm:text-right">
-                        <p class="text-2xl font-bold text-blue-900">
+                        <p class="text-2xl font-bold text-red-900">
                             {{ number_format($averageCompleteness ?? 0, 1) }}%
                         </p>
 
-                        <p class="text-xs text-blue-700">
+                        <p class="text-xs text-red-700">
                             average completeness
                         </p>
                     </div>
@@ -645,7 +645,7 @@
                     </div>
 
                     <select id="barangayFilter"
-                        class="min-w-44 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                        class="min-w-44 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100">
                         <option value="">All Barangays</option>
 
                         @foreach ($barangays ?? [] as $barangay)
@@ -656,7 +656,7 @@
                     </select>
 
                     <select id="typeFilter"
-                        class="min-w-44 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                        class="min-w-44 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100">
                         <option value="">All Institution Types</option>
                         <option value="school">School</option>
                         <option value="barangay hall">Barangay Hall</option>
@@ -664,7 +664,7 @@
                     </select>
 
                     <select id="riskFilter"
-                        class="min-w-44 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100">
+                        class="min-w-44 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100">
                         <option value="">All Risk Levels</option>
                         <option value="critical">Critical</option>
                         <option value="warning">Warning</option>
@@ -817,7 +817,7 @@
                                     };
 
                                     $providerBadge = match ($analysisProvider) {
-                                        'gemini' => 'bg-blue-100 text-blue-700',
+                                        'gemini' => 'bg-red-100 text-red-700',
                                         'groq' => 'bg-orange-100 text-orange-700',
                                         'local' => 'bg-gray-100 text-gray-700',
                                         default => $analysisMethod === 'generative_ai'
@@ -845,7 +845,7 @@
                                     <td class="whitespace-nowrap px-5 py-4">
                                         <div class="flex items-center gap-3">
                                             <span
-                                                class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                                                class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
                                                 <i class="fa-solid fa-building"></i>
                                             </span>
 
@@ -863,7 +863,7 @@
 
                                     <td class="whitespace-nowrap px-4 py-4">
                                         <span
-                                            class="rounded-md bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                                            class="rounded-md bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
                                             {{ $institution?->type ?? 'Not specified' }}
                                         </span>
                                     </td>
@@ -926,17 +926,17 @@
                                         @endif
 
                                         @if ($analytic->policy_recommendation)
-                                            <div class="rounded-lg bg-blue-50 p-3">
+                                            <div class="rounded-lg bg-red-50 p-3">
                                                 <div class="flex items-start gap-2">
-                                                    <i class="fa-solid fa-lightbulb mt-0.5 text-blue-600"></i>
+                                                    <i class="fa-solid fa-lightbulb mt-0.5 text-red-600"></i>
 
                                                     <div>
                                                         <p
-                                                            class="text-xs font-semibold uppercase tracking-wider text-blue-700">
+                                                            class="text-xs font-semibold uppercase tracking-wider text-red-700">
                                                             Recommendation
                                                         </p>
 
-                                                        <p class="mt-1 text-sm font-medium leading-relaxed text-blue-800"
+                                                        <p class="mt-1 text-sm font-medium leading-relaxed text-red-800"
                                                             title="{{ $analytic->policy_recommendation }}">
                                                             {{ Str::limit($analytic->policy_recommendation, 150) }}
                                                         </p>

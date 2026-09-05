@@ -86,13 +86,17 @@
 
         $inventoryItems = $institution->ictInventory;
 
-        $inventoryTotal = $inventoryItems->count();
+        $inventoryTotal = (int) $inventoryItems->sum(
+            fn ($item) => max(0, (int) ($item->quantity ?? 1))
+        );
 
-        $inventoryActive = $inventoryItems
+        $inventoryActive = (int) $inventoryItems
             ->where('status', 'active')
-            ->count();
+            ->sum(
+                fn ($item) => max(0, (int) ($item->quantity ?? 1))
+            );
 
-        $inventoryAttention = $inventoryItems
+        $inventoryAttention = (int) $inventoryItems
             ->filter(
                 fn ($item) =>
                     in_array(
@@ -100,44 +104,53 @@
                         ['under_repair', 'inactive'],
                         true
                     )
-                    || $item->condition === 'needs_repair'
+                    || in_array(
+                        $item->condition,
+                        ['poor', 'needs_repair'],
+                        true
+                    )
+                    || (bool) $item->needs_maintenance
             )
-            ->count();
+            ->sum(
+                fn ($item) => max(0, (int) ($item->quantity ?? 1))
+            );
 
-        $inventoryCategoryDetails = [
-            'computer' => [
-                'label' => 'Computer',
-                'icon' => 'fa-computer',
-            ],
-            'laptop' => [
-                'label' => 'Laptop',
-                'icon' => 'fa-laptop',
-            ],
-            'printer' => [
-                'label' => 'Printer',
-                'icon' => 'fa-print',
-            ],
-            'router' => [
-                'label' => 'Router',
-                'icon' => 'fa-wifi',
-            ],
-            'smart_tv' => [
-                'label' => 'Smart TV',
-                'icon' => 'fa-tv',
-            ],
-            'projector' => [
-                'label' => 'Projector',
-                'icon' => 'fa-video',
-            ],
-            'pa_system' => [
-                'label' => 'PA System',
-                'icon' => 'fa-bullhorn',
-            ],
-            'other' => [
-                'label' => 'Other',
-                'icon' => 'fa-box',
-            ],
+        $inventoryConfig = config('ict_inventory', []);
+
+        $inventoryCategoryIcons = [
+            'computer' => 'fa-computer',
+            'desktop_computer' => 'fa-desktop',
+            'laptop' => 'fa-laptop',
+            'tablet' => 'fa-tablet-screen-button',
+            'printer' => 'fa-print',
+            'router' => 'fa-wifi',
+            'network_switch' => 'fa-network-wired',
+            'access_point' => 'fa-signal',
+            'smart_tv' => 'fa-tv',
+            'projector' => 'fa-video',
+            'projected_whiteboard' => 'fa-chalkboard',
+            'server' => 'fa-server',
+            'ups' => 'fa-battery-full',
+            'pa_system' => 'fa-bullhorn',
+            'other' => 'fa-box',
         ];
+
+        $inventoryCategoryDetails = collect(
+            $inventoryConfig['categories'] ?? []
+        )
+            ->mapWithKeys(
+                fn ($category, $key) => [
+                    $key => [
+                        'label' =>
+                            $category['label']
+                            ?? str($key)->headline(),
+                        'icon' =>
+                            $inventoryCategoryIcons[$key]
+                            ?? 'fa-box',
+                    ],
+                ]
+            )
+            ->all();
 
         $inventoryConditionDetails = [
             'new' => [
@@ -148,7 +161,7 @@
             'excellent' => [
                 'label' => 'Excellent',
                 'class' =>
-                    'border-red-200 bg-red-50 text-red-700',
+                    'border-blue-200 bg-blue-50 text-blue-700',
             ],
             'good' => [
                 'label' => 'Good',
@@ -197,7 +210,30 @@
                     'border-slate-200 bg-slate-100 text-slate-600',
                 'icon' => 'fa-box-archive',
             ],
+            'disposed' => [
+                'label' => 'Disposed',
+                'class' =>
+                    'border-slate-200 bg-slate-100 text-slate-500',
+                'icon' => 'fa-trash-can',
+            ],
         ];
+
+        $formatSpecificationValue = function ($value): string {
+            if (is_bool($value)) {
+                return $value ? 'Yes' : 'No';
+            }
+
+            if (is_array($value)) {
+                return collect($value)
+                    ->filter()
+                    ->implode(', ');
+            }
+
+            return str((string) $value)
+                ->replace('_', ' ')
+                ->headline()
+                ->toString();
+        };
     @endphp
 
     <div class="flex h-full min-h-0 flex-col bg-gray-100">
@@ -714,7 +750,7 @@
                                 ICT Inventory
                             </h2>
                             <p class="text-xs text-gray-500">
-                                Individual equipment assigned to this institution
+                                Grouped equipment records with quantities and technical specifications.
                             </p>
                         </div>
                     </div>
@@ -729,7 +765,7 @@
                         <a href="{{ route('ict-inventory.create', ['institution_id' => $institution->id]) }}"
                             class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-red-700">
                             <i class="fa-solid fa-plus"></i>
-                            Add Item
+                            Add Record
                         </a>
                     </div>
                 </div>
@@ -746,7 +782,12 @@
                             </span>
                         </div>
                         <p class="mt-2 text-xs font-medium text-gray-500">
-                            Total Assets
+                            Physical Assets
+                        </p>
+                        <p class="mt-0.5 text-[11px] text-gray-400">
+                            {{ $inventoryItems->count() }}
+                            grouped
+                            {{ Str::plural('record', $inventoryItems->count()) }}
                         </p>
                     </div>
 
@@ -798,16 +839,24 @@
 
                 @if ($inventoryItems->isNotEmpty())
                     <div class="overflow-x-auto">
-                        <table class="w-full min-w-[900px] text-sm">
+                        <table class="w-full min-w-7xl text-sm">
                             <thead>
                                 <tr class="border-b border-gray-200 bg-white text-left">
                                     <th
                                         class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                        Asset
+                                        Equipment
+                                    </th>
+                                    <th
+                                        class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                        Qty
                                     </th>
                                     <th
                                         class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                        Category
+                                        Brand / Model
+                                    </th>
+                                    <th
+                                        class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                        Specifications
                                     </th>
                                     <th
                                         class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -860,15 +909,31 @@
                                                 'border-gray-200 bg-gray-100 text-gray-600',
                                             'icon' => 'fa-circle',
                                         ];
+
+                                        $specDefinitions =
+                                            $inventoryConfig[
+                                                'categories'
+                                            ][$item->category][
+                                                'specifications'
+                                            ] ?? [];
+
+                                        $specificationSummary = collect(
+                                            $item->specifications ?? []
+                                        )
+                                            ->take(3)
+                                            ->map(
+                                                fn ($value, $key) =>
+                                                    ($specDefinitions[$key]['label']
+                                                        ?? str($key)->headline())
+                                                    . ': '
+                                                    . $formatSpecificationValue(
+                                                        $value
+                                                    )
+                                            )
+                                            ->implode(' • ');
                                     @endphp
 
                                     <tr class="transition hover:bg-red-50/30">
-                                        <td class="px-4 py-3">
-                                            <span class="font-mono text-xs text-gray-500">
-                                                #{{ $item->asset_id }}
-                                            </span>
-                                        </td>
-
                                         <td class="px-4 py-3">
                                             <div class="flex items-center gap-2.5">
                                                 <span
@@ -876,10 +941,39 @@
                                                     <i class="fa-solid {{ $category['icon'] }} text-xs"></i>
                                                 </span>
 
-                                                <span class="font-medium text-gray-900">
-                                                    {{ $category['label'] }}
-                                                </span>
+                                                <div class="min-w-0">
+                                                    <p class="font-medium text-gray-900">
+                                                        {{ $item->asset_name ?: $category['label'] }}
+                                                    </p>
+                                                    <p class="mt-0.5 text-xs text-gray-500">
+                                                        {{ $category['label'] }}
+                                                        @if ($item->location)
+                                                            <span class="px-1 text-gray-300">•</span>
+                                                            {{ $item->location }}
+                                                        @endif
+                                                    </p>
+                                                </div>
                                             </div>
+                                        </td>
+
+                                        <td class="px-4 py-3 text-center">
+                                            <span
+                                                class="inline-flex min-w-8 items-center justify-center rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-700">
+                                                {{ number_format((int) ($item->quantity ?? 1)) }}
+                                            </span>
+                                        </td>
+
+                                        <td class="px-4 py-3">
+                                            <p class="font-medium text-gray-700">
+                                                {{ $item->brand ?: '—' }}
+                                            </p>
+                                            <p class="mt-0.5 text-xs text-gray-500">
+                                                {{ $item->model ?: 'Model not recorded' }}
+                                            </p>
+                                        </td>
+
+                                        <td class="max-w-sm px-4 py-3 text-xs leading-5 text-gray-600">
+                                            {{ $specificationSummary ?: 'No specifications recorded' }}
                                         </td>
 
                                         <td class="px-4 py-3">
@@ -899,21 +993,27 @@
                                                 <i class="fa-solid {{ $status['icon'] }} text-[10px]"></i>
                                                 {{ $status['label'] }}
                                             </span>
+
+                                            @if ($item->needs_maintenance)
+                                                <p class="mt-1 text-[11px] font-medium text-orange-600">
+                                                    Maintenance needed
+                                                </p>
+                                            @endif
                                         </td>
 
                                         <td class="px-4 py-3">
                                             <div class="flex items-center justify-end gap-1.5">
                                                 <a href="{{ route('ict-inventory.show', $item) }}"
                                                     class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-red-600 text-white transition hover:bg-red-700"
-                                                    title="View inventory item"
-                                                    aria-label="View inventory item {{ $item->asset_id }}">
+                                                    title="View inventory record"
+                                                    aria-label="View inventory record {{ $item->asset_id }}">
                                                     <i class="fa-solid fa-eye text-xs"></i>
                                                 </a>
 
-                                                <a href="{{ route('ict-inventory.edit', $item) }}"
+                                                <a href="{{ route('ict-inventory.edit', $item) }}?return_to=institution"
                                                     class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:bg-gray-50 hover:text-red-600"
-                                                    title="Edit inventory item"
-                                                    aria-label="Edit inventory item {{ $item->asset_id }}">
+                                                    title="Edit inventory record"
+                                                    aria-label="Edit inventory record {{ $item->asset_id }}">
                                                     <i class="fa-solid fa-pen text-xs"></i>
                                                 </a>
 
@@ -928,9 +1028,9 @@
 
                                                     <button type="submit"
                                                         class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 transition hover:bg-red-100"
-                                                        title="Delete inventory item"
-                                                        aria-label="Delete inventory item {{ $item->asset_id }}"
-                                                        onclick="return confirm('Delete this inventory item?')">
+                                                        title="Delete inventory record"
+                                                        aria-label="Delete inventory record {{ $item->asset_id }}"
+                                                        onclick="return confirm('Delete this inventory record?')">
                                                         <i class="fa-solid fa-trash-can text-xs"></i>
                                                     </button>
                                                 </form>
@@ -949,17 +1049,17 @@
                         </span>
 
                         <p class="mt-3 text-sm font-medium text-gray-600">
-                            No inventory items yet
+                            No inventory records yet
                         </p>
 
                         <p class="mt-1 max-w-md text-xs leading-5 text-gray-400">
-                            Add individual equipment records to calculate the institution's ICT summaries automatically.
+                            Add grouped or individual ICT equipment records to calculate the institution's inventory summaries automatically.
                         </p>
 
                         <a href="{{ route('ict-inventory.create', ['institution_id' => $institution->id]) }}"
                             class="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-xs font-medium text-white transition hover:bg-red-700">
                             <i class="fa-solid fa-plus"></i>
-                            Add First Item
+                            Add First Record
                         </a>
                     </div>
                 @endif

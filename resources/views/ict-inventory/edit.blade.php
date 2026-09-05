@@ -1,80 +1,174 @@
 @extends('layouts.app')
 
+@section('dashboard-layout')
+@endsection
+
 @section('content')
-<div class="py-6">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="bg-white shadow rounded-lg p-6">
-            <h1 class="text-2xl font-bold text-gray-900 mb-6">Edit ICT Inventory Item</h1>
+    @php
+        $returnToInstitution =
+            request('return_to') === 'institution'
+            || old('return_to') === 'institution';
 
-            <form method="POST" action="{{ route('ict-inventory.update', $ictInventory) }}">
-                @csrf
-                @method('PUT')
+        $cancelUrl = $returnToInstitution
+            ? route('institutions.show', $ictInventory->institution_id)
+            : route('ict-inventory.index');
+    @endphp
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="institution_id" class="block text-sm font-medium text-gray-700">Institution</label>
-                        <select name="institution_id" id="institution_id" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="">Select Institution</option>
-                            @foreach($institutions as $institution)
-                                <option value="{{ $institution->id }}" {{ old('institution_id', $ictInventory->institution_id) == $institution->id ? 'selected' : '' }}>
-                                    {{ $institution->name }} ({{ $institution->barangay->name }})
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('institution_id') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
+    <div class="flex h-full min-h-0 flex-col bg-gray-100">
+        <div class="shrink-0 bg-red-700 px-6 py-4">
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex min-w-0 items-center gap-3">
+                    <a
+                        href="{{ $cancelUrl }}"
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-600 text-red-100 transition hover:bg-red-500 hover:text-white"
+                        title="Go back"
+                    >
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </a>
+
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-600 text-red-100">
+                        <i class="fa-solid fa-pen-to-square"></i>
                     </div>
 
-                    <div>
-                        <label for="category" class="block text-sm font-medium text-gray-700">Category</label>
-                        <select name="category" id="category" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="">Select Category</option>
-                            <option value="computer" {{ old('category', $ictInventory->category) == 'computer' ? 'selected' : '' }}>Computer</option>
-                            <option value="smart_tv" {{ old('category', $ictInventory->category) == 'smart_tv' ? 'selected' : '' }}>Smart TV</option>
-                            <option value="projector" {{ old('category', $ictInventory->category) == 'projector' ? 'selected' : '' }}>Projector</option>
-                            <option value="pa_system" {{ old('category', $ictInventory->category) == 'pa_system' ? 'selected' : '' }}>PA System</option>
-                            <option value="other" {{ old('category', $ictInventory->category) == 'other' ? 'selected' : '' }}>Other</option>
-                        </select>
-                        @error('category') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label for="condition" class="block text-sm font-medium text-gray-700">Condition</label>
-                        <select name="condition" id="condition" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="">Select Condition</option>
-                            <option value="new" {{ old('condition', $ictInventory->condition) == 'new' ? 'selected' : '' }}>New</option>
-                            <option value="good" {{ old('condition', $ictInventory->condition) == 'good' ? 'selected' : '' }}>Good</option>
-                            <option value="fair" {{ old('condition', $ictInventory->condition) == 'fair' ? 'selected' : '' }}>Fair</option>
-                            <option value="poor" {{ old('condition', $ictInventory->condition) == 'poor' ? 'selected' : '' }}>Poor</option>
-                            <option value="needs_repair" {{ old('condition', $ictInventory->condition) == 'needs_repair' ? 'selected' : '' }}>Needs Repair</option>
-                        </select>
-                        @error('condition') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label for="acquisition_year" class="block text-sm font-medium text-gray-700">Acquisition Year</label>
-                        <input type="number" name="acquisition_year" id="acquisition_year" value="{{ old('acquisition_year', $ictInventory->acquisition_year) }}" required min="1900" max="{{ date('Y') + 1 }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                        @error('acquisition_year') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
-                    </div>
-
-                    <div>
-                        <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
-                        <select name="status" id="status" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
-                            <option value="">Select Status</option>
-                            <option value="active" {{ old('status', $ictInventory->status) == 'active' ? 'selected' : '' }}>Active</option>
-                            <option value="retired" {{ old('status', $ictInventory->status) == 'retired' ? 'selected' : '' }}>Retired</option>
-                        </select>
-                        @error('status') <p class="text-red-500 text-sm">{{ $message }}</p> @enderror
+                    <div class="min-w-0">
+                        <h1 class="text-xl font-semibold leading-tight tracking-tight text-white">
+                            Edit ICT Inventory Record
+                        </h1>
+                        <p class="mt-0.5 text-xs text-red-200">
+                            Update asset details, quantity, specifications, condition, and status.
+                        </p>
                     </div>
                 </div>
+            </div>
+        </div>
 
-                <div class="mt-6">
-                    <button type="submit" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-                        Update Inventory Item
-                    </button>
-                    <a href="{{ route('ict-inventory.index') }}" class="ml-4 text-gray-600 hover:text-gray-900">Cancel</a>
-                </div>
-            </form>
+        <div class="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+            <div class="mx-auto max-w-5xl">
+                @if ($errors->any())
+                    <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        <div class="flex items-start gap-3">
+                            <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
+                            <div>
+                                <p class="font-semibold">Please correct the following:</p>
+                                <ul class="mt-1 list-disc space-y-0.5 pl-5">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
+                <form
+                    method="POST"
+                    action="{{ route('ict-inventory.update', $ictInventory) }}"
+                    class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+                >
+                    @csrf
+                    @method('PUT')
+
+                    @if ($returnToInstitution)
+                        <input type="hidden" name="return_to" value="institution">
+                    @endif
+
+                    <div class="border-b border-gray-200 bg-gray-50 px-5 py-4">
+                        <div class="flex items-center gap-3">
+                            <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-700">
+                                <i class="fa-solid fa-building"></i>
+                            </div>
+                            <div>
+                                <h2 class="text-sm font-semibold text-gray-900">Assigned Institution</h2>
+                                <p class="mt-0.5 text-xs text-gray-500">
+                                    Moving this record automatically recalculates inventory summaries for both institutions.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6 p-5">
+                        <div>
+                            <label for="institution_id" class="mb-1.5 block text-xs font-semibold text-gray-600">
+                                Institution <span class="text-red-500">*</span>
+                            </label>
+                            <select
+                                name="institution_id"
+                                id="institution_id"
+                                required
+                                class="form-input w-full"
+                            >
+                                <option value="">Select an institution</option>
+                                @foreach ($institutions as $institution)
+                                    <option
+                                        value="{{ $institution->id }}"
+                                        @selected(
+                                            (string) old('institution_id', $ictInventory->institution_id)
+                                            === (string) $institution->id
+                                        )
+                                    >
+                                        {{ $institution->name }}
+                                        @if ($institution->barangay)
+                                            — {{ $institution->barangay->name }}
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('institution_id')
+                                <p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        @include('ict-inventory._form-fields', [
+                            'ictInventory' => $ictInventory,
+                            'inventoryConfig' => $inventoryConfig,
+                        ])
+                    </div>
+
+                    <div class="flex flex-col-reverse gap-3 border-t border-gray-200 bg-gray-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-end">
+                        <a
+                            href="{{ $cancelUrl }}"
+                            class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+                        >
+                            <i class="fa-solid fa-xmark"></i>
+                            Cancel
+                        </a>
+
+                        <button
+                            type="submit"
+                            class="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-5 py-2 text-sm font-medium text-white transition hover:bg-red-700"
+                        >
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
+
+    <style>
+        .form-input {
+            display: block;
+            border: 1px solid rgb(209 213 219);
+            border-radius: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+            color: rgb(17 24 39);
+            background-color: white;
+            transition: border-color 150ms ease, box-shadow 150ms ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: rgb(220 38 38);
+            box-shadow: 0 0 0 3px rgb(254 202 202 / 0.8);
+        }
+
+        .form-input:disabled {
+            background-color: rgb(243 244 246);
+            color: rgb(107 114 128);
+            cursor: not-allowed;
+        }
+    </style>
 @endsection

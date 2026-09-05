@@ -8,7 +8,7 @@
         @method('PUT')
 
         {{-- ── Fixed Action Bar (top) ───────────────────────────────── --}}
-        <div class="flex-shrink-0 bg-red-700 px-6 py-4">
+        <div class="shrink-0 bg-red-700 px-6 py-4">
             <div class="flex items-center justify-between gap-4">
                 {{-- Back + Title --}}
                 <div class="flex items-center gap-3 min-w-0">
@@ -250,7 +250,7 @@
                                 Inventory-Synced ICT Summary
                             </span>
                             <p class="mt-0.5 text-xs text-gray-500">
-                                These values are calculated from active inventory records and cannot be edited here.
+                                Computer totals and equipment availability are calculated from active inventory records and cannot be edited here.
                             </p>
                         </div>
                     </div>
@@ -270,7 +270,7 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2 xl:grid-cols-5">
+                <div class="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2 xl:grid-cols-4">
                     <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
                         <div class="flex items-center justify-between gap-3">
                             <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-600">
@@ -285,11 +285,6 @@
 
                     @php
                         $syncedFacilities = [
-                            [
-                                'label' => 'Computer Lab',
-                                'active' => $institution->has_computer_lab,
-                                'icon' => 'fa-desktop',
-                            ],
                             [
                                 'label' => 'Smart TV',
                                 'active' => $institution->has_smart_tv,
@@ -350,7 +345,7 @@
                         </div>
                         <div>
                             <span class="text-sm font-semibold text-gray-800">Status & Flags</span>
-                            <span class="ml-2 text-xs text-gray-400">Operational status and audit flags</span>
+                            <span class="ml-2 text-xs text-gray-400">Operational status, computer lab, and audit flags</span>
                         </div>
                     </div>
                     <svg class="w-4 h-4 text-gray-400 section-chevron transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -359,10 +354,10 @@
                 </button>
                 <div id="sec-status" class="border-t border-gray-100 px-5 py-5">
                     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                        <x-toggle-card name="is_pilot_site"    label="Pilot Site"       :checked="old('is_pilot_site', $institution->is_pilot_site)"       color="green"/>
-                        <x-toggle-card name="is_active"        label="Active"           :checked="old('is_active', $institution->is_active)"               color="green"/>
-                        <x-toggle-card name="needs_maintenance"label="Needs Maintenance":checked="old('needs_maintenance', $institution->needs_maintenance)" color="red"/>
-                        <x-toggle-card name="requires_audit"   label="Requires Audit"  :checked="old('requires_audit', $institution->requires_audit)"      color="yellow"/>
+                        <x-toggle-card name="is_pilot_site"    label="Pilot Site"          :checked="old('is_pilot_site', $institution->is_pilot_site)"       color="green"/>
+                        <x-toggle-card name="is_active"        label="Active"              :checked="old('is_active', $institution->is_active)"               color="green"/>
+                        <x-toggle-card name="has_computer_lab" label="Computer Laboratory" :checked="old('has_computer_lab', $institution->has_computer_lab)" color="red"/>
+                        <x-toggle-card name="requires_audit"   label="Requires Audit"      :checked="old('requires_audit', $institution->requires_audit)"      color="yellow"/>
                     </div>
                 </div>
             </div>

@@ -17,27 +17,50 @@ class InstitutionInventorySummaryService
             return;
         }
 
+        /**
+         * A row can now represent a grouped asset, so SUM(quantity) must be
+         * used instead of COUNT(*).
+         */
         $activeCounts = IctInventory::query()
             ->where('institution_id', $institutionModel->id)
-            ->where('status', 'active')
-            ->selectRaw('category, COUNT(*) as total')
-            ->groupBy('category')
-            ->pluck('total', 'category');
+            ->active()
+            ->selectRaw(
+                "LOWER(category) AS category_key, COALESCE(SUM(quantity), 0) AS total"
+            )
+            ->groupByRaw('LOWER(category)')
+            ->pluck('total', 'category_key');
 
-        $computerCount = (int) $activeCounts->get(
-            'computer',
-            0
-        );
+        $computerCount = collect(IctInventory::COMPUTER_CATEGORIES)
+            ->sum(fn (string $category): int => (int) $activeCounts->get($category, 0));
+
+        /**
+         * projected_whiteboard is the canonical category.
+         * projector is also recognized temporarily so existing development
+         * records continue to populate the old institution summary field.
+         */
+        $projectedWhiteboardCount =
+            (int) $activeCounts->get(IctInventory::CATEGORY_PROJECTED_WHITEBOARD, 0)
+            + (int) $activeCounts->get(IctInventory::CATEGORY_PROJECTOR, 0);
+
+        $requiresMaintenance = IctInventory::query()
+            ->where('institution_id', $institutionModel->id)
+            ->active()
+            ->where('needs_maintenance', true)
+            ->exists();
 
         $institutionModel->applyInventorySummary([
             'number_of_computers' => $computerCount,
-            'has_computer_lab' => $computerCount > 0,
+
             'has_smart_tv' =>
-                (int) $activeCounts->get('smart_tv', 0) > 0,
+                (int) $activeCounts->get(IctInventory::CATEGORY_SMART_TV, 0) > 0,
+
             'has_projected_whiteboard' =>
-                (int) $activeCounts->get('projector', 0) > 0,
+                $projectedWhiteboardCount > 0,
+
             'has_public_address_system' =>
-                (int) $activeCounts->get('pa_system', 0) > 0,
+                (int) $activeCounts->get(IctInventory::CATEGORY_PA_SYSTEM, 0) > 0,
+
+            'needs_maintenance' => $requiresMaintenance,
         ]);
     }
 }

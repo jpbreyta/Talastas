@@ -21,7 +21,7 @@
                                         Add New Institution
                                     </h2>
                                     <p class="mt-0.5 text-xs text-red-200">
-                                        Register an institution and its ICT information
+                                        Register the institution first, then complete its profile after creation
                                     </p>
                                 </div>
                             </div>
@@ -283,220 +283,49 @@
                                             class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-700">
                                             <i class="fa-solid fa-layer-group"></i>
                                         </div>
-                                        <div>
-                                            <h3 class="text-sm font-semibold text-gray-900">Institution Classification</h3>
-                                            <p class="mt-0.5 text-xs text-gray-500">Specify the institution type and
-                                                population</p>
-                                        </div>
-                                    </div>
-                                </div>
 
-                                <div class="grid grid-cols-1 gap-4 p-5 md:grid-cols-2">
-                                    <div>
-                                        <label for="modalType" class="mb-1.5 block text-xs font-semibold text-gray-600">
-                                            Sector Type
-                                            <span class="text-red-500">*</span>
-                                        </label>
-
-                                        <select name="type" id="modalType" required class="form-input w-full">
-                                            @foreach (['School', 'Barangay Hall', 'Local Government Office'] as $type)
-                                                <option value="{{ $type }}" @selected(old('type', 'School') === $type)>
-                                                    {{ $type }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-
-                                    <div class="modal-population-field" data-type="school">
-                                        <label for="modalStudentPop"
-                                            class="mb-1.5 block text-xs font-semibold text-gray-600">
-                                            Student Population
-                                            <span class="text-red-500">*</span>
-                                        </label>
-
-                                        <div class="relative">
-                                            <div
-                                                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                                                <i class="fa-solid fa-user-graduate text-sm"></i>
-                                            </div>
-                                            <input type="number" name="student_population" id="modalStudentPop"
-                                                value="{{ old('student_population') }}" min="0"
-                                                class="form-input w-full pl-9" placeholder="e.g. 1200">
-                                        </div>
-                                    </div>
-
-                                    <div class="modal-population-field hidden" data-type="other">
-                                        <label for="modalStaffPop"
-                                            class="mb-1.5 block text-xs font-semibold text-gray-600">
-                                            Staff Population
-                                            <span class="text-red-500">*</span>
-                                        </label>
-
-                                        <div class="relative">
-                                            <div
-                                                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                                                <i class="fa-solid fa-users text-sm"></i>
-                                            </div>
-                                            <input type="number" name="staff_population" id="modalStaffPop"
-                                                value="{{ old('staff_population') }}" min="0"
-                                                class="form-input w-full pl-9" placeholder="e.g. 45">
-                                        </div>
-                                    </div>
-                                </div>
-                            </section>
-
-                            {{-- Connectivity Information --}}
-                            <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                                <div class="border-b border-gray-200 bg-gray-50 px-5 py-4">
-                                    <div class="flex items-center gap-3">
-                                        <div
-                                            class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-700">
-                                            <i class="fa-solid fa-wifi"></i>
-                                        </div>
                                         <div>
                                             <h3 class="text-sm font-semibold text-gray-900">
-                                                Connectivity Information
+                                                Institution Classification
                                             </h3>
                                             <p class="mt-0.5 text-xs text-gray-500">
-                                                Enter the institution's current internet service details.
+                                                Choose the institution sector. The remaining information can be completed after creation.
                                             </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="space-y-4 p-5">
-                                    <div
-                                        class="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-                                        <span
-                                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-red-600 shadow-sm">
-                                            <i class="fa-solid fa-boxes-stacked"></i>
-                                        </span>
-
-                                        <div>
-                                            <p class="text-sm font-semibold text-red-900">
-                                                ICT equipment is inventory-controlled
-                                            </p>
-                                            <p class="mt-1 text-xs leading-5 text-red-700">
-                                                Save the institution first, then add its equipment through ICT Inventory.
-                                                Computer counts and facility availability are calculated automatically.
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                        <div>
-                                            <label for="modalInternet"
-                                                class="mb-1.5 block text-xs font-semibold text-gray-600">
-                                                Internet Speed
-                                                <span class="font-normal text-gray-400">(Mbps)</span>
-                                            </label>
-
-                                            <div class="relative">
-                                                <div
-                                                    class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                                                    <i class="fa-solid fa-gauge-high text-sm"></i>
-                                                </div>
-
-                                                <input type="number" step="0.1" name="internet_speed"
-                                                    id="modalInternet" value="{{ old('internet_speed') }}"
-                                                    min="0" class="form-input w-full pl-9" placeholder="e.g. 100">
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label for="modalIsp"
-                                                class="mb-1.5 block text-xs font-semibold text-gray-600">
-                                                ISP Provider
-                                            </label>
-
-                                            <div class="relative">
-                                                <div
-                                                    class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
-                                                    <i class="fa-solid fa-tower-broadcast text-sm"></i>
-                                                </div>
-
-                                                <input type="text" name="isp_provider" id="modalIsp"
-                                                    value="{{ old('isp_provider') }}" class="form-input w-full pl-9"
-                                                    placeholder="e.g. PLDT, Globe">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </section>
-
-                            {{-- Institution Status --}}
-                            <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                                <div class="border-b border-gray-200 bg-gray-50 px-5 py-4">
-                                    <div class="flex items-center gap-3">
-                                        <div
-                                            class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-700">
-                                            <i class="fa-solid fa-clipboard-check"></i>
-                                        </div>
-                                        <div>
-                                            <h3 class="text-sm font-semibold text-gray-900">Institution Status</h3>
-                                            <p class="mt-0.5 text-xs text-gray-500">Set operational and assessment flags
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2 lg:grid-cols-4">
-                                    <label class="feature-card">
-                                        <input type="checkbox" name="is_pilot_site" class="feature-checkbox"
-                                            @checked(old('is_pilot_site', true))>
-                                        <span class="feature-icon"><i class="fa-solid fa-flask"></i></span>
-                                        <span class="text-sm font-medium text-gray-700">Pilot Site</span>
-                                    </label>
-
-                                    <label class="feature-card">
-                                        <input type="checkbox" name="is_active" class="feature-checkbox"
-                                            @checked(old('is_active', true))>
-                                        <span class="feature-icon feature-icon-green"><i
-                                                class="fa-solid fa-circle-check"></i></span>
-                                        <span class="text-sm font-medium text-gray-700">Active</span>
-                                    </label>
-
-                                    <label class="feature-card">
-                                        <input type="checkbox" name="needs_maintenance" class="feature-checkbox"
-                                            @checked(old('needs_maintenance'))>
-                                        <span class="feature-icon feature-icon-orange"><i
-                                                class="fa-solid fa-screwdriver-wrench"></i></span>
-                                        <span class="text-sm font-medium text-gray-700">Needs Maintenance</span>
-                                    </label>
-
-                                    <label class="feature-card">
-                                        <input type="checkbox" name="requires_audit" class="feature-checkbox"
-                                            @checked(old('requires_audit', true))>
-                                        <span class="feature-icon feature-icon-yellow"><i
-                                                class="fa-solid fa-clipboard-list"></i></span>
-                                        <span class="text-sm font-medium text-gray-700">Requires Audit</span>
-                                    </label>
-                                </div>
-                            </section>
-
-                            {{-- Notes --}}
-                            <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                                <div class="border-b border-gray-200 bg-gray-50 px-5 py-4">
-                                    <div class="flex items-center gap-3">
-                                        <div
-                                            class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-700">
-                                            <i class="fa-solid fa-note-sticky"></i>
-                                        </div>
-                                        <div>
-                                            <h3 class="text-sm font-semibold text-gray-900">Additional Notes</h3>
-                                            <p class="mt-0.5 text-xs text-gray-500">Add other relevant information about
-                                                the institution</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="p-5">
-                                    <label for="modalNotes" class="mb-1.5 block text-xs font-semibold text-gray-600">
-                                        Notes
-                                        <span class="font-normal text-gray-400">(optional)</span>
+                                    <label for="modalType"
+                                        class="mb-1.5 block text-xs font-semibold text-gray-600">
+                                        Sector Type
+                                        <span class="text-red-500">*</span>
                                     </label>
-                                    <textarea name="notes" id="modalNotes" rows="3" class="form-input w-full resize-none"
-                                        placeholder="Enter additional notes about the institution...">{{ old('notes') }}</textarea>
+
+                                    <select name="type" id="modalType" required class="form-input w-full">
+                                        @foreach (['School', 'Barangay Hall', 'Local Government Office'] as $type)
+                                            <option value="{{ $type }}" @selected(old('type', 'School') === $type)>
+                                                {{ $type }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+
+                                    <div
+                                        class="mt-4 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+                                        <span
+                                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-blue-600 shadow-sm">
+                                            <i class="fa-solid fa-circle-info"></i>
+                                        </span>
+
+                                        <div>
+                                            <p class="text-sm font-semibold text-blue-900">
+                                                Complete the profile after creation
+                                            </p>
+                                            <p class="mt-1 text-xs leading-5 text-blue-700">
+                                                Population, connectivity, computer laboratory, audit settings, notes, and ICT inventory are added later from the institution edit and inventory pages.
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
                             </section>
                         </div>
@@ -716,8 +545,6 @@
             const modalName = document.getElementById('modalName');
             const selectedInstitutionName = document.getElementById('selectedInstitutionName');
             const modalType = document.getElementById('modalType');
-            const studentPopulation = document.getElementById('modalStudentPop');
-            const staffPopulation = document.getElementById('modalStaffPop');
             const barangayId = document.getElementById('modalBarangayId');
             const latitudeInput = document.getElementById('modalLatitude');
             const longitudeInput = document.getElementById('modalLongitude');
@@ -797,8 +624,6 @@
             cancelDeleteModalButton?.addEventListener('click', closeDeleteModal);
             deleteModalOverlay?.addEventListener('click', closeDeleteModal);
             confirmDeleteButton?.addEventListener('click', deleteInstitution);
-
-            modalType?.addEventListener('change', updatePopulationFields);
             geocodeButton?.addEventListener('click', searchLocations);
 
             document.addEventListener('keydown', event => {
@@ -884,7 +709,6 @@
                 modal.removeAttribute('aria-hidden');
                 modal.removeAttribute('inert');
                 document.body.style.overflow = 'hidden';
-                updatePopulationFields();
 
                 setTimeout(() => {
                     initializeMap();
@@ -906,7 +730,6 @@
                 hideSearchResults();
                 clearNameError();
                 form?.reset();
-                updatePopulationFields();
                 resetDetectedLocation(false);
 
                 if (mapPicker) {
@@ -1058,28 +881,6 @@
                 confirmDeleteButton.disabled = false;
                 confirmDeleteButton.innerHTML =
                     '<i class="fa-solid fa-trash"></i><span>Delete Institution</span>';
-            }
-
-            function updatePopulationFields() {
-                const isSchool = modalType.value === 'School';
-
-                document.querySelectorAll('.modal-population-field').forEach(field => {
-                    const type = field.dataset.type;
-                    const shouldHide =
-                        (type === 'school' && !isSchool) ||
-                        (type === 'other' && isSchool);
-
-                    field.classList.toggle('hidden', shouldHide);
-                });
-
-                studentPopulation.required = isSchool;
-                staffPopulation.required = !isSchool;
-
-                if (isSchool) {
-                    staffPopulation.value = '';
-                } else {
-                    studentPopulation.value = '';
-                }
             }
 
             function initializeMap() {
@@ -1520,8 +1321,6 @@
                 close: closeModal,
                 notify
             };
-
-            updatePopulationFields();
             resetDetectedLocation(false);
 
             @if ($errors->any())

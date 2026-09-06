@@ -1318,7 +1318,7 @@
 
             window.InstitutionModal = {
                 open: openModal,
-                close: closeModal,
+                close: closeModal, 
                 notify
             };
             resetDetectedLocation(false);

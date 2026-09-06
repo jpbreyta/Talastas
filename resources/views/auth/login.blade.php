@@ -51,6 +51,16 @@
                     transparent 1px
                 );
             background-size: 28px 28px;
+            animation: patternShift 60s ease-in-out infinite;
+        }
+
+        @keyframes patternShift {
+            0%, 100% {
+                background-position: 0 0;
+            }
+            50% {
+                background-position: 28px 28px;
+            }
         }
 
         .brand-gradient {
@@ -63,32 +73,221 @@
                 );
         }
 
+        /* TALASTAS Text Gradient & Glow */
+        .talastas-highlight {
+            background: linear-gradient(
+                135deg,
+                #FFFFFF 0%,
+                #FFD700 50%,
+                #FFFFFF 100%
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(214, 168, 75, 0.5);
+            animation: shimmer 3s ease-in-out infinite;
+            position: relative;
+        }
+
+        .talastas-glow {
+            text-shadow: 
+                0 0 20px rgba(214, 168, 75, 0.6),
+                0 0 40px rgba(214, 168, 75, 0.4),
+                0 0 60px rgba(214, 168, 75, 0.2);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% {
+                background-position: 0% 50%;
+            }
+            50% {
+                background-position: 100% 50%;
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                text-shadow: 
+                    0 0 20px rgba(214, 168, 75, 0.6),
+                    0 0 40px rgba(214, 168, 75, 0.4),
+                    0 0 60px rgba(214, 168, 75, 0.2);
+            }
+            50% {
+                text-shadow: 
+                    0 0 30px rgba(214, 168, 75, 0.8),
+                    0 0 50px rgba(214, 168, 75, 0.6),
+                    0 0 80px rgba(214, 168, 75, 0.4);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fadeInUp {
+            animation: fadeInUp 0.8s ease-out;
+        }
+
         .login-input {
             transition:
-                border-color 0.2s ease,
-                box-shadow 0.2s ease,
-                background-color 0.2s ease;
+                border-color 0.3s ease,
+                box-shadow 0.3s ease,
+                background-color 0.3s ease,
+                transform 0.2s ease;
+            background-color: #ffffff;
+            border: 1px solid #cbd5e1;
+        }
+
+        .login-input:hover {
+            border-color: #94a3b8;
         }
 
         .login-input:focus {
             border-color: #7A1F2B;
-            box-shadow: 0 0 0 4px rgba(122, 31, 43, 0.10);
+            background-color: #ffffff;
+            box-shadow: 
+                0 0 0 4px rgba(122, 31, 43, 0.10),
+                0 4px 12px rgba(122, 31, 43, 0.08);
+            transform: translateY(-1px);
+        }
+
+        .login-input:focus-visible {
+            outline: 2px solid #7A1F2B;
+            outline-offset: 2px;
         }
 
         .login-button {
+            position: relative;
+            overflow: hidden;
             transition:
-                background-color 0.2s ease,
-                transform 0.1s ease,
-                box-shadow 0.2s ease;
+                background-color 0.3s ease,
+                transform 0.2s ease,
+                box-shadow 0.3s ease;
+        }
+
+        .login-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+
+        .login-button:hover::before {
+            width: 300px;
+            height: 300px;
         }
 
         .login-button:hover {
             background-color: #58151E;
-            box-shadow: 0 10px 24px rgba(88, 21, 30, 0.20);
+            box-shadow: 
+                0 10px 30px rgba(88, 21, 30, 0.30),
+                0 0 20px rgba(214, 168, 75, 0.20);
+            transform: translateY(-2px);
         }
 
         .login-button:active {
-            transform: scale(0.99);
+            transform: translateY(0) scale(0.98);
+            box-shadow: 
+                0 5px 15px rgba(88, 21, 30, 0.20);
+        }
+
+        .login-button:focus-visible {
+            outline: 3px solid #D6A84B;
+            outline-offset: 3px;
+        }
+
+        /* Logo Glow Effect */
+        .logo-glow {
+            box-shadow: 
+                0 0 20px rgba(214, 168, 75, 0.4),
+                0 0 40px rgba(214, 168, 75, 0.2),
+                0 4px 20px rgba(122, 31, 43, 0.2);
+            animation: logoGlow 3s ease-in-out infinite;
+        }
+
+        @keyframes logoGlow {
+            0%, 100% {
+                box-shadow: 
+                    0 0 20px rgba(214, 168, 75, 0.4),
+                    0 0 40px rgba(214, 168, 75, 0.2),
+                    0 4px 20px rgba(122, 31, 43, 0.2);
+            }
+            50% {
+                box-shadow: 
+                    0 0 30px rgba(214, 168, 75, 0.6),
+                    0 0 60px rgba(214, 168, 75, 0.3),
+                    0 6px 30px rgba(122, 31, 43, 0.3);
+            }
+        }
+
+        /* Decorative elements animation */
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        /* Gold accent pulse */
+        .gold-pulse {
+            animation: goldPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes goldPulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.8;
+                transform: scale(1.05);
+            }
+        }
+
+        /* Password toggle button focus */
+        #togglePassword:focus-visible {
+            outline: 2px solid #7A1F2B;
+            outline-offset: 2px;
+            border-radius: 6px;
+        }
+
+        /* General focus-visible for all interactive elements */
+        button:focus-visible,
+        a:focus-visible {
+            outline: 2px solid #7A1F2B;
+            outline-offset: 2px;
+        }
+
+        /* Input error state */
+        .login-input.border-red-500 {
+            border-color: #ef4444 !important;
+        }
+
+        .login-input.border-red-500:focus {
+            border-color: #ef4444 !important;
+            box-shadow: 
+                0 0 0 4px rgba(239, 68, 68, 0.10),
+                0 4px 12px rgba(239, 68, 68, 0.08);
         }
     </style>
 </head>
@@ -257,8 +456,7 @@
                             flex
                             items-center
                             justify-center
-                            shadow-xl
-                            shadow-black/10
+                            logo-glow
                             overflow-hidden
                         "
                     >
@@ -276,6 +474,8 @@
                                 font-extrabold
                                 tracking-[0.16em]
                                 leading-none
+                                talastas-highlight
+                                talastas-glow
                             "
                         >
                             TALASTAS
@@ -284,9 +484,10 @@
                         <p
                             class="
                                 text-xs
-                                text-white/65
+                                text-white/80
                                 mt-2
                                 tracking-wide
+                                font-semibold
                             "
                         >
                             ICT Infrastructure Intelligence
@@ -300,22 +501,23 @@
                 <div class="max-w-2xl">
 
                     <!-- Tagline -->
-                    <div class="flex items-center gap-3 mb-5">
+                    <div class="flex items-center gap-3 mb-6">
 
                         <span
                             class="
                                 block
                                 h-0.5
-                                w-10
+                                w-12
                                 bg-[#D6A84B]
+                                gold-pulse
                             "
                         ></span>
 
                         <p
                             class="
                                 uppercase
-                                tracking-[0.22em]
-                                text-[11px]
+                                tracking-[0.24em]
+                                text-xs
                                 font-bold
                                 text-[#E7C36C]
                             "
@@ -328,50 +530,52 @@
                     <!-- Main Heading -->
                     <h2
                         class="
-                            text-[40px]
-                            xl:text-[52px]
-                            leading-[1.08]
-                            font-bold
-                            tracking-[-0.03em]
+                            text-[42px]
+                            xl:text-[56px]
+                            leading-[1.05]
+                            font-extrabold
+                            tracking-[-0.04em]
                             max-w-xl
+                            animate-fadeInUp
                         "
                     >
-                        Know the infrastructure.
-                        Understand the
-                        <span class="text-[#E7C36C]">
-                            digital gaps.
+                        ICT Infrastructure
+                        <span class="text-[#E7C36C] talastas-glow">
+                            Intelligence
                         </span>
                     </h2>
 
                     <!-- Description -->
                     <p
                         class="
-                            mt-7
-                            text-[15px]
-                            xl:text-base
-                            leading-7
-                            text-white/70
-                            max-w-xl
+                            mt-6
+                            text-base
+                            leading-relaxed
+                            text-white/75
+                            max-w-lg
                         "
                     >
-                        A GIS-based ICT infrastructure mapping,
-                        gap analysis, and decision-support platform
-                        designed for public institutions across
-                        Lipa City.
+                        GIS-based infrastructure mapping and gap analysis
+                        for Lipa City's public institutions.
                     </p>
 
                     <!-- TALASTAS Meaning -->
                     <div
                         class="
-                            mt-10
-                            max-w-xl
-                            rounded-xl
+                            mt-12
+                            max-w-lg
+                            rounded-2xl
                             border
-                            border-white/10
+                            border-white/15
                             bg-white/5
                             backdrop-blur-sm
-                            px-6
-                            py-5
+                            px-7
+                            py-6
+                            hover:bg-white/10
+                            hover:border-white/25
+                            transition-all
+                            duration-300
+                            float-animation
                         "
                     >
                         <div class="flex gap-4">
@@ -379,11 +583,12 @@
                             <div
                                 class="
                                     mt-1
-                                    h-9
+                                    h-10
                                     w-1
                                     rounded-full
                                     bg-[#D6A84B]
                                     shrink-0
+                                    gold-pulse
                                 "
                             ></div>
 
@@ -391,151 +596,32 @@
 
                                 <p
                                     class="
-                                        text-[10px]
+                                        text-xs
                                         uppercase
-                                        tracking-[0.22em]
+                                        tracking-[0.2em]
                                         font-semibold
-                                        text-white/50
+                                        text-white/60
+                                        mb-3
                                     "
                                 >
-                                    TALASTAS
+                                    <span class="talastas-highlight font-extrabold text-sm">TALASTAS</span>
                                 </p>
 
                                 <p
                                     class="
-                                        mt-2
-                                        text-sm
-                                        leading-6
-                                        text-white/90
-                                        font-medium
+                                        text-[15px]
+                                        leading-relaxed
+                                        text-white/95
+                                        font-semibold
                                     "
                                 >
                                     Technology And Location Analytics
                                     Spatial Tracking & Assessment System
                                 </p>
 
-                                <p
-                                    class="
-                                        mt-3
-                                        text-xs
-                                        leading-5
-                                        text-white/55
-                                    "
-                                >
-                                    Transforming spatial ICT infrastructure
-                                    data into meaningful information for
-                                    monitoring, analysis, planning, and
-                                    informed decision-making.
-                                </p>
-
                             </div>
 
                         </div>
-                    </div>
-
-                    <!-- Feature Indicators -->
-                    <div
-                        class="
-                            mt-10
-                            flex
-                            flex-wrap
-                            gap-x-8
-                            gap-y-4
-                        "
-                    >
-
-                        <!-- GIS Mapping -->
-                        <div class="flex items-center gap-2">
-
-                            <div
-                                class="
-                                    w-2
-                                    h-2
-                                    rounded-full
-                                    bg-[#D6A84B]
-                                "
-                            ></div>
-
-                            <span
-                                class="
-                                    text-xs
-                                    text-white/65
-                                "
-                            >
-                                GIS Mapping
-                            </span>
-
-                        </div>
-
-                        <!-- Gap Analysis -->
-                        <div class="flex items-center gap-2">
-
-                            <div
-                                class="
-                                    w-2
-                                    h-2
-                                    rounded-full
-                                    bg-[#D6A84B]
-                                "
-                            ></div>
-
-                            <span
-                                class="
-                                    text-xs
-                                    text-white/65
-                                "
-                            >
-                                Gap Analysis
-                            </span>
-
-                        </div>
-
-                        <!-- Analytics -->
-                        <div class="flex items-center gap-2">
-
-                            <div
-                                class="
-                                    w-2
-                                    h-2
-                                    rounded-full
-                                    bg-[#D6A84B]
-                                "
-                            ></div>
-
-                            <span
-                                class="
-                                    text-xs
-                                    text-white/65
-                                "
-                            >
-                                Business Analytics
-                            </span>
-
-                        </div>
-
-                        <!-- Decision Support -->
-                        <div class="flex items-center gap-2">
-
-                            <div
-                                class="
-                                    w-2
-                                    h-2
-                                    rounded-full
-                                    bg-[#D6A84B]
-                                "
-                            ></div>
-
-                            <span
-                                class="
-                                    text-xs
-                                    text-white/65
-                                "
-                            >
-                                Decision Support
-                            </span>
-
-                        </div>
-
                     </div>
 
                 </div>
@@ -550,45 +636,18 @@
                             border-t
                             border-white/10
                             pt-5
-                            flex
-                            items-center
-                            justify-between
-                            gap-6
                         "
                     >
 
-                        <div>
-                            <p
-                                class="
-                                    text-[11px]
-                                    text-white/50
-                                "
-                            >
-                                ICT Infrastructure Mapping,
-                                Gap Analysis & Decision Support
-                            </p>
-
-                            <p
-                                class="
-                                    text-[11px]
-                                    text-white/35
-                                    mt-1
-                                "
-                            >
-                                Lipa City, Batangas
-                            </p>
-                        </div>
-
-                        <div
+                        <p
                             class="
-                                text-[10px]
-                                uppercase
-                                tracking-[0.16em]
-                                text-white/30
+                                text-xs
+                                text-white/60
+                                font-medium
                             "
                         >
-                            TALASTAS
-                        </div>
+                            Lipa City, Batangas
+                        </p>
 
                     </div>
 
@@ -623,7 +682,7 @@
                 <!-- ====================================================
                      MOBILE BRANDING
                 ===================================================== -->
-                <div class="lg:hidden mb-10 text-center">
+                <div class="lg:hidden mb-10 text-center animate-fadeInUp">
 
                     <div
                         class="
@@ -635,8 +694,7 @@
                             flex
                             items-center
                             justify-center
-                            shadow-lg
-                            shadow-[#7A1F2B]/20
+                            logo-glow
                         "
                     >
 
@@ -662,6 +720,13 @@
                             font-extrabold
                             tracking-[0.14em]
                             text-[#7A1F2B]
+                            talastas-highlight
+                        "
+                        style="
+                            background: linear-gradient(135deg, #7A1F2B 0%, #D6A84B 50%, #7A1F2B 100%);
+                            -webkit-background-clip: text;
+                            -webkit-text-fill-color: transparent;
+                            background-clip: text;
                         "
                     >
                         TALASTAS
@@ -671,7 +736,7 @@
                         class="
                             mt-1
                             text-xs
-                            font-medium
+                            font-bold
                             text-[#7A1F2B]/70
                         "
                     >
@@ -698,6 +763,10 @@
                             text-[11px]
                             font-semibold
                             text-[#7A1F2B]
+                            hover:bg-[#7A1F2B]
+                            hover:text-white
+                            transition-all
+                            duration-300
                         "
                     >
 
@@ -707,6 +776,7 @@
                                 h-1.5
                                 rounded-full
                                 bg-[#7A1F2B]
+                                gold-pulse
                             "
                         ></span>
 
@@ -725,20 +795,19 @@
                             text-slate-900
                         "
                     >
-                        LGU Administrator Portal
+                        Administrator Portal
                     </h2>
 
                     <p
                         class="
                             mt-3
                             text-sm
-                            leading-6
-                            text-slate-500
+                            leading-relaxed
+                            text-slate-600
+                            font-medium
                         "
                     >
-                        Sign in to access TALASTAS infrastructure
-                        mapping, analytics, assessment, and
-                        decision-support tools.
+                        Sign in to the platform.
                     </p>
 
                 </div>
@@ -817,9 +886,8 @@
                                     pl-12
                                     pr-4
                                     py-3.5
-                                    bg-white
                                     border
-                                    {{ $errors->has('email') ? 'border-red-500' : 'border-slate-300' }}
+                                    {{ $errors->has('email') ? 'border-red-500' : '' }}
                                     rounded-xl
                                     text-sm
                                     text-slate-900
@@ -922,9 +990,8 @@
                                     pl-12
                                     pr-12
                                     py-3.5
-                                    bg-white
                                     border
-                                    {{ $errors->has('password') ? 'border-red-500' : 'border-slate-300' }}
+                                    {{ $errors->has('password') ? 'border-red-500' : '' }}
                                     rounded-xl
                                     text-sm
                                     text-slate-900
@@ -946,7 +1013,8 @@
                                     pr-4
                                     text-slate-400
                                     hover:text-[#7A1F2B]
-                                    transition
+                                    transition-colors
+                                    duration-200
                                 "
                                 aria-label="Toggle password visibility"
                             >
@@ -1047,13 +1115,15 @@
                             focus:outline-none
                             focus:ring-4
                             focus:ring-[#7A1F2B]/15
+                            relative
+                            overflow-hidden
                         "
                     >
 
-                        <span>Sign In to TALASTAS</span>
+                        <span class="relative z-10">Sign In</span>
 
                         <svg
-                            class="w-4 h-4"
+                            class="w-4 h-4 relative z-10"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -1123,23 +1193,22 @@
                                 class="
                                     text-xs
                                     font-semibold
-                                    text-slate-700
+                                    text-slate-800
                                 "
                             >
-                                Secure Administrator Access
+                                Secure Access
                             </p>
 
                             <p
                                 class="
-                                    mt-1
+                                    mt-1.5
                                     text-[11px]
-                                    leading-4.5
-                                    text-slate-500
+                                    leading-relaxed
+                                    text-slate-600
                                 "
                             >
-                                Access is restricted to authorized personnel.
-                                System activities may be recorded for security,
-                                accountability, and auditing purposes.
+                                Access restricted to authorized personnel.
+                                Activities are monitored for security.
                             </p>
 
                         </div>
@@ -1147,74 +1216,6 @@
                     </div>
 
                 </div>
-
-                <!-- ====================================================
-                     BOTTOM BRANDING
-                ===================================================== -->
-                <footer class="mt-9 text-center">
-
-                    <div
-                        class="
-                            flex
-                            items-center
-                            gap-3
-                            mb-5
-                        "
-                    >
-
-                        <div
-                            class="
-                                flex-1
-                                h-px
-                                bg-slate-200
-                            "
-                        ></div>
-
-                        <span
-                            class="
-                                text-[10px]
-                                uppercase
-                                tracking-[0.18em]
-                                font-semibold
-                                text-slate-400
-                            "
-                        >
-                            TALASTAS
-                        </span>
-
-                        <div
-                            class="
-                                flex-1
-                                h-px
-                                bg-slate-200
-                            "
-                        ></div>
-
-                    </div>
-
-                    <p
-                        class="
-                            text-[10px]
-                            leading-4
-                            text-slate-400
-                        "
-                    >
-                        Technology And Location Analytics
-                        Spatial Tracking & Assessment System
-                    </p>
-
-                    <p
-                        class="
-                            mt-2
-                            text-[10px]
-                            text-slate-400
-                        "
-                    >
-                        ICT Infrastructure Mapping and Gap Analysis
-                        for Public Institutions of Lipa City
-                    </p>
-
-                </footer>
 
             </div>
 

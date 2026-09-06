@@ -1308,7 +1308,7 @@
                 });
 
                 setTimeout(removeToast, 4000);
-            }
+            }   
 
             function escapeHtml(value) {
                 const element = document.createElement('div');

@@ -16,23 +16,23 @@ return new class extends Migration
             $table->string('code', 10)->unique();
             $table->string('district', 20)->nullable();
 
-            // GeoJSON used by Laravel, Leaflet, and Flutter.
-            $table->json('geometry')->nullable();
+            // GeoJSON copy used by Laravel/Leaflet for direct client-side rendering.
+            $table->jsonb('geometry')->nullable();
 
-            $table->integer('population')->nullable();
-            $table->integer('total_institutions')->default(0);
+            $table->unsignedInteger('population')->nullable();
+            $table->unsignedInteger('total_institutions')->default(0);
             $table->text('notes')->nullable();
 
             $table->timestamps();
         });
 
-        // Create the PostGIS spatial geometry column.
+        // PostGIS geometry used for spatial queries such as ST_Contains/ST_Intersects.
+        // Ensure the PostGIS extension is enabled in Supabase before running migrations.
         DB::statement(
             'ALTER TABLE barangays
              ADD COLUMN geom geometry(MultiPolygon, 4326)'
         );
 
-        // Spatial index for faster ST_Contains and ST_Intersects queries.
         DB::statement(
             'CREATE INDEX barangays_geom_gist_index
              ON barangays

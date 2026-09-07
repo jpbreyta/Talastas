@@ -4,9 +4,10 @@ namespace App\Observers;
 
 use App\Models\AuditRecord;
 use App\Models\Institution;
+use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 use Illuminate\Support\Facades\Auth;
 
-class InstitutionObserver
+class InstitutionObserver implements ShouldHandleEventsAfterCommit
 {
     public function updated(Institution $institution): void
     {
@@ -23,6 +24,7 @@ class InstitutionObserver
             'user_id' => Auth::id(),
             'audit_date' => $institution->last_audited_at->toDateString(),
             'validation_status' => 'completed',
+            'notes' => $institution->audit_notes,
         ]);
     }
 }

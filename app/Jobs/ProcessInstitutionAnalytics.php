@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\IctInventory;
 use App\Models\Institution;
 use App\Models\InstitutionAnalytics;
 use App\Services\GeminiService;
@@ -11,6 +12,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Http\Client\Response;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -48,45 +50,53 @@ class ProcessInstitutionAnalytics implements ShouldQueue
         if (!$institution) {
             Log::warning(
                 'Institution analytics job skipped because the institution was not found.',
-                [
-                    'institution_id' => $this->institutionId,
-                ]
+                ['institution_id' => $this->institutionId]
             );
 
             return;
         }
 
-        $pythonPayload = $this->buildPythonPayload(
-            $institution
-        );
+        $pythonPayload =
+            $this->buildPythonPayload($institution);
 
-        $pythonResult = $this->requestPythonAnalysis(
-            $pythonPayload,
-            $institution
-        );
+        $pythonResult =
+            $this->requestPythonAnalysis(
+                $pythonPayload,
+                $institution
+            );
 
         $scores = $pythonResult !== null
             ? $this->normalizeScores(
                 $pythonResult,
-                $institution
+                $institution,
+                $pythonPayload
             )
             : $this->fallbackScores(
                 $institution,
                 $pythonPayload
             );
 
-        $aiResult = $geminiService->analyzeInfrastructure(
-            $institution,
-            $scores
-        );
+        $aiResult =
+            $geminiService->analyzeInfrastructure(
+                $institution,
+                $scores
+            );
 
         $recommendationDetails = array_merge(
             $aiResult['recommendations_detail'] ?? [],
             [
-                'score_source' => $pythonResult !== null
-                    ? 'python_service'
-                    : 'local_deterministic_fallback',
-                'python_service_used' => $pythonResult !== null,
+                'score_source' =>
+                    $pythonResult !== null
+                        ? 'python_service'
+                        : 'local_deterministic_fallback',
+
+                'python_service_used' =>
+                    $pythonResult !== null,
+
+                'specification_coverage_score' =>
+                    $pythonPayload[
+                        'specification_coverage_score'
+                    ] ?? null,
             ]
         );
 
@@ -96,44 +106,66 @@ class ProcessInstitutionAnalytics implements ShouldQueue
             $aiResult,
             $recommendationDetails
         ): void {
-            InstitutionAnalytics::query()->updateOrCreate(
-                [
-                    'institution_id' => $institution->id,
-                ],
-                [
-                    'gap_score' => $scores['gap_score'],
-                    'risk_level' => $scores['risk_level'],
-                    'data_completeness_score' =>
-                        $scores['data_completeness_score'],
+            InstitutionAnalytics::query()
+                ->updateOrCreate(
+                    [
+                        'institution_id' =>
+                            $institution->id,
+                    ],
+                    [
+                        'gap_score' =>
+                            $scores['gap_score'],
 
-                    'infrastructure_deficit_score' =>
-                        $scores['infrastructure_deficit_score'],
+                        'risk_level' =>
+                            $scores['risk_level'],
 
-                    'connectivity_divide_score' =>
-                        $scores['connectivity_divide_score'],
+                        'data_completeness_score' =>
+                            $scores[
+                                'data_completeness_score'
+                            ],
 
-                    'technological_obsolescence_score' =>
-                        $scores['technological_obsolescence_score'],
+                        'infrastructure_deficit_score' =>
+                            $scores[
+                                'infrastructure_deficit_score'
+                            ],
 
-                    'asset_to_user_ratio' =>
-                        $scores['asset_to_user_ratio'],
+                        'connectivity_divide_score' =>
+                            $scores[
+                                'connectivity_divide_score'
+                            ],
 
-                    'infrastructure_narrative' =>
-                        $aiResult['infrastructure_narrative'],
+                        'technological_obsolescence_score' =>
+                            $scores[
+                                'technological_obsolescence_score'
+                            ],
 
-                    'policy_recommendation' =>
-                        $aiResult['policy_recommendation'],
+                        'asset_to_user_ratio' =>
+                            $scores[
+                                'asset_to_user_ratio'
+                            ],
 
-                    'recommendations_detail' =>
-                        $recommendationDetails,
+                        'infrastructure_narrative' =>
+                            $aiResult[
+                                'infrastructure_narrative'
+                            ],
 
-                    'analysis_date' => now(),
-                ]
-            );
+                        'policy_recommendation' =>
+                            $aiResult[
+                                'policy_recommendation'
+                            ],
+
+                        'recommendations_detail' =>
+                            $recommendationDetails,
+
+                        'analysis_date' => now(),
+                    ]
+                );
 
             $institution->forceFill([
                 'data_completeness_score' =>
-                    $scores['data_completeness_score'],
+                    $scores[
+                        'data_completeness_score'
+                    ],
             ])->saveQuietly();
         });
     }
@@ -154,16 +186,13 @@ class ProcessInstitutionAnalytics implements ShouldQueue
             $response = Http::acceptJson()
                 ->asJson()
                 ->connectTimeout(3)
-                ->timeout((int) config(
-                    'services.python_analytics.timeout',
-                    15
-                ))
-                ->retry(
-                    2,
-                    250,
-                    null,
-                    false
+                ->timeout(
+                    (int) config(
+                        'services.python_analytics.timeout',
+                        15
+                    )
                 )
+                ->retry(2, 250, null, false)
                 ->post(
                     $baseUrl . '/analyze',
                     $payload
@@ -183,9 +212,7 @@ class ProcessInstitutionAnalytics implements ShouldQueue
             if (!is_array($data)) {
                 Log::warning(
                     'Python analytics returned an invalid response.',
-                    [
-                        'institution_id' => $institution->id,
-                    ]
+                    ['institution_id' => $institution->id]
                 );
 
                 return null;
@@ -223,47 +250,141 @@ class ProcessInstitutionAnalytics implements ShouldQueue
         );
     }
 
+    /**
+     * Build a quantity-aware payload.
+     *
+     * One ict_inventory row can now represent multiple identical/similar assets,
+     * so analytics must use SUM(quantity) rather than row counts.
+     */
     protected function buildPythonPayload(
         Institution $institution
     ): array {
+        /** @var Collection<int, IctInventory> $inventory */
         $inventory = $institution->ictInventory;
         $currentYear = (int) now()->format('Y');
 
         $activeInventory = $inventory->filter(
-            fn ($item) => !$this->containsAny(
-                $item->status,
-                [
-                    'retired',
-                    'inactive',
-                    'disposed',
-                ]
+            fn (IctInventory $item): bool =>
+                $this->normalized($item->status)
+                    === IctInventory::STATUS_ACTIVE
+        );
+
+        $totalInventoryCount =
+            $this->sumQuantities($inventory);
+
+        $activeInventoryCount =
+            $this->sumQuantities($activeInventory);
+
+        $computerCount = $this->sumQuantities(
+            $activeInventory->filter(
+                fn (IctInventory $item): bool =>
+                    in_array(
+                        $this->normalized($item->category),
+                        IctInventory::COMPUTER_CATEGORIES,
+                        true
+                    )
             )
         );
 
-        $years = $inventory
-            ->pluck('acquisition_year')
-            ->filter(fn ($year) => is_numeric($year))
-            ->map(fn ($year) => (int) $year)
-            ->values();
+        $smartTvCount = $this->sumQuantities(
+            $activeInventory->filter(
+                fn (IctInventory $item): bool =>
+                    $this->normalized($item->category)
+                    === IctInventory::CATEGORY_SMART_TV
+            )
+        );
 
-        $averageAge = $years->isEmpty()
-            ? null
-            : round(
-                $years
-                    ->map(
-                        fn (int $year) =>
-                            max(0, $currentYear - $year)
+        $projectorCount = $this->sumQuantities(
+            $activeInventory->filter(
+                fn (IctInventory $item): bool =>
+                    in_array(
+                        $this->normalized($item->category),
+                        [
+                            IctInventory::CATEGORY_PROJECTOR,
+                            IctInventory::CATEGORY_PROJECTED_WHITEBOARD,
+                        ],
+                        true
                     )
-                    ->average(),
-                2
+            )
+        );
+
+        $paSystemCount = $this->sumQuantities(
+            $activeInventory->filter(
+                fn (IctInventory $item): bool =>
+                    $this->normalized($item->category)
+                    === IctInventory::CATEGORY_PA_SYSTEM
+            )
+        );
+
+        $oldEquipmentCount = $this->sumQuantities(
+            $inventory->filter(
+                fn (IctInventory $item): bool =>
+                    is_numeric($item->acquisition_year)
+                    && (int) $item->acquisition_year
+                        <= $currentYear - 5
+            )
+        );
+
+        $poorConditionCount = $this->sumQuantities(
+            $inventory->filter(
+                fn (IctInventory $item): bool =>
+                    in_array(
+                        $this->normalized($item->condition),
+                        ['poor', 'needs_repair'],
+                        true
+                    )
+            )
+        );
+
+        $needsRepairCount = $this->sumQuantities(
+            $inventory->filter(
+                fn (IctInventory $item): bool =>
+                    (bool) $item->needs_maintenance
+                    || $this->normalized($item->status)
+                        === 'under_repair'
+                    || $this->normalized($item->condition)
+                        === 'needs_repair'
+            )
+        );
+
+        $retiredEquipmentCount = $this->sumQuantities(
+            $inventory->filter(
+                fn (IctInventory $item): bool =>
+                    in_array(
+                        $this->normalized($item->status),
+                        ['retired', 'disposed'],
+                        true
+                    )
+            )
+        );
+
+        $assetsWithSpecsCount = $this->sumQuantities(
+            $activeInventory->filter(
+                fn (IctInventory $item): bool =>
+                    is_array($item->specifications)
+                    && $item->specifications !== []
+            )
+        );
+
+        $specificationCoverage = $activeInventoryCount <= 0
+            ? 100.0
+            : $this->score(
+                ($assetsWithSpecsCount
+                    / $activeInventoryCount) * 100
             );
+
+        $averageAge = $this->weightedAverageAge(
+            $inventory,
+            $currentYear
+        );
 
         return [
             'id' => $institution->id,
             'name' => $institution->name,
             'institution_type' => $institution->type,
 
-            'internet_speed' => $institution->internet_speed,
+            'internet_speed' =>
+                $institution->internet_speed,
 
             'student_population' =>
                 $institution->student_population,
@@ -281,115 +402,113 @@ class ProcessInstitutionAnalytics implements ShouldQueue
                 (bool) $institution->has_smart_tv,
 
             'has_projected_whiteboard' =>
-                (bool) $institution->has_projected_whiteboard,
+                (bool) $institution
+                    ->has_projected_whiteboard,
 
             'has_public_address_system' =>
-                (bool) $institution->has_public_address_system,
+                (bool) $institution
+                    ->has_public_address_system,
 
             'active_computers_count' =>
-                $institution->number_of_computers,
+                $computerCount,
 
-            'smart_tvs_count' => $activeInventory
-                ->filter(
-                    fn ($item) => $this->containsAny(
-                        $item->category,
-                        [
-                            'smart tv',
-                            'smart television',
-                        ]
-                    )
-                )
-                ->count(),
+            'smart_tvs_count' =>
+                $smartTvCount,
 
-            'projectors_count' => $activeInventory
-                ->filter(
-                    fn ($item) => $this->containsAny(
-                        $item->category,
-                        [
-                            'projector',
-                            'projected whiteboard',
-                        ]
-                    )
-                )
-                ->count(),
+            'projectors_count' =>
+                $projectorCount,
 
-            'pa_systems_count' => $activeInventory
-                ->filter(
-                    fn ($item) => $this->containsAny(
-                        $item->category,
-                        [
-                            'public address',
-                            'pa system',
-                        ]
-                    )
-                )
-                ->count(),
+            'pa_systems_count' =>
+                $paSystemCount,
 
             'total_inventory_count' =>
-                $inventory->count(),
+                $totalInventoryCount,
 
-            'old_equipment_count' => $inventory
-                ->filter(
-                    fn ($item) =>
-                        is_numeric($item->acquisition_year)
-                        && (int) $item->acquisition_year
-                            <= $currentYear - 5
+            'active_inventory_count' =>
+                $activeInventoryCount,
+
+            'old_equipment_count' =>
+                $oldEquipmentCount,
+
+            'poor_condition_count' =>
+                $poorConditionCount,
+
+            'needs_repair_count' =>
+                $needsRepairCount,
+
+            'retired_equipment_count' =>
+                $retiredEquipmentCount,
+
+            'average_equipment_age' =>
+                $averageAge,
+
+            'assets_with_specifications_count' =>
+                $assetsWithSpecsCount,
+
+            'specification_coverage_score' =>
+                $specificationCoverage,
+
+            /*
+             * Raw grouped inventory is included so the Python service can later
+             * apply researched specification standards without another Laravel
+             * schema redesign.
+             */
+            'inventory' => $inventory
+                ->map(
+                    fn (IctInventory $item): array => [
+                        'asset_id' =>
+                            (int) $item->asset_id,
+
+                        'category' =>
+                            $this->normalized(
+                                $item->category
+                            ),
+
+                        'asset_name' =>
+                            $item->asset_name,
+
+                        'brand' =>
+                            $item->brand,
+
+                        'model' =>
+                            $item->model,
+
+                        'quantity' =>
+                            $this->quantity($item),
+
+                        'condition' =>
+                            $this->normalized(
+                                $item->condition
+                            ),
+
+                        'status' =>
+                            $this->normalized(
+                                $item->status
+                            ),
+
+                        'acquisition_year' =>
+                            $item->acquisition_year,
+
+                        'location' =>
+                            $item->location,
+
+                        'needs_maintenance' =>
+                            (bool) $item
+                                ->needs_maintenance,
+
+                        'specifications' =>
+                            $item->specifications ?? [],
+                    ]
                 )
-                ->count(),
-
-            'poor_condition_count' => $inventory
-                ->filter(
-                    fn ($item) => $this->containsAny(
-                        $item->condition,
-                        [
-                            'poor',
-                            'damaged',
-                            'critical',
-                            'needs maintenance',
-                        ]
-                    )
-                )
-                ->count(),
-
-            'needs_repair_count' => $inventory
-                ->filter(
-                    fn ($item) =>
-                        $this->containsAny(
-                            $item->status,
-                            [
-                                'repair',
-                                'maintenance',
-                            ]
-                        )
-                        || $this->containsAny(
-                            $item->condition,
-                            [
-                                'needs maintenance',
-                                'damaged',
-                            ]
-                        )
-                )
-                ->count(),
-
-            'retired_equipment_count' => $inventory
-                ->filter(
-                    fn ($item) => $this->containsAny(
-                        $item->status,
-                        [
-                            'retired',
-                            'disposed',
-                        ]
-                    )
-                )
-                ->count(),
-
-            'average_equipment_age' => $averageAge,
+                ->values()
+                ->all(),
         ];
     }
 
     protected function normalizeScores(
         array $result,
-        Institution $institution
+        Institution $institution,
+        array $payload
     ): array {
         $gapScore = $this->nullableScore(
             $result['gap_score'] ?? null
@@ -408,10 +527,9 @@ class ProcessInstitutionAnalytics implements ShouldQueue
             'data_completeness_score' =>
                 $this->score(
                     $result['data_completeness_score']
-                        ?? $institution
-                            ->institutionAnalytics
-                            ?->data_completeness_score
-                        ?? 0
+                        ?? $this->calculateCompleteness(
+                            $payload
+                        )
                 ),
 
             'infrastructure_deficit_score' =>
@@ -436,7 +554,15 @@ class ProcessInstitutionAnalytics implements ShouldQueue
                 ),
 
             'asset_to_user_ratio' =>
-                $this->assetToUserRatio($institution),
+                $this->normalizeRatio(
+                    $result['asset_to_user_ratio']
+                        ?? $this->assetToUserRatio(
+                            $institution,
+                            $payload[
+                                'active_computers_count'
+                            ]
+                        )
+                ),
         ];
     }
 
@@ -444,48 +570,56 @@ class ProcessInstitutionAnalytics implements ShouldQueue
         Institution $institution,
         array $payload
     ): array {
-        $completeness = $this->calculateCompleteness(
-            $payload
-        );
+        $completeness =
+            $this->calculateCompleteness($payload);
 
-        $infrastructure = $this->infrastructureDeficit(
-            $payload
-        );
+        $infrastructure =
+            $this->infrastructureDeficit($payload);
 
-        $connectivity = $this->connectivityDeficit(
-            $payload['internet_speed']
-        );
+        $connectivity =
+            $this->connectivityDeficit(
+                $payload['internet_speed']
+            );
 
-        $obsolescence = $this->obsolescenceDeficit(
-            $payload
-        );
+        $obsolescence =
+            $this->obsolescenceDeficit($payload);
 
         $hasRequiredData =
             $completeness >= 60
             && $payload['internet_speed'] !== null
-            && $payload['active_computers_count'] !== null
-            && $payload['total_inventory_count'] !== null
+            && $payload[
+                'active_computers_count'
+            ] !== null
+            && $payload[
+                'total_inventory_count'
+            ] !== null
             && (
-                $payload['institution_type'] === 'School'
-                    ? $payload['student_population'] !== null
-                    : $payload['staff_population'] !== null
+                $payload['institution_type']
+                    === 'School'
+                    ? $payload[
+                        'student_population'
+                    ] !== null
+                    : $payload[
+                        'staff_population'
+                    ] !== null
             );
 
         $gapScore = $hasRequiredData
             ? $this->weightedAverage([
-                [$infrastructure, 0.40],
-                [$connectivity, 0.35],
-                [$obsolescence, 0.25],
+                [$infrastructure, 40],
+                [$connectivity, 35],
+                [$obsolescence, 25],
             ])
             : null;
 
         return [
             'gap_score' => $gapScore,
 
-            'risk_level' => $this->normalizeRiskLevel(
-                null,
-                $gapScore
-            ),
+            'risk_level' =>
+                $this->normalizeRiskLevel(
+                    null,
+                    $gapScore
+                ),
 
             'data_completeness_score' =>
                 $completeness,
@@ -500,10 +634,23 @@ class ProcessInstitutionAnalytics implements ShouldQueue
                 $obsolescence,
 
             'asset_to_user_ratio' =>
-                $this->assetToUserRatio($institution),
+                $this->assetToUserRatio(
+                    $institution,
+                    $payload[
+                        'active_computers_count'
+                    ]
+                ),
         ];
     }
 
+    /**
+     * Specification coverage now contributes to completeness because detailed
+     * asset capability data is part of the revised inventory design.
+     *
+     * It does NOT directly affect technological obsolescence yet. A capability
+     * threshold should be backed by the standards/research adopted by the study
+     * before processor/RAM/OS values are used as obsolescence penalties.
+     */
     protected function calculateCompleteness(
         array $payload
     ): float {
@@ -512,9 +659,10 @@ class ProcessInstitutionAnalytics implements ShouldQueue
             $payload['internet_speed'],
             $payload['active_computers_count'],
             $payload['total_inventory_count'],
-            $payload['institution_type'] === 'School'
-                ? $payload['student_population']
-                : $payload['staff_population'],
+            $payload['institution_type']
+                === 'School'
+                    ? $payload['student_population']
+                    : $payload['staff_population'],
         ];
 
         $supportingFields = [
@@ -532,23 +680,41 @@ class ProcessInstitutionAnalytics implements ShouldQueue
             $payload['average_equipment_age'],
         ];
 
-        $requiredComplete = collect($requiredFields)
-            ->filter(fn ($value) => $value !== null)
-            ->count();
+        $requiredComplete =
+            collect($requiredFields)
+                ->filter(
+                    fn (mixed $value): bool =>
+                        $value !== null
+                )
+                ->count();
 
-        $supportingComplete = collect($supportingFields)
-            ->filter(fn ($value) => $value !== null)
-            ->count();
+        $supportingComplete =
+            collect($supportingFields)
+                ->filter(
+                    fn (mixed $value): bool =>
+                        $value !== null
+                )
+                ->count();
 
-        $requiredScore =
-            $requiredComplete / count($requiredFields);
+        $requiredRatio =
+            $requiredComplete
+            / count($requiredFields);
 
-        $supportingScore =
-            $supportingComplete / count($supportingFields);
+        $supportingRatio =
+            $supportingComplete
+            / count($supportingFields);
+
+        $specificationCoverage =
+            $this->score(
+                $payload[
+                    'specification_coverage_score'
+                ] ?? 0
+            ) / 100;
 
         return $this->score(
-            ($requiredScore * 70)
-            + ($supportingScore * 30)
+            ($requiredRatio * 65)
+            + ($supportingRatio * 20)
+            + ($specificationCoverage * 15)
         );
     }
 
@@ -560,7 +726,8 @@ class ProcessInstitutionAnalytics implements ShouldQueue
                 ? $payload['student_population']
                 : $payload['staff_population'];
 
-        $computers = $payload['active_computers_count'];
+        $computers =
+            $payload['active_computers_count'];
 
         $assetDeficit = null;
 
@@ -576,7 +743,10 @@ class ProcessInstitutionAnalytics implements ShouldQueue
                     (float) $population
                     / (float) $computers;
 
-                if ($payload['institution_type'] === 'School') {
+                if (
+                    $payload['institution_type']
+                    === 'School'
+                ) {
                     $assetDeficit = match (true) {
                         $usersPerComputer > 40 => 100.0,
                         $usersPerComputer > 25 => 75.0,
@@ -612,10 +782,14 @@ class ProcessInstitutionAnalytics implements ShouldQueue
             ? 0.0
             : 100.0;
 
-        if ($payload['institution_type'] === 'School') {
-            $labDeficit = $payload['has_computer_lab']
-                ? 0.0
-                : 100.0;
+        if (
+            $payload['institution_type']
+            === 'School'
+        ) {
+            $labDeficit =
+                $payload['has_computer_lab']
+                    ? 0.0
+                    : 100.0;
 
             return $this->weightedAverage([
                 [$assetDeficit, 60],
@@ -654,7 +828,8 @@ class ProcessInstitutionAnalytics implements ShouldQueue
     protected function obsolescenceDeficit(
         array $payload
     ): ?float {
-        $total = $payload['total_inventory_count'];
+        $total =
+            $payload['total_inventory_count'];
 
         if ($total === null) {
             return null;
@@ -682,17 +857,22 @@ class ProcessInstitutionAnalytics implements ShouldQueue
             $total
         );
 
-        $conditionDeficit = $poorRatio !== null
+        $conditionDeficit =
+            $poorRatio !== null
             || $repairRatio !== null
                 ? $this->score(
-                    ($poorRatio ?? 0)
-                    + ($repairRatio ?? 0)
+                    (($poorRatio ?? 0)
+                    + ($repairRatio ?? 0)) / 2
                 )
                 : null;
 
         $ageDeficit = null;
 
-        if (is_numeric($payload['average_equipment_age'])) {
+        if (
+            is_numeric(
+                $payload['average_equipment_age']
+            )
+        ) {
             $age = (float) $payload[
                 'average_equipment_age'
             ];
@@ -742,7 +922,7 @@ class ProcessInstitutionAnalytics implements ShouldQueue
     ): ?float {
         $available = collect($items)
             ->filter(
-                fn (array $item) =>
+                fn (array $item): bool =>
                     $item[0] !== null
                     && is_numeric($item[0])
                     && (float) $item[1] > 0
@@ -753,7 +933,8 @@ class ProcessInstitutionAnalytics implements ShouldQueue
         }
 
         $totalWeight = $available->sum(
-            fn (array $item) => (float) $item[1]
+            fn (array $item): float =>
+                (float) $item[1]
         );
 
         if ($totalWeight <= 0) {
@@ -761,7 +942,7 @@ class ProcessInstitutionAnalytics implements ShouldQueue
         }
 
         $weightedValue = $available->sum(
-            fn (array $item) =>
+            fn (array $item): float =>
                 (float) $item[0]
                 * (float) $item[1]
         );
@@ -772,23 +953,18 @@ class ProcessInstitutionAnalytics implements ShouldQueue
     }
 
     protected function assetToUserRatio(
-        Institution $institution
+        Institution $institution,
+        int $computerCount
     ): ?float {
-        $population = $institution
-            ->getAnalysisPopulation();
+        $population =
+            $institution->getAnalysisPopulation();
 
-        $computers = $institution
-            ->number_of_computers;
-
-        if (
-            $population <= 0
-            || $computers === null
-        ) {
+        if ($population <= 0) {
             return null;
         }
 
         return round(
-            (float) $computers / $population,
+            $computerCount / $population,
             4
         );
     }
@@ -797,9 +973,8 @@ class ProcessInstitutionAnalytics implements ShouldQueue
         mixed $riskLevel,
         ?float $gapScore
     ): string {
-        $riskLevel = strtolower(
-            trim((string) $riskLevel)
-        );
+        $riskLevel =
+            $this->normalized($riskLevel);
 
         if (
             in_array(
@@ -843,35 +1018,97 @@ class ProcessInstitutionAnalytics implements ShouldQueue
         return round(
             max(
                 0,
-                min(
-                    100,
-                    (float) $value
-                )
+                min(100, (float) $value)
             ),
             2
         );
     }
 
-    protected function containsAny(
-        mixed $value,
-        array $needles
-    ): bool {
-        $value = mb_strtolower(
-            trim((string) $value)
-        );
-
-        foreach ($needles as $needle) {
-            if (
-                str_contains(
-                    $value,
-                    mb_strtolower($needle)
-                )
-            ) {
-                return true;
-            }
+    protected function normalizeRatio(
+        mixed $value
+    ): ?float {
+        if (!is_numeric($value)) {
+            return null;
         }
 
-        return false;
+        return round(
+            max(0, (float) $value),
+            4
+        );
+    }
+
+    protected function quantity(
+        IctInventory $item
+    ): int {
+        return max(
+            0,
+            (int) ($item->quantity ?? 1)
+        );
+    }
+
+    protected function sumQuantities(
+        Collection $items
+    ): int {
+        return (int) $items->sum(
+            fn (IctInventory $item): int =>
+                $this->quantity($item)
+        );
+    }
+
+    protected function weightedAverageAge(
+        Collection $inventory,
+        int $currentYear
+    ): ?float {
+        $ageQuantityTotal = 0;
+        $quantityTotal = 0;
+
+        foreach ($inventory as $item) {
+            if (
+                !is_numeric(
+                    $item->acquisition_year
+                )
+            ) {
+                continue;
+            }
+
+            $quantity = $this->quantity($item);
+
+            if ($quantity <= 0) {
+                continue;
+            }
+
+            $age = max(
+                0,
+                $currentYear
+                - (int) $item->acquisition_year
+            );
+
+            $ageQuantityTotal +=
+                $age * $quantity;
+
+            $quantityTotal += $quantity;
+        }
+
+        if ($quantityTotal <= 0) {
+            return null;
+        }
+
+        return round(
+            $ageQuantityTotal / $quantityTotal,
+            2
+        );
+    }
+
+    protected function normalized(
+        mixed $value
+    ): string {
+        return str_replace(
+            [' ', '-'],
+            '_',
+            mb_strtolower(
+                trim((string) $value)
+            )
+        );
     }
 
     public function failed(
@@ -880,8 +1117,11 @@ class ProcessInstitutionAnalytics implements ShouldQueue
         Log::error(
             'Institution analytics job failed permanently.',
             [
-                'institution_id' => $this->institutionId,
-                'error' => $exception->getMessage(),
+                'institution_id' =>
+                    $this->institutionId,
+
+                'error' =>
+                    $exception->getMessage(),
             ]
         );
     }

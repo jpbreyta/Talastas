@@ -5,39 +5,49 @@
 
 @section('content')
     @php
-        $inventoryItems = $institution->ictInventory;
-        $score = $institution->data_completeness_score ?? 0;
-        $populationLabel = $institution->type === 'School' ? 'Students' : 'Staff';
-        $populationValue = $institution->type === 'School'
-            ? $institution->student_population
-            : $institution->staff_population;
+        $category = $inventoryConfig['categories'][$ictInventory->category] ?? [];
+        $categoryLabel = $category['label'] ?? str($ictInventory->category)->headline();
+        $specDefinitions = $category['specifications'] ?? [];
 
-        $categoryLabels = [
-            'computer' => 'Computer',
-            'laptop' => 'Laptop',
-            'printer' => 'Printer',
-            'router' => 'Router or Network Device',
-            'smart_tv' => 'Smart TV',
-            'projector' => 'Projector',
-            'pa_system' => 'Public Address System',
-            'other' => 'Other Equipment',
-        ];
+        $conditionLabel =
+            $inventoryConfig['conditions'][$ictInventory->condition]
+            ?? str($ictInventory->condition)->headline();
 
-        $conditionLabels = [
-            'new' => 'New',
-            'excellent' => 'Excellent',
-            'good' => 'Good',
-            'fair' => 'Fair',
-            'poor' => 'Poor',
-            'needs_repair' => 'Needs Repair',
-        ];
+        $statusLabel =
+            $inventoryConfig['statuses'][$ictInventory->status]
+            ?? str($ictInventory->status)->headline();
 
-        $statusLabels = [
-            'active' => 'Active',
-            'under_repair' => 'Under Repair',
-            'inactive' => 'Inactive',
-            'retired' => 'Retired',
-        ];
+        $conditionClass = match ($ictInventory->condition) {
+            'new', 'excellent', 'good' => 'border-green-200 bg-green-50 text-green-700',
+            'fair' => 'border-yellow-200 bg-yellow-50 text-yellow-700',
+            'poor', 'needs_repair' => 'border-red-200 bg-red-50 text-red-700',
+            default => 'border-gray-200 bg-gray-50 text-gray-600',
+        };
+
+        $statusClass = match ($ictInventory->status) {
+            'active' => 'border-green-200 bg-green-50 text-green-700',
+            'under_repair' => 'border-orange-200 bg-orange-50 text-orange-700',
+            'inactive' => 'border-gray-200 bg-gray-50 text-gray-600',
+            'retired', 'disposed' => 'border-slate-200 bg-slate-50 text-slate-600',
+            default => 'border-gray-200 bg-gray-50 text-gray-600',
+        };
+
+        $formatSpecificationValue = function ($value): string {
+            if (is_bool($value)) {
+                return $value ? 'Yes' : 'No';
+            }
+
+            if (is_array($value)) {
+                return collect($value)->filter()->implode(', ');
+            }
+
+            return str((string) $value)
+                ->replace('_', ' ')
+                ->headline()
+                ->toString();
+        };
+
+        $title = $ictInventory->asset_name ?: $categoryLabel;
     @endphp
 
     <div class="flex h-full min-h-0 flex-col bg-gray-100">
@@ -45,55 +55,45 @@
             <div class="flex items-center justify-between gap-4">
                 <div class="flex min-w-0 items-center gap-3">
                     <a
-                        href="{{ route('institutions.index') }}"
+                        href="{{ route('ict-inventory.index') }}"
                         class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-red-600 text-red-100 transition hover:bg-red-500 hover:text-white"
-                        title="Back to institutions"
+                        title="Back to ICT inventory"
                     >
                         <i class="fa-solid fa-arrow-left"></i>
                     </a>
 
                     <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-600 text-red-100">
-                        <i class="fa-solid fa-building"></i>
+                        <i class="fa-solid fa-box"></i>
                     </div>
 
                     <div class="min-w-0">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <h1 class="truncate text-xl font-semibold leading-tight tracking-tight text-white">
-                                {{ $institution->name }}
-                            </h1>
-
-                            @if ($institution->is_pilot_site)
-                                <span class="inline-flex items-center gap-1 rounded-full border border-red-300/30 bg-red-500/30 px-2 py-0.5 text-xs font-medium text-red-100">
-                                    <i class="fa-solid fa-flask text-[10px]"></i>
-                                    Pilot
-                                </span>
-                            @endif
-                        </div>
-
+                        <h1 class="truncate text-xl font-semibold leading-tight tracking-tight text-white">
+                            {{ $title }}
+                        </h1>
                         <p class="mt-0.5 text-xs text-red-200">
-                            {{ $institution->type }}
+                            {{ $categoryLabel }}
                             <span class="mx-1 text-red-300">•</span>
-                            {{ $institution->barangay?->name ?? 'Barangay not recorded' }}
+                            Record #{{ $ictInventory->asset_id }}
                         </p>
                     </div>
                 </div>
 
                 <div class="flex shrink-0 items-center gap-2">
                     <a
-                        href="{{ route('institutions.edit', $institution) }}"
+                        href="{{ route('ict-inventory.edit', $ictInventory) }}"
                         class="inline-flex items-center gap-2 rounded-lg border border-red-100 bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-50"
                     >
                         <i class="fa-solid fa-pen"></i>
                         Edit
                     </a>
 
-                    <form method="POST" action="{{ route('institutions.destroy', $institution) }}">
+                    <form method="POST" action="{{ route('ict-inventory.destroy', $ictInventory) }}">
                         @csrf
                         @method('DELETE')
 
                         <button
                             type="submit"
-                            onclick="return confirm('Delete {{ addslashes($institution->name) }} and all linked inventory items?')"
+                            onclick="return confirm('Delete this inventory record?')"
                             class="inline-flex items-center gap-2 rounded-lg border border-red-300/30 bg-red-500/20 px-4 py-2 text-sm font-medium text-red-100 transition hover:bg-red-600 hover:text-white"
                         >
                             <i class="fa-solid fa-trash"></i>
@@ -112,325 +112,168 @@
         @endif
 
         <div class="min-h-0 flex-1 overflow-y-auto px-5 py-5">
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <div class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
-                        <i class="fa-solid fa-clipboard-check"></i>
+            <div class="mx-auto max-w-6xl">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Quantity</p>
+                        <p class="mt-2 text-2xl font-bold text-gray-900">
+                            {{ number_format($ictInventory->quantity ?? 1) }}
+                        </p>
                     </div>
-                    <div>
-                        <p class="text-xs font-medium text-gray-500">Record Completion</p>
-                        <p class="text-xl font-bold text-gray-900">{{ $score }}%</p>
-                    </div>
-                </div>
 
-                <div class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-50 text-green-600">
-                        <i class="fa-solid fa-users"></i>
+                    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Condition</p>
+                        <span class="mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-medium {{ $conditionClass }}">
+                            {{ $conditionLabel }}
+                        </span>
                     </div>
-                    <div>
-                        <p class="text-xs font-medium text-gray-500">{{ $populationLabel }}</p>
-                        <p class="text-xl font-bold text-gray-900">
-                            {{ $populationValue !== null ? number_format($populationValue) : '—' }}
+
+                    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Status</p>
+                        <span class="mt-2 inline-flex rounded-full border px-2.5 py-1 text-xs font-medium {{ $statusClass }}">
+                            {{ $statusLabel }}
+                        </span>
+                    </div>
+
+                    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Year Acquired</p>
+                        <p class="mt-2 text-2xl font-bold text-gray-900">
+                            {{ $ictInventory->acquisition_year ?? '—' }}
                         </p>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
-                        <i class="fa-solid fa-gauge-high"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs font-medium text-gray-500">Internet Speed</p>
-                        <p class="text-xl font-bold text-gray-900">
-                            {{ $institution->internet_speed !== null ? $institution->internet_speed . ' Mbps' : '—' }}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
-                        <i class="fa-solid fa-boxes-stacked"></i>
-                    </div>
-                    <div>
-                        <p class="text-xs font-medium text-gray-500">Inventory Items</p>
-                        <p class="text-xl font-bold text-gray-900">{{ $inventoryItems->count() }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3">
-                <div class="space-y-5">
-                    <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                        <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
-                            <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-circle-info text-red-600"></i>
-                                <h2 class="text-sm font-semibold text-gray-800">Institution Information</h2>
-                            </div>
-                        </div>
-
-                        <div class="divide-y divide-gray-100">
-                            <div class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
-                                <span class="text-gray-500">Institution Type</span>
-                                <span class="text-right font-medium text-gray-900">{{ $institution->type }}</span>
-                            </div>
-                            <div class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
-                                <span class="text-gray-500">Barangay</span>
-                                <span class="text-right font-medium text-gray-900">{{ $institution->barangay?->name ?? '—' }}</span>
-                            </div>
-                            <div class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
-                                <span class="text-gray-500">Internet Provider</span>
-                                <span class="text-right font-medium text-gray-900">{{ $institution->isp_provider ?: '—' }}</span>
-                            </div>
-                            <div class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
-                                <span class="text-gray-500">Recorded Computers</span>
-                                <span class="text-right font-medium text-gray-900">
-                                    {{ $institution->number_of_computers !== null ? number_format($institution->number_of_computers) : '—' }}
-                                </span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                        <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
-                            <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-location-dot text-red-600"></i>
-                                <h2 class="text-sm font-semibold text-gray-800">Location</h2>
-                            </div>
-                        </div>
-
-                        <div class="divide-y divide-gray-100">
-                            <div class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
-                                <span class="text-gray-500">Latitude</span>
-                                <span class="font-mono text-xs font-medium text-gray-900">{{ $institution->latitude }}</span>
-                            </div>
-                            <div class="flex items-center justify-between gap-4 px-4 py-3 text-sm">
-                                <span class="text-gray-500">Longitude</span>
-                                <span class="font-mono text-xs font-medium text-gray-900">{{ $institution->longitude }}</span>
-                            </div>
-                        </div>
-
-                        <div class="border-t border-gray-200 bg-gray-50 px-4 py-3">
-                            <a
-                                href="https://www.google.com/maps?q={{ $institution->latitude }},{{ $institution->longitude }}"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="inline-flex items-center gap-2 text-xs font-medium text-red-600 transition hover:text-red-800"
-                            >
-                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                                Open location in Google Maps
-                            </a>
-                        </div>
-                    </section>
-                </div>
-
-                <div class="space-y-5 xl:col-span-2">
-                    <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                        <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
-                            <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-computer text-red-600"></i>
-                                <h2 class="text-sm font-semibold text-gray-800">Available ICT Facilities</h2>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
-                            @foreach ([
-                                ['Computer Laboratory', $institution->has_computer_lab, 'fa-desktop'],
-                                ['Smart TV', $institution->has_smart_tv, 'fa-tv'],
-                                ['Projected Whiteboard', $institution->has_projected_whiteboard, 'fa-chalkboard'],
-                                ['Public Address System', $institution->has_public_address_system, 'fa-bullhorn'],
-                            ] as [$label, $active, $icon])
-                                <div class="rounded-xl border p-3 {{ $active ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50' }}">
-                                    <div class="flex items-center gap-3">
-                                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg {{ $active ? 'bg-white text-green-600' : 'bg-white text-gray-400' }}">
-                                            <i class="fa-solid {{ $icon }}"></i>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-800">{{ $label }}</p>
-                                            <p class="mt-0.5 text-xs {{ $active ? 'text-green-700' : 'text-gray-500' }}">
-                                                {{ $active ? 'Available' : 'Not available' }}
-                                            </p>
-                                        </div>
-                                    </div>
+                <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-3">
+                    <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm lg:col-span-2">
+                        <div class="border-b border-gray-200 bg-gray-50 px-5 py-4">
+                            <div class="flex items-center gap-3">
+                                <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-100 text-red-700">
+                                    <i class="fa-solid fa-microchip"></i>
                                 </div>
-                            @endforeach
-                        </div>
-                    </section>
-
-                    <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                        <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
-                            <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-clipboard-list text-red-600"></i>
-                                <h2 class="text-sm font-semibold text-gray-800">Institution Status</h2>
+                                <div>
+                                    <h2 class="text-sm font-semibold text-gray-900">Technical Specifications</h2>
+                                    <p class="mt-0.5 text-xs text-gray-500">
+                                        Recorded specifications for this {{ strtolower($categoryLabel) }}.
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="flex flex-wrap gap-2 p-4">
-                            <span class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium {{ $institution->is_active ? 'border-green-200 bg-green-50 text-green-700' : 'border-gray-200 bg-gray-50 text-gray-500' }}">
-                                <i class="fa-solid {{ $institution->is_active ? 'fa-circle-check' : 'fa-circle-minus' }}"></i>
-                                {{ $institution->is_active ? 'Active Institution' : 'Inactive Institution' }}
-                            </span>
-
-                            <span class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium {{ $institution->needs_maintenance ? 'border-orange-200 bg-orange-50 text-orange-700' : 'border-green-200 bg-green-50 text-green-700' }}">
-                                <i class="fa-solid {{ $institution->needs_maintenance ? 'fa-screwdriver-wrench' : 'fa-circle-check' }}"></i>
-                                {{ $institution->needs_maintenance ? 'Maintenance Needed' : 'No Reported Maintenance Issue' }}
-                            </span>
-
-                            <span class="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium {{ $institution->requires_audit ? 'border-yellow-200 bg-yellow-50 text-yellow-700' : 'border-green-200 bg-green-50 text-green-700' }}">
-                                <i class="fa-solid {{ $institution->requires_audit ? 'fa-clipboard-question' : 'fa-clipboard-check' }}"></i>
-                                {{ $institution->requires_audit ? 'Field Checking Needed' : 'Field Check Complete' }}
-                            </span>
-                        </div>
+                        @if (!empty($ictInventory->specifications))
+                            <div class="grid grid-cols-1 gap-px bg-gray-200 sm:grid-cols-2">
+                                @foreach ($ictInventory->specifications as $key => $value)
+                                    <div class="bg-white px-5 py-4">
+                                        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">
+                                            {{ $specDefinitions[$key]['label'] ?? str($key)->headline() }}
+                                        </p>
+                                        <p class="mt-1.5 text-sm font-semibold text-gray-900">
+                                            {{ $formatSpecificationValue($value) }}
+                                        </p>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="px-5 py-10 text-center">
+                                <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+                                    <i class="fa-solid fa-microchip"></i>
+                                </div>
+                                <p class="mt-3 text-sm font-medium text-gray-700">
+                                    No technical specifications recorded
+                                </p>
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Edit this record to add category-specific specifications.
+                                </p>
+                            </div>
+                        @endif
                     </section>
 
-                    @if ($institution->notes)
+                    <div class="space-y-5">
                         <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                             <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
-                                <div class="flex items-center gap-2">
-                                    <i class="fa-solid fa-note-sticky text-red-600"></i>
-                                    <h2 class="text-sm font-semibold text-gray-800">Notes</h2>
+                                <h2 class="text-sm font-semibold text-gray-800">Asset Details</h2>
+                            </div>
+
+                            <div class="divide-y divide-gray-100">
+                                <div class="px-4 py-3">
+                                    <p class="text-xs text-gray-500">Category</p>
+                                    <p class="mt-1 text-sm font-medium text-gray-900">{{ $categoryLabel }}</p>
+                                </div>
+
+                                <div class="px-4 py-3">
+                                    <p class="text-xs text-gray-500">Brand</p>
+                                    <p class="mt-1 text-sm font-medium text-gray-900">{{ $ictInventory->brand ?: '—' }}</p>
+                                </div>
+
+                                <div class="px-4 py-3">
+                                    <p class="text-xs text-gray-500">Model</p>
+                                    <p class="mt-1 text-sm font-medium text-gray-900">{{ $ictInventory->model ?: '—' }}</p>
+                                </div>
+
+                                <div class="px-4 py-3">
+                                    <p class="text-xs text-gray-500">Internal Location</p>
+                                    <p class="mt-1 text-sm font-medium text-gray-900">{{ $ictInventory->location ?: '—' }}</p>
                                 </div>
                             </div>
-                            <p class="whitespace-pre-line px-4 py-3 text-sm leading-relaxed text-gray-600">{{ $institution->notes }}</p>
                         </section>
-                    @endif
-                </div>
-            </div>
 
-            <section class="mt-5 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                <div class="flex flex-col gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-boxes-stacked text-red-600"></i>
-                        <div>
-                            <h2 class="text-sm font-semibold text-gray-800">ICT Inventory</h2>
-                            <p class="text-xs text-gray-500">
-                                {{ $inventoryItems->count() }} recorded {{ $inventoryItems->count() === 1 ? 'item' : 'items' }}
-                            </p>
-                        </div>
+                        <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                            <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
+                                <h2 class="text-sm font-semibold text-gray-800">Institution</h2>
+                            </div>
+
+                            <div class="p-4">
+                                <p class="font-semibold text-gray-900">
+                                    {{ $ictInventory->institution->name }}
+                                </p>
+                                <p class="mt-1 text-sm text-gray-600">
+                                    {{ $ictInventory->institution->type }}
+                                </p>
+                                <p class="mt-1 text-xs text-gray-500">
+                                    {{ $ictInventory->institution->barangay?->name ?? 'Barangay not recorded' }}
+                                </p>
+
+                                <a
+                                    href="{{ route('institutions.show', $ictInventory->institution) }}"
+                                    class="mt-4 inline-flex items-center gap-2 text-xs font-medium text-red-600 transition hover:text-red-800"
+                                >
+                                    <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                                    View institution
+                                </a>
+                            </div>
+                        </section>
+
+                        <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                            <div class="border-b border-gray-200 bg-gray-50 px-4 py-3">
+                                <h2 class="text-sm font-semibold text-gray-800">Maintenance</h2>
+                            </div>
+
+                            <div class="p-4">
+                                <span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium {{ $ictInventory->needs_maintenance
+                                    ? 'border-orange-200 bg-orange-50 text-orange-700'
+                                    : 'border-green-200 bg-green-50 text-green-700' }}">
+                                    <i class="fa-solid {{ $ictInventory->needs_maintenance
+                                        ? 'fa-screwdriver-wrench'
+                                        : 'fa-circle-check' }}"></i>
+                                    {{ $ictInventory->needs_maintenance
+                                        ? 'Maintenance needed'
+                                        : 'No maintenance issue reported' }}
+                                </span>
+                            </div>
+                        </section>
                     </div>
-
-                    <a
-                        href="{{ route('ict-inventory.create', [
-                            'institution_id' => $institution->id,
-                            'return_to' => 'institution',
-                        ]) }}"
-                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
-                    >
-                        <i class="fa-solid fa-plus"></i>
-                        Add Inventory Item
-                    </a>
                 </div>
 
-                @if ($inventoryItems->isNotEmpty())
-                    <div class="overflow-x-auto">
-                        <table class="w-full min-w-[820px] text-sm">
-                            <thead>
-                                <tr class="border-b border-gray-200 bg-white text-left">
-                                    <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Equipment</th>
-                                    <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Condition</th>
-                                    <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Year Acquired</th>
-                                    <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Current Status</th>
-                                    <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Actions</th>
-                                </tr>
-                            </thead>
-
-                            <tbody class="divide-y divide-gray-100">
-                                @foreach ($inventoryItems as $item)
-                                    @php
-                                        $conditionClass = match ($item->condition) {
-                                            'new', 'excellent', 'good' => 'border-green-200 bg-green-50 text-green-700',
-                                            'fair' => 'border-yellow-200 bg-yellow-50 text-yellow-700',
-                                            'poor', 'needs_repair' => 'border-red-200 bg-red-50 text-red-700',
-                                            default => 'border-gray-200 bg-gray-50 text-gray-600',
-                                        };
-
-                                        $statusClass = match ($item->status) {
-                                            'active' => 'border-red-200 bg-red-50 text-red-700',
-                                            'under_repair' => 'border-yellow-200 bg-yellow-50 text-yellow-700',
-                                            'inactive' => 'border-gray-200 bg-gray-50 text-gray-600',
-                                            'retired' => 'border-red-200 bg-red-50 text-red-700',
-                                            default => 'border-gray-200 bg-gray-50 text-gray-600',
-                                        };
-                                    @endphp
-
-                                    <tr class="transition hover:bg-red-50/40">
-                                        <td class="px-4 py-3">
-                                            <div class="flex items-center gap-3">
-                                                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
-                                                    <i class="fa-solid fa-computer"></i>
-                                                </div>
-                                                <span class="font-medium text-gray-900">
-                                                    {{ $categoryLabels[$item->category] ?? ucfirst(str_replace('_', ' ', $item->category)) }}
-                                                </span>
-                                            </div>
-                                        </td>
-
-                                        <td class="px-4 py-3">
-                                            <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-medium {{ $conditionClass }}">
-                                                {{ $conditionLabels[$item->condition] ?? ucfirst(str_replace('_', ' ', $item->condition)) }}
-                                            </span>
-                                        </td>
-
-                                        <td class="px-4 py-3 text-gray-600">{{ $item->acquisition_year }}</td>
-
-                                        <td class="px-4 py-3">
-                                            <span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-medium {{ $statusClass }}">
-                                                {{ $statusLabels[$item->status] ?? ucfirst(str_replace('_', ' ', $item->status)) }}
-                                            </span>
-                                        </td>
-
-                                        <td class="px-4 py-3">
-                                            <div class="flex items-center justify-end gap-3">
-                                                <a
-                                                    href="{{ route('ict-inventory.edit', $item) }}"
-                                                    class="inline-flex items-center gap-1 text-xs font-medium text-gray-600 transition hover:text-gray-900"
-                                                >
-                                                    <i class="fa-solid fa-pen"></i>
-                                                    Edit
-                                                </a>
-
-                                                <form method="POST" action="{{ route('ict-inventory.destroy', $item) }}">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <input type="hidden" name="return_to" value="institution">
-
-                                                    <button
-                                                        type="submit"
-                                                        onclick="return confirm('Delete this inventory item?')"
-                                                        class="inline-flex items-center gap-1 text-xs font-medium text-gray-400 transition hover:text-red-600"
-                                                    >
-                                                        <i class="fa-solid fa-trash"></i>
-                                                        Delete
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @else
-                    <div class="flex flex-col items-center justify-center px-5 py-12 text-center">
-                        <div class="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500">
-                            <i class="fa-solid fa-box-open text-xl"></i>
+                @if ($ictInventory->notes)
+                    <section class="mt-5 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                        <div class="border-b border-gray-200 bg-gray-50 px-5 py-4">
+                            <h2 class="text-sm font-semibold text-gray-900">Notes</h2>
                         </div>
-                        <h3 class="mt-4 text-sm font-semibold text-gray-900">No inventory items yet</h3>
-                        <p class="mt-1 max-w-md text-sm text-gray-500">
-                            Add the computers, network devices, and other ICT equipment assigned to this institution.
+                        <p class="whitespace-pre-line px-5 py-4 text-sm leading-relaxed text-gray-600">
+                            {{ $ictInventory->notes }}
                         </p>
-                        <a
-                            href="{{ route('ict-inventory.create', [
-                                'institution_id' => $institution->id,
-                                'return_to' => 'institution',
-                            ]) }}"
-                            class="mt-5 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700"
-                        >
-                            <i class="fa-solid fa-plus"></i>
-                            Add First Inventory Item
-                        </a>
-                    </div>
+                    </section>
                 @endif
-            </section>
+            </div>
         </div>
     </div>
 @endsection

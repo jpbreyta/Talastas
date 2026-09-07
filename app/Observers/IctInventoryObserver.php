@@ -8,6 +8,14 @@ use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
 
 class IctInventoryObserver implements ShouldHandleEventsAfterCommit
 {
+    private const SUMMARY_RELEVANT_FIELDS = [
+        'institution_id',
+        'category',
+        'quantity',
+        'status',
+        'needs_maintenance',
+    ];
+
     public function __construct(
         private readonly InstitutionInventorySummaryService $summaryService
     ) {
@@ -20,6 +28,10 @@ class IctInventoryObserver implements ShouldHandleEventsAfterCommit
 
     public function updated(IctInventory $inventory): void
     {
+        if (!$inventory->wasChanged(self::SUMMARY_RELEVANT_FIELDS)) {
+            return;
+        }
+
         $currentInstitutionId = (int) $inventory->institution_id;
         $originalInstitutionId = (int) $inventory->getOriginal('institution_id');
 
@@ -34,16 +46,6 @@ class IctInventoryObserver implements ShouldHandleEventsAfterCommit
     }
 
     public function deleted(IctInventory $inventory): void
-    {
-        $this->summaryService->sync((int) $inventory->institution_id);
-    }
-
-    public function restored(IctInventory $inventory): void
-    {
-        $this->summaryService->sync((int) $inventory->institution_id);
-    }
-
-    public function forceDeleted(IctInventory $inventory): void
     {
         $this->summaryService->sync((int) $inventory->institution_id);
     }

@@ -10,22 +10,24 @@ class InstitutionAnalytics extends Model
 {
     use HasFactory;
 
+    protected $table = 'institution_analytics';
+
     protected $fillable = [
         'institution_id',
 
         'gap_score',
-        'risk_level',
-        'data_completeness_score',
-
         'infrastructure_deficit_score',
         'connectivity_divide_score',
         'technological_obsolescence_score',
+
+        'data_completeness_score',
+        'asset_to_user_ratio',
+        'risk_level',
 
         'infrastructure_narrative',
         'policy_recommendation',
         'recommendations_detail',
 
-        'asset_to_user_ratio',
         'analysis_date',
     ];
 
@@ -33,12 +35,10 @@ class InstitutionAnalytics extends Model
         'institution_id' => 'integer',
 
         'gap_score' => 'float',
-        'data_completeness_score' => 'float',
-
         'infrastructure_deficit_score' => 'float',
         'connectivity_divide_score' => 'float',
         'technological_obsolescence_score' => 'float',
-
+        'data_completeness_score' => 'float',
         'asset_to_user_ratio' => 'float',
 
         'recommendations_detail' => 'array',
@@ -47,10 +47,6 @@ class InstitutionAnalytics extends Model
 
     public function institution(): BelongsTo
     {
-        return $this->belongsTo(
-            Institution::class,
-            'institution_id',
-            'id'
-        );
+        return $this->belongsTo(Institution::class, 'institution_id');
     }
 }

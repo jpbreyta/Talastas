@@ -12,7 +12,7 @@
         Example:
         /images/talastas-logo.png
     -->
-    <link rel="icon" type="image/png" href="{{ asset('images/logo_ict_mapping.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/talastas.svg') }}">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">

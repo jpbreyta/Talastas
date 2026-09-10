@@ -671,12 +671,37 @@
                             const qualityLabel = completeness >= 80 ? 'Good' : (completeness >= 50 ?
                                 'Partial' : 'Incomplete');
 
+                            const escapeHtml = (value) => String(value ?? '')
+                                .replaceAll('&', '&amp;')
+                                .replaceAll('<', '&lt;')
+                                .replaceAll('>', '&gt;')
+                                .replaceAll('"', '&quot;')
+                                .replaceAll("'", '&#039;');
+
+                            const truncateText = (value, limit) => {
+                                const text = String(value ?? '').trim();
+
+                                if (text.length <= limit) {
+                                    return text;
+                                }
+
+                                return text.substring(0, limit).trimEnd() + '…';
+                            };
+
+                            const analysisPreview = props.infrastructure_narrative
+                                ? escapeHtml(truncateText(props.infrastructure_narrative, 165))
+                                : '';
+
+                            const recommendationPreview = props.policy_recommendation
+                                ? escapeHtml(truncateText(props.policy_recommendation, 145))
+                                : '';
+
                             const popupContent = `
                             <div class="p-3 min-w-[280px]">
                                 <div class="flex justify-between items-start mb-2">
                                     <h3 class="font-bold text-base text-gray-900">${props.name}</h3>
                                     <div class="flex gap-1">
-                                        ${props.analysis_method ? '<span class="px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded-full">Sim</span>' : ''}
+                                        ${props.analysis_method ? '<span class="px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded-full">AI</span>' : ''}
                                         ${props.is_pilot ? '<span class="px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded-full">Pilot</span>' : ''}
                                     </div>
                                 </div>
@@ -740,18 +765,28 @@
                                             : gapLevel}
                                     </span>
                                 </div>
-                                ${props.infrastructure_narrative ? `
-                                                                <div class="mb-2">
-                                                                    <span class="text-xs font-semibold text-gray-700">Analysis:</span>
-                                                                    <p class="text-xs text-gray-600 mt-1 leading-relaxed">${props.infrastructure_narrative.substring(0, 120)}${props.infrastructure_narrative.length > 120 ? '...' : ''}</p>
-                                                                </div>
-                                                                ` : ''}
-                                ${props.policy_recommendation ? `
-                                                                <div class="mb-2">
-                                                                    <span class="text-xs font-semibold text-gray-700">Recommendation:</span>
-                                                                    <p class="text-xs text-red-600 mt-1 leading-relaxed">${props.policy_recommendation.substring(0, 100)}${props.policy_recommendation.length > 100 ? '...' : ''}</p>
-                                                                </div>
-                                                                ` : ''}
+                                ${analysisPreview ? `
+                                    <div class="mb-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5">
+                                        <div class="flex items-center gap-1.5">
+                                            <i class="fa-solid fa-file-waveform text-[10px] text-gray-400"></i>
+                                            <span class="text-[10px] font-semibold uppercase tracking-wide text-gray-500">
+                                                Planning Assessment
+                                            </span>
+                                        </div>
+                                        <p class="mt-1.5 text-xs leading-relaxed text-gray-600">${analysisPreview}</p>
+                                    </div>
+                                ` : ''}
+                                ${recommendationPreview ? `
+                                    <div class="mb-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2.5">
+                                        <div class="flex items-center gap-1.5">
+                                            <i class="fa-solid fa-bullseye text-[10px] text-red-500"></i>
+                                            <span class="text-[10px] font-semibold uppercase tracking-wide text-red-600">
+                                                Recommended First Action
+                                            </span>
+                                        </div>
+                                        <p class="mt-1.5 text-xs font-medium leading-relaxed text-red-800">${recommendationPreview}</p>
+                                    </div>
+                                ` : ''}
                                 <div class="border-t border-gray-200 my-2"></div>
                                 ${props.requires_audit ? '<p class="text-xs text-orange-600"><strong>⚠️ Audit required</strong> — Field verification needed</p>' : ''}
                                 ${props.last_audited ? '<p class="text-xs text-gray-500">Last audited: ' + props.last_audited + '</p>' : ''}

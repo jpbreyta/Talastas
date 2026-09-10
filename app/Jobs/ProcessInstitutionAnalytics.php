@@ -76,10 +76,23 @@ class ProcessInstitutionAnalytics implements ShouldQueue
                 $pythonPayload
             );
 
+        /*
+         * Build a concise evidence package from the same inventory snapshot
+         * used for scoring. The generative AI interprets this evidence but
+         * does not recalculate the authoritative scores.
+         */
+        $planningEvidence =
+            $this->buildAiPlanningEvidence(
+                $institution,
+                $pythonPayload,
+                $scores
+            );
+
         $aiResult =
             $geminiService->analyzeInfrastructure(
                 $institution,
-                $scores
+                $scores,
+                $planningEvidence
             );
 
         $recommendationDetails = array_merge(
@@ -97,6 +110,9 @@ class ProcessInstitutionAnalytics implements ShouldQueue
                     $pythonPayload[
                         'specification_coverage_score'
                     ] ?? null,
+
+                'decision_support_version' =>
+                    '2.0',
             ]
         );
 
@@ -503,6 +519,464 @@ class ProcessInstitutionAnalytics implements ShouldQueue
                 ->values()
                 ->all(),
         ];
+    }
+
+    /**
+     * Build human-readable, quantity-aware evidence for the generative
+     * decision-support layer.
+     *
+     * This method does not change the research scoring methodology. It only
+     * exposes already-calculated facts in a concise planner-friendly form.
+     */
+    protected function buildAiPlanningEvidence(
+        Institution $institution,
+        array $payload,
+        array $scores
+    ): array {
+        $population =
+            $payload['institution_type']
+                === 'School'
+                    ? $payload[
+                        'student_population'
+                    ]
+                    : $payload[
+                        'staff_population'
+                    ];
+
+        $populationLabel =
+            $payload['institution_type']
+                === 'School'
+                    ? 'students'
+                    : 'staff';
+
+        $activeComputers =
+            (int) (
+                $payload[
+                    'active_computers_count'
+                ] ?? 0
+            );
+
+        $usersPerComputer = null;
+
+        if (
+            is_numeric($population)
+            && (int) $population > 0
+            && $activeComputers > 0
+        ) {
+            $usersPerComputer =
+                round(
+                    (float) $population
+                    / $activeComputers,
+                    2
+                );
+        }
+
+        $totalAssets =
+            (int) (
+                $payload[
+                    'total_inventory_count'
+                ] ?? 0
+            );
+
+        $inventoryGroups =
+            $this->selectInventoryGroupsForAi(
+                $payload['inventory'] ?? []
+            );
+
+        return [
+            'population_label' =>
+                $populationLabel,
+
+            'population' =>
+                is_numeric($population)
+                    ? (int) $population
+                    : null,
+
+            'active_computers' =>
+                $activeComputers,
+
+            'users_per_computer' =>
+                $usersPerComputer,
+
+            'internet_speed_mbps' =>
+                $payload[
+                    'internet_speed'
+                ] ?? null,
+
+            'isp_provider' =>
+                $institution->isp_provider,
+
+            'has_computer_lab' =>
+                (bool) (
+                    $payload[
+                        'has_computer_lab'
+                    ] ?? false
+                ),
+
+            'smart_tvs_count' =>
+                (int) (
+                    $payload[
+                        'smart_tvs_count'
+                    ] ?? 0
+                ),
+
+            'projectors_or_projected_whiteboards_count' =>
+                (int) (
+                    $payload[
+                        'projectors_count'
+                    ] ?? 0
+                ),
+
+            'pa_systems_count' =>
+                (int) (
+                    $payload[
+                        'pa_systems_count'
+                    ] ?? 0
+                ),
+
+            'total_ict_assets' =>
+                $totalAssets,
+
+            'active_ict_assets' =>
+                (int) (
+                    $payload[
+                        'active_inventory_count'
+                    ] ?? 0
+                ),
+
+            'old_equipment_count' =>
+                (int) (
+                    $payload[
+                        'old_equipment_count'
+                    ] ?? 0
+                ),
+
+            'old_equipment_percentage' =>
+                $this->equipmentRatio(
+                    $payload[
+                        'old_equipment_count'
+                    ] ?? 0,
+                    $totalAssets
+                ),
+
+            'poor_condition_count' =>
+                (int) (
+                    $payload[
+                        'poor_condition_count'
+                    ] ?? 0
+                ),
+
+            'poor_condition_percentage' =>
+                $this->equipmentRatio(
+                    $payload[
+                        'poor_condition_count'
+                    ] ?? 0,
+                    $totalAssets
+                ),
+
+            'needs_repair_count' =>
+                (int) (
+                    $payload[
+                        'needs_repair_count'
+                    ] ?? 0
+                ),
+
+            'needs_repair_percentage' =>
+                $this->equipmentRatio(
+                    $payload[
+                        'needs_repair_count'
+                    ] ?? 0,
+                    $totalAssets
+                ),
+
+            'retired_or_disposed_count' =>
+                (int) (
+                    $payload[
+                        'retired_equipment_count'
+                    ] ?? 0
+                ),
+
+            'retired_or_disposed_percentage' =>
+                $this->equipmentRatio(
+                    $payload[
+                        'retired_equipment_count'
+                    ] ?? 0,
+                    $totalAssets
+                ),
+
+            'average_equipment_age_years' =>
+                $payload[
+                    'average_equipment_age'
+                ] ?? null,
+
+            'specification_coverage_score' =>
+                $payload[
+                    'specification_coverage_score'
+                ] ?? null,
+
+            'requires_audit' =>
+                (bool) $institution
+                    ->requires_audit,
+
+            'data_completeness_score' =>
+                $scores[
+                    'data_completeness_score'
+                ] ?? null,
+
+            /*
+             * This uses the current analytics definition already present in
+             * this job. It does not introduce a new research threshold.
+             */
+            'old_equipment_definition' =>
+                'Acquired at least five years before the current year.',
+
+            /*
+             * Keep the AI context compact. Problematic and older groups are
+             * ranked first. Authoritative scores still use the full inventory.
+             */
+            'inventory_group_count' =>
+                count(
+                    $payload[
+                        'inventory'
+                    ] ?? []
+                ),
+
+            'inventory_groups_in_context' =>
+                count($inventoryGroups),
+
+            'inventory_groups' =>
+                $inventoryGroups,
+        ];
+    }
+
+    protected function selectInventoryGroupsForAi(
+        array $inventory
+    ): array {
+        $groups =
+            array_values(
+                array_filter(
+                    $inventory,
+                    fn (mixed $item): bool =>
+                        is_array($item)
+                )
+            );
+
+        usort(
+            $groups,
+            function (
+                array $a,
+                array $b
+            ): int {
+                $attentionA =
+                    $this->inventoryGroupNeedsAttention(
+                        $a
+                    )
+                        ? 0
+                        : 1;
+
+                $attentionB =
+                    $this->inventoryGroupNeedsAttention(
+                        $b
+                    )
+                        ? 0
+                        : 1;
+
+                if ($attentionA !== $attentionB) {
+                    return
+                        $attentionA
+                        <=> $attentionB;
+                }
+
+                $yearA =
+                    is_numeric(
+                        $a[
+                            'acquisition_year'
+                        ] ?? null
+                    )
+                        ? (int) $a[
+                            'acquisition_year'
+                        ]
+                        : PHP_INT_MAX;
+
+                $yearB =
+                    is_numeric(
+                        $b[
+                            'acquisition_year'
+                        ] ?? null
+                    )
+                        ? (int) $b[
+                            'acquisition_year'
+                        ]
+                        : PHP_INT_MAX;
+
+                if ($yearA !== $yearB) {
+                    return $yearA <=> $yearB;
+                }
+
+                return
+                    (int) (
+                        $b[
+                            'quantity'
+                        ] ?? 0
+                    )
+                    <=>
+                    (int) (
+                        $a[
+                            'quantity'
+                        ] ?? 0
+                    );
+            }
+        );
+
+        $groups =
+            array_slice(
+                $groups,
+                0,
+                15
+            );
+
+        return array_map(
+            fn (array $item): array => [
+                'category' =>
+                    $item[
+                        'category'
+                    ] ?? null,
+
+                'asset_name' =>
+                    $item[
+                        'asset_name'
+                    ] ?? null,
+
+                'brand' =>
+                    $item[
+                        'brand'
+                    ] ?? null,
+
+                'model' =>
+                    $item[
+                        'model'
+                    ] ?? null,
+
+                'quantity' =>
+                    (int) (
+                        $item[
+                            'quantity'
+                        ] ?? 0
+                    ),
+
+                'condition' =>
+                    $item[
+                        'condition'
+                    ] ?? null,
+
+                'status' =>
+                    $item[
+                        'status'
+                    ] ?? null,
+
+                'acquisition_year' =>
+                    $item[
+                        'acquisition_year'
+                    ] ?? null,
+
+                'location' =>
+                    $item[
+                        'location'
+                    ] ?? null,
+
+                'needs_maintenance' =>
+                    (bool) (
+                        $item[
+                            'needs_maintenance'
+                        ] ?? false
+                    ),
+
+                'specifications' =>
+                    $this->compactSpecifications(
+                        $item[
+                            'specifications'
+                        ] ?? []
+                    ),
+            ],
+            $groups
+        );
+    }
+
+    protected function inventoryGroupNeedsAttention(
+        array $item
+    ): bool {
+        $status =
+            $this->normalized(
+                $item[
+                    'status'
+                ] ?? ''
+            );
+
+        $condition =
+            $this->normalized(
+                $item[
+                    'condition'
+                ] ?? ''
+            );
+
+        return
+            (bool) (
+                $item[
+                    'needs_maintenance'
+                ] ?? false
+            )
+            || in_array(
+                $status,
+                [
+                    'under_repair',
+                    'inactive',
+                    'retired',
+                    'disposed',
+                ],
+                true
+            )
+            || in_array(
+                $condition,
+                [
+                    'poor',
+                    'needs_repair',
+                ],
+                true
+            );
+    }
+
+    protected function compactSpecifications(
+        mixed $specifications
+    ): array {
+        if (!is_array($specifications)) {
+            return [];
+        }
+
+        $clean = [];
+
+        foreach (
+            $specifications
+            as $key => $value
+        ) {
+            if (count($clean) >= 8) {
+                break;
+            }
+
+            if (
+                $value === null
+                || $value === ''
+                || is_array($value)
+                || is_object($value)
+            ) {
+                continue;
+            }
+
+            $clean[
+                (string) $key
+            ] = $value;
+        }
+
+        return $clean;
     }
 
     protected function normalizeScores(

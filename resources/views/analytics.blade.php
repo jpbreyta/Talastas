@@ -1,25 +1,111 @@
 @extends('layouts.app')
 
 @section('content')
+    @php
+        $overallGap = is_numeric($averageGapScore ?? null)
+            ? (float) $averageGapScore
+            : null;
+
+        $overallRiskKey = strtolower((string) ($overallRiskLevel ?? 'insufficient_data'));
+
+        $overallRiskLabel = match ($overallRiskKey) {
+            'critical' => 'Critical',
+            'warning' => 'Needs Attention',
+            'adequate' => 'Adequate',
+            default => 'Insufficient Data',
+        };
+
+        $overallRiskClasses = match ($overallRiskKey) {
+            'critical' => 'border-red-200 bg-red-50 text-red-700',
+            'warning' => 'border-amber-200 bg-amber-50 text-amber-700',
+            'adequate' => 'border-green-200 bg-green-50 text-green-700',
+            default => 'border-gray-200 bg-gray-50 text-gray-600',
+        };
+
+        $gapDrivers = [
+            [
+                'label' => 'Infrastructure Deficit',
+                'value' => $infrastructureDeficit,
+                'icon' => 'fa-computer',
+                'description' => 'Computers, laboratories, display equipment, and ICT facilities',
+            ],
+            [
+                'label' => 'Connectivity Divide',
+                'value' => $connectivityDivide,
+                'icon' => 'fa-wifi',
+                'description' => 'Recorded internet access and institutional connection capacity',
+            ],
+            [
+                'label' => 'Technological Obsolescence',
+                'value' => $technologicalObsolescence,
+                'icon' => 'fa-clock-rotate-left',
+                'description' => 'Aging, poor-condition, retired, and maintenance-dependent equipment',
+            ],
+        ];
+
+        $scoreBarClass = function ($score): string {
+            if (!is_numeric($score)) {
+                return 'bg-gray-300';
+            }
+
+            $score = (float) $score;
+
+            return match (true) {
+                $score >= 80 => 'bg-red-500',
+                $score >= 50 => 'bg-amber-400',
+                default => 'bg-green-500',
+            };
+        };
+
+        $scoreTextClass = function ($score): string {
+            if (!is_numeric($score)) {
+                return 'text-gray-500';
+            }
+
+            $score = (float) $score;
+
+            return match (true) {
+                $score >= 80 => 'text-red-600',
+                $score >= 50 => 'text-amber-600',
+                default => 'text-green-600',
+            };
+        };
+
+        $topBarangays = collect($barangayScores ?? [])
+            ->take(5);
+
+        $hasFilters =
+            request()->filled('q')
+            || request()->filled('barangay')
+            || request()->filled('type')
+            || request()->filled('risk');
+    @endphp
+
     <div class="min-h-full bg-gray-50 py-6">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-            {{-- Page Header --}}
+            {{-- Header --}}
             <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                     <h1 class="text-2xl font-bold text-gray-900">
-                        ICT Gap Analytics
+                        ICT Planning & Gap Analysis
                     </h1>
 
                     <p class="mt-1 text-sm text-gray-500">
-                        Infrastructure assessment and decision support for Lipa City
+                        City-wide priorities derived from institutional ICT gap assessments
                     </p>
                 </div>
 
                 <div class="flex flex-wrap items-center gap-3">
-                    <span class="inline-flex items-center gap-2 text-sm text-gray-500">
+                    <span class="inline-flex items-center gap-2 text-xs font-medium text-gray-500">
                         <span class="h-2 w-2 rounded-full bg-green-500"></span>
-                        Updated {{ now()->format('M d, Y') }}
+
+                        @if ($latestAnalysisDate)
+                            Latest analysis:
+                            {{ \Carbon\Carbon::parse($latestAnalysisDate)->format('M d, Y g:i A') }}
+                        @else
+                            No completed analysis yet
+                        @endif
                     </span>
 
                     <a href="{{ url('/api/v1/analytics/export') }}"
@@ -30,447 +116,261 @@
                 </div>
             </div>
 
-            {{-- Executive Summary --}}
-            <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {{-- 1. CITY STATUS --}}
+            <div class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+                {{-- Overall Gap --}}
+                <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                Overall ICT Gap
+                            </p>
 
-                {{-- Overall Gap Score --}}
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div class="mb-4 flex items-center justify-between">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                            Overall Gap Score
-                        </span>
+                            <div class="mt-3 flex items-end gap-2">
+                                <span class="text-4xl font-bold text-gray-900">
+                                    {{ $overallGap !== null ? number_format($overallGap, 1) : '—' }}
+                                </span>
 
-                        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 text-red-600">
+                                @if ($overallGap !== null)
+                                    <span class="pb-1 text-lg font-semibold text-gray-400">%</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
                             <i class="fa-solid fa-chart-line"></i>
                         </span>
                     </div>
 
-                    <div class="flex items-end gap-1">
-                        <span class="text-4xl font-bold text-gray-900">
-                            {{ number_format($averageGapScore ?? 0, 1) }}
-                        </span>
-
-                        <span class="pb-1 text-xl font-semibold text-gray-400">
-                            %
+                    <div class="mt-4">
+                        <span
+                            class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold {{ $overallRiskClasses }}">
+                            {{ $overallRiskLabel }}
                         </span>
                     </div>
 
-                    <p class="mt-2 text-xs text-gray-500">
-                        Average ICT gap among analyzed institutions
+                    <p class="mt-3 text-xs leading-5 text-gray-500">
+                        Average gap score among active institutions with completed analytics.
                     </p>
-                </div>
+                </section>
 
-                {{-- Institutions --}}
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div class="mb-4 flex items-center justify-between">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                            Institutions
-                        </span>
+                {{-- Critical Institutions --}}
+                <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                Critical Institutions
+                            </p>
 
-                        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 text-red-600">
-                            <i class="fa-solid fa-building"></i>
-                        </span>
-                    </div>
+                            <p class="mt-3 text-4xl font-bold text-red-600">
+                                {{ number_format((int) ($criticalAreas ?? 0)) }}
+                            </p>
+                        </div>
 
-                    <p class="text-4xl font-bold text-gray-900">
-                        {{ $institutionCount ?? 0 }}
-                    </p>
-
-                    <p class="mt-2 text-xs text-gray-500">
-                        {{ $analyzedInstitutionCount ?? 0 }} institutions analyzed
-                    </p>
-                </div>
-
-                {{-- Critical --}}
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div class="mb-4 flex items-center justify-between">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                            Critical Priority
-                        </span>
-
-                        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-red-50 text-red-600">
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
                             <i class="fa-solid fa-triangle-exclamation"></i>
                         </span>
                     </div>
 
-                    <p class="text-4xl font-bold text-red-600">
-                        {{ $criticalAreas ?? 0 }}
-                    </p>
-
-                    <p class="mt-2 text-xs text-gray-500">
-                        Institutions requiring immediate intervention
-                    </p>
-                </div>
-
-                {{-- Warning --}}
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div class="mb-4 flex items-center justify-between">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                            Needs Improvement
+                    <div class="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                        <span>
+                            <strong class="font-semibold text-amber-600">
+                                {{ number_format((int) ($needsAttention ?? 0)) }}
+                            </strong>
+                            warning
                         </span>
 
-                        <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-50 text-amber-600">
-                            <i class="fa-solid fa-circle-exclamation"></i>
+                        <span>
+                            <strong class="font-semibold text-green-600">
+                                {{ number_format((int) ($adequateAreas ?? 0)) }}
+                            </strong>
+                            adequate
                         </span>
                     </div>
 
-                    <p class="text-4xl font-bold text-amber-600">
-                        {{ $needsAttention ?? 0 }}
+                    <p class="mt-3 text-xs leading-5 text-gray-500">
+                        Critical sites should be reviewed first in city-wide ICT planning.
+                    </p>
+                </section>
+
+                {{-- Coverage --}}
+                <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                Analysis Coverage
+                            </p>
+
+                            <div class="mt-3 flex items-end gap-2">
+                                <span class="text-4xl font-bold text-gray-900">
+                                    {{ number_format((float) ($analysisCoveragePercentage ?? 0), 1) }}
+                                </span>
+                                <span class="pb-1 text-lg font-semibold text-gray-400">%</span>
+                            </div>
+                        </div>
+
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                            <i class="fa-solid fa-database"></i>
+                        </span>
+                    </div>
+
+                    <p class="mt-3 text-xs text-gray-600">
+                        <strong class="font-semibold text-gray-900">
+                            {{ number_format((int) ($analyzedInstitutionCount ?? 0)) }}
+                        </strong>
+                        of
+                        <strong class="font-semibold text-gray-900">
+                            {{ number_format((int) ($institutionCount ?? 0)) }}
+                        </strong>
+                        active institutions analyzed
                     </p>
 
-                    <p class="mt-2 text-xs text-gray-500">
-                        Institutions with moderate ICT gaps
+                    <p class="mt-1 text-xs text-gray-500">
+                        Average data completeness:
+                        <strong class="font-semibold text-gray-700">
+                            {{ is_numeric($averageCompleteness ?? null)
+                                ? number_format((float) $averageCompleteness, 1) . '%'
+                                : '—' }}
+                        </strong>
+
+                        @if (($insufficientData ?? 0) > 0)
+                            · {{ number_format((int) $insufficientData) }} insufficient-data
+                        @endif
                     </p>
-                </div>
+                </section>
             </div>
 
-            {{-- Gap Category Breakdown --}}
-            <div class="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                <div class="mb-5">
-                    <h2 class="text-base font-semibold text-gray-900">
-                        ICT Gap Category Breakdown
-                    </h2>
+            {{-- 2 + 3. CAUSE AND LOCATION --}}
+            <div class="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
+                {{-- Gap Drivers --}}
+                <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <div class="mb-5 flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-red-600">
+                                What is driving the gap?
+                            </p>
 
-                    <p class="mt-1 text-sm text-gray-500">
-                        Main factors contributing to the overall ICT gap
-                    </p>
-                </div>
+                            <h2 class="mt-1 text-base font-semibold text-gray-900">
+                                City-wide Gap Drivers
+                            </h2>
+                        </div>
 
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        @if ($primaryCityConcern)
+                            <div class="max-w-52 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-right">
+                                <p class="text-[10px] font-semibold uppercase tracking-wider text-red-500">
+                                    Primary Concern
+                                </p>
 
-                    {{-- Infrastructure Deficit --}}
-                    @php
-                        $infrastructureValue = min(100, max(0, (float) ($infrastructureDeficit ?? 0)));
-
-                        $infrastructureColor =
-                            $infrastructureValue >= 80
-                                ? 'bg-red-500'
-                                : ($infrastructureValue >= 50
-                                    ? 'bg-amber-400'
-                                    : 'bg-green-500');
-
-                        $infrastructureText =
-                            $infrastructureValue >= 80
-                                ? 'text-red-600'
-                                : ($infrastructureValue >= 50
-                                    ? 'text-amber-600'
-                                    : 'text-green-600');
-                    @endphp
-
-                    <div class="rounded-xl border border-gray-200 p-5">
-                        <div class="mb-4 flex items-start justify-between gap-4">
-                            <div>
-                                <h3 class="text-sm font-semibold text-gray-900">
-                                    Infrastructure Deficit
-                                </h3>
-
-                                <p class="mt-1 text-xs leading-relaxed text-gray-500">
-                                    Availability of computers, laboratories, display equipment, and ICT facilities
+                                <p class="mt-0.5 text-xs font-semibold text-red-800">
+                                    {{ $primaryCityConcern['label'] }}
                                 </p>
                             </div>
-
-                            <span
-                                class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
-                                <i class="fa-solid fa-computer"></i>
-                            </span>
-                        </div>
-
-                        <p class="text-3xl font-bold {{ $infrastructureText }}">
-                            {{ number_format($infrastructureValue, 1) }}%
-                        </p>
-
-                        <div class="mt-4 h-2 overflow-hidden rounded-full bg-gray-100">
-                            <div class="h-full rounded-full {{ $infrastructureColor }}"
-                                style="width: {{ $infrastructureValue }}%"></div>
-                        </div>
+                        @endif
                     </div>
 
-                    {{-- Connectivity Divide --}}
-                    @php
-                        $connectivityValue = min(100, max(0, (float) ($connectivityDivide ?? 0)));
-
-                        $connectivityColor =
-                            $connectivityValue >= 80
-                                ? 'bg-red-500'
-                                : ($connectivityValue >= 50
-                                    ? 'bg-amber-400'
-                                    : 'bg-green-500');
-
-                        $connectivityText =
-                            $connectivityValue >= 80
-                                ? 'text-red-600'
-                                : ($connectivityValue >= 50
-                                    ? 'text-amber-600'
-                                    : 'text-green-600');
-                    @endphp
-
-                    <div class="rounded-xl border border-gray-200 p-5">
-                        <div class="mb-4 flex items-start justify-between gap-4">
-                            <div>
-                                <h3 class="text-sm font-semibold text-gray-900">
-                                    Connectivity Divide
-                                </h3>
-
-                                <p class="mt-1 text-xs leading-relaxed text-gray-500">
-                                    Internet availability, provider access, and connection capacity
-                                </p>
-                            </div>
-
-                            <span
-                                class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
-                                <i class="fa-solid fa-wifi"></i>
-                            </span>
-                        </div>
-
-                        <p class="text-3xl font-bold {{ $connectivityText }}">
-                            {{ number_format($connectivityValue, 1) }}%
-                        </p>
-
-                        <div class="mt-4 h-2 overflow-hidden rounded-full bg-gray-100">
-                            <div class="h-full rounded-full {{ $connectivityColor }}"
-                                style="width: {{ $connectivityValue }}%"></div>
-                        </div>
-                    </div>
-
-                    {{-- Technological Obsolescence --}}
-                    @php
-                        $obsolescenceValue = min(100, max(0, (float) ($technologicalObsolescence ?? 0)));
-
-                        $obsolescenceColor =
-                            $obsolescenceValue >= 80
-                                ? 'bg-red-500'
-                                : ($obsolescenceValue >= 50
-                                    ? 'bg-amber-400'
-                                    : 'bg-green-500');
-
-                        $obsolescenceText =
-                            $obsolescenceValue >= 80
-                                ? 'text-red-600'
-                                : ($obsolescenceValue >= 50
-                                    ? 'text-amber-600'
-                                    : 'text-green-600');
-                    @endphp
-
-                    <div class="rounded-xl border border-gray-200 p-5">
-                        <div class="mb-4 flex items-start justify-between gap-4">
-                            <div>
-                                <h3 class="text-sm font-semibold text-gray-900">
-                                    Technology Obsolescence
-                                </h3>
-
-                                <p class="mt-1 text-xs leading-relaxed text-gray-500">
-                                    Aging, damaged, retired, and maintenance-dependent ICT equipment
-                                </p>
-                            </div>
-
-                            <span
-                                class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
-                                <i class="fa-solid fa-clock-rotate-left"></i>
-                            </span>
-                        </div>
-
-                        <p class="text-3xl font-bold {{ $obsolescenceText }}">
-                            {{ number_format($obsolescenceValue, 1) }}%
-                        </p>
-
-                        <div class="mt-4 h-2 overflow-hidden rounded-full bg-gray-100">
-                            <div class="h-full rounded-full {{ $obsolescenceColor }}"
-                                style="width: {{ $obsolescenceValue }}%"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Infrastructure Status and Priority Needs --}}
-            <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-
-                {{-- Infrastructure Availability --}}
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div class="mb-5">
-                        <h2 class="text-base font-semibold text-gray-900">
-                            ICT Infrastructure Availability
-                        </h2>
-
-                        <p class="mt-1 text-sm text-gray-500">
-                            Percentage of active institutions with available ICT resources
-                        </p>
-                    </div>
-
-                    @php
-                        $statusItems = [
-                            [
-                                'label' => 'Computer Laboratories',
-                                'value' => $infrastructureStatus['computer_laboratories'] ?? 0,
-                                'icon' => 'fa-solid fa-desktop',
-                            ],
-                            [
-                                'label' => 'Internet Connectivity',
-                                'value' => $infrastructureStatus['internet_connectivity'] ?? 0,
-                                'icon' => 'fa-solid fa-wifi',
-                            ],
-                            [
-                                'label' => 'Smart Televisions',
-                                'value' => $infrastructureStatus['smart_tvs'] ?? 0,
-                                'icon' => 'fa-solid fa-tv',
-                            ],
-                            [
-                                'label' => 'Projected Whiteboards',
-                                'value' => $infrastructureStatus['projected_whiteboards'] ?? 0,
-                                'icon' => 'fa-solid fa-display',
-                            ],
-                            [
-                                'label' => 'Public Address Systems',
-                                'value' => $infrastructureStatus['public_address_systems'] ?? 0,
-                                'icon' => 'fa-solid fa-volume-high',
-                            ],
-                        ];
-                    @endphp
-
-                    <div class="space-y-5">
-                        @foreach ($statusItems as $item)
+                    <div class="space-y-4">
+                        @foreach ($gapDrivers as $driver)
                             @php
-                                $availabilityValue = min(100, max(0, (float) $item['value']));
-
-                                $availabilityBar =
-                                    $availabilityValue >= 80
-                                        ? 'bg-green-500'
-                                        : ($availabilityValue >= 50
-                                            ? 'bg-amber-400'
-                                            : 'bg-red-500');
+                                $driverValue = is_numeric($driver['value'])
+                                    ? min(100, max(0, (float) $driver['value']))
+                                    : null;
                             @endphp
 
                             <div>
                                 <div class="mb-2 flex items-center justify-between gap-4">
                                     <div class="flex min-w-0 items-center gap-3">
                                         <span
-                                            class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
-                                            <i class="{{ $item['icon'] }}"></i>
+                                            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
+                                            <i class="fa-solid {{ $driver['icon'] }}"></i>
                                         </span>
 
-                                        <span class="truncate text-sm font-medium text-gray-700">
-                                            {{ $item['label'] }}
-                                        </span>
+                                        <div class="min-w-0">
+                                            <p class="text-sm font-semibold text-gray-800">
+                                                {{ $driver['label'] }}
+                                            </p>
+
+                                            <p class="truncate text-xs text-gray-500">
+                                                {{ $driver['description'] }}
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    <span class="text-sm font-bold text-gray-900">
-                                        {{ number_format($availabilityValue, 1) }}%
+                                    <span class="shrink-0 text-sm font-bold {{ $scoreTextClass($driverValue) }}">
+                                        {{ $driverValue !== null ? number_format($driverValue, 1) . '%' : '—' }}
                                     </span>
                                 </div>
 
                                 <div class="h-2 overflow-hidden rounded-full bg-gray-100">
-                                    <div class="h-full rounded-full {{ $availabilityBar }}"
-                                        style="width: {{ $availabilityValue }}%"></div>
+                                    <div class="h-full rounded-full {{ $scoreBarClass($driverValue) }}"
+                                        style="width: {{ $driverValue ?? 0 }}%"></div>
                                 </div>
                             </div>
                         @endforeach
                     </div>
-                </div>
 
-                {{-- Priority ICT Needs --}}
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div class="mb-5">
-                        <h2 class="text-base font-semibold text-gray-900">
-                            Priority ICT Needs
-                        </h2>
+                    @if ($primaryCityConcern)
+                        <div class="mt-5 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                            <p class="text-xs leading-5 text-gray-600">
+                                <strong class="font-semibold text-gray-900">
+                                    Planning focus:
+                                </strong>
+                                {{ $primaryCityConcern['label'] }} currently has the highest average deficit at
+                                <strong class="font-semibold text-gray-900">
+                                    {{ number_format((float) $primaryCityConcern['score'], 1) }}%
+                                </strong>
+                                among the three research dimensions.
+                            </p>
+                        </div>
+                    @endif
+                </section>
 
-                        <p class="mt-1 text-sm text-gray-500">
-                            Most common areas requiring intervention
-                        </p>
-                    </div>
-
-                    @if (collect($priorityNeeds ?? [])->isEmpty())
-                        <div class="flex min-h-64 flex-col items-center justify-center text-center">
-                            <span
-                                class="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-50 text-green-600">
-                                <i class="fa-solid fa-circle-check text-xl"></i>
-                            </span>
-
-                            <p class="text-sm font-semibold text-gray-700">
-                                No priority needs detected
+                {{-- Priority Barangays --}}
+                <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                    <div class="mb-5 flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-semibold uppercase tracking-wider text-red-600">
+                                Where should the city look first?
                             </p>
 
-                            <p class="mt-1 text-xs text-gray-500">
-                                Available records do not currently show major deficiencies.
+                            <h2 class="mt-1 text-base font-semibold text-gray-900">
+                                Priority Barangays
+                            </h2>
+                        </div>
+
+                        <span class="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1 text-[11px] font-semibold text-gray-500">
+                            Top 5
+                        </span>
+                    </div>
+
+                    @if ($topBarangays->isEmpty())
+                        <div class="flex min-h-56 flex-col items-center justify-center text-center">
+                            <span class="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+                                <i class="fa-solid fa-map-location-dot text-lg"></i>
+                            </span>
+
+                            <p class="mt-3 text-sm font-semibold text-gray-700">
+                                No barangay ranking available
+                            </p>
+
+                            <p class="mt-1 max-w-sm text-xs leading-5 text-gray-500">
+                                Barangay priorities will appear after institutions have completed gap assessments.
                             </p>
                         </div>
                     @else
                         <div class="space-y-3">
-                            @foreach ($priorityNeeds as $index => $need)
-                                <div class="flex items-center gap-4 rounded-lg border border-gray-200 p-4">
-                                    <span
-                                        class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-red-50 text-sm font-bold text-red-600">
-                                        {{ $index + 1 }}
-                                    </span>
-
-                                    <div class="min-w-0 flex-1">
-                                        <p class="text-sm font-semibold text-gray-800">
-                                            {{ $need['label'] }}
-                                        </p>
-
-                                        <p class="mt-1 text-xs text-gray-500">
-                                            {{ $need['count'] }}
-                                            {{ Str::plural('institution', $need['count']) }}
-                                            affected
-                                        </p>
-                                    </div>
-
-                                    <span class="rounded-full bg-red-50 px-3 py-1 text-xs font-semibold text-red-600">
-                                        {{ $need['count'] }}
-                                    </span>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-            {{-- Barangay Priority and Risk Distribution --}}
-            <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-
-                {{-- Priority Barangays --}}
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
-                    <div class="mb-5 flex items-start justify-between gap-4">
-                        <div>
-                            <h2 class="text-base font-semibold text-gray-900">
-                                Priority Barangays
-                            </h2>
-
-                            <p class="mt-1 text-sm text-gray-500">
-                                Barangays ranked by average institutional ICT gap
-                            </p>
-                        </div>
-
-                        <span
-                            class="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-semibold text-gray-500">
-                            Top 10
-                        </span>
-                    </div>
-
-                    @php
-                        $topBarangays = collect($barangayScores ?? [])->take(10);
-                    @endphp
-
-                    @if ($topBarangays->isEmpty())
-                        <div class="py-12 text-center">
-                            <i class="fa-solid fa-map-location-dot text-3xl text-gray-300"></i>
-
-                            <p class="mt-3 text-sm text-gray-500">
-                                No barangay analytics available.
-                            </p>
-                        </div>
-                    @else
-                        <div class="space-y-4">
-                            @foreach ($topBarangays as $barangay)
+                            @foreach ($topBarangays as $index => $barangay)
                                 @php
-                                    $barangayGap = min(100, max(0, (float) ($barangay['gap_score'] ?? 0)));
+                                    $barangayGap = min(
+                                        100,
+                                        max(
+                                            0,
+                                            (float) ($barangay['gap_score'] ?? 0)
+                                        )
+                                    );
 
-                                    $barangayRisk = $barangay['risk_level'] ?? 'adequate';
-
-                                    $barangayBar = match ($barangayRisk) {
-                                        'critical' => 'bg-red-500',
-                                        'warning' => 'bg-amber-400',
-                                        default => 'bg-green-500',
-                                    };
+                                    $barangayRisk = strtolower(
+                                        (string) ($barangay['risk_level'] ?? 'adequate')
+                                    );
 
                                     $barangayBadge = match ($barangayRisk) {
                                         'critical' => 'bg-red-50 text-red-700',
@@ -479,488 +379,358 @@
                                     };
                                 @endphp
 
-                                <div>
-                                    <div class="mb-2 flex items-center justify-between gap-4">
-                                        <div class="min-w-0">
-                                            <p class="truncate text-sm font-semibold text-gray-800">
-                                                {{ $barangay['name'] ?? 'Unknown Barangay' }}
-                                            </p>
+                                <div class="flex items-center gap-3 rounded-lg border border-gray-200 px-3 py-3">
+                                    <span
+                                        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold text-gray-600">
+                                        {{ $index + 1 }}
+                                    </span>
 
-                                            <p class="text-xs text-gray-500">
-                                                {{ $barangay['institution_count'] ?? 0 }}
-                                                {{ Str::plural('institution', $barangay['institution_count'] ?? 0) }}
-                                            </p>
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center justify-between gap-3">
+                                            <div class="min-w-0">
+                                                <p class="truncate text-sm font-semibold text-gray-800">
+                                                    {{ $barangay['name'] ?? 'Unknown Barangay' }}
+                                                </p>
+
+                                                <p class="mt-0.5 text-xs text-gray-500">
+                                                    {{ number_format((int) ($barangay['institution_count'] ?? 0)) }}
+                                                    {{ Str::plural('institution', (int) ($barangay['institution_count'] ?? 0)) }}
+                                                </p>
+                                            </div>
+
+                                            <div class="flex shrink-0 items-center gap-2">
+                                                <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $barangayBadge }}">
+                                                    {{ ucfirst($barangayRisk) }}
+                                                </span>
+
+                                                <span class="w-12 text-right text-sm font-bold text-gray-900">
+                                                    {{ number_format($barangayGap, 1) }}%
+                                                </span>
+                                            </div>
                                         </div>
 
-                                        <div class="flex flex-shrink-0 items-center gap-3">
-                                            <span
-                                                class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $barangayBadge }}">
-                                                {{ ucfirst($barangayRisk) }}
-                                            </span>
-
-                                            <span class="w-14 text-right text-sm font-bold text-gray-900">
-                                                {{ number_format($barangayGap, 1) }}%
-                                            </span>
+                                        <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-gray-100">
+                                            <div class="h-full rounded-full {{ $scoreBarClass($barangayGap) }}"
+                                                style="width: {{ $barangayGap }}%"></div>
                                         </div>
-                                    </div>
-
-                                    <div class="h-2 overflow-hidden rounded-full bg-gray-100">
-                                        <div class="h-full rounded-full {{ $barangayBar }}"
-                                            style="width: {{ $barangayGap }}%"></div>
                                     </div>
                                 </div>
                             @endforeach
                         </div>
                     @endif
-                </div>
-
-                {{-- Risk Distribution --}}
-                <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                    <div class="mb-5">
-                        <h2 class="text-base font-semibold text-gray-900">
-                            Risk Distribution
-                        </h2>
-
-                        <p class="mt-1 text-sm text-gray-500">
-                            Institutions grouped by gap severity
-                        </p>
-                    </div>
-
-                    @php
-                        $riskTotal =
-                            ($criticalAreas ?? 0) +
-                            ($needsAttention ?? 0) +
-                            ($adequateAreas ?? 0) +
-                            ($insufficientData ?? 0);
-
-                        $riskItems = [
-                            [
-                                'label' => 'Critical',
-                                'count' => $criticalAreas ?? 0,
-                                'dot' => 'bg-red-500',
-                                'badge' => 'bg-red-50 text-red-700',
-                            ],
-                            [
-                                'label' => 'Warning',
-                                'count' => $needsAttention ?? 0,
-                                'dot' => 'bg-amber-400',
-                                'badge' => 'bg-amber-50 text-amber-700',
-                            ],
-                            [
-                                'label' => 'Adequate',
-                                'count' => $adequateAreas ?? 0,
-                                'dot' => 'bg-green-500',
-                                'badge' => 'bg-green-50 text-green-700',
-                            ],
-                            [
-                                'label' => 'Insufficient Data',
-                                'count' => $insufficientData ?? 0,
-                                'dot' => 'bg-gray-400',
-                                'badge' => 'bg-gray-100 text-gray-700',
-                            ],
-                        ];
-                    @endphp
-
-                    <div class="mb-6 flex justify-center">
-                        <div
-                            class="flex h-32 w-32 flex-col items-center justify-center rounded-full border-[14px] border-red-100">
-                            <span class="text-3xl font-bold text-gray-900">
-                                {{ $riskTotal }}
-                            </span>
-
-                            <span class="text-xs text-gray-500">
-                                analyzed
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="space-y-3">
-                        @foreach ($riskItems as $risk)
-                            @php
-                                $riskPercentage = $riskTotal > 0 ? round(($risk['count'] / $riskTotal) * 100, 1) : 0;
-                            @endphp
-
-                            <div class="flex items-center gap-3">
-                                <span class="h-3 w-3 flex-shrink-0 rounded-full {{ $risk['dot'] }}"></span>
-
-                                <span class="min-w-0 flex-1 text-sm text-gray-600">
-                                    {{ $risk['label'] }}
-                                </span>
-
-                                <span class="rounded-full px-2 py-0.5 text-xs font-semibold {{ $risk['badge'] }}">
-                                    {{ $risk['count'] }}
-                                </span>
-
-                                <span class="w-12 text-right text-xs font-medium text-gray-500">
-                                    {{ number_format($riskPercentage, 1) }}%
-                                </span>
-                            </div>
-                        @endforeach
-                    </div>
-                </div>
+                </section>
             </div>
 
-            {{-- Data Quality --}}
-            <div class="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div class="flex items-start gap-3">
-                        <span
-                            class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-600">
-                            <i class="fa-solid fa-database"></i>
-                        </span>
-
+            {{-- 4. INSTITUTION ACTION LIST --}}
+            <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div class="border-b border-gray-200 p-5">
+                    <div class="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                         <div>
-                            <p class="text-sm font-semibold text-red-900">
-                                Analytics Data Completeness
+                            <p class="text-xs font-semibold uppercase tracking-wider text-red-600">
+                                Which institutions need action?
                             </p>
 
-                            <p class="mt-1 text-xs leading-relaxed text-red-700">
-                                Institutions with incomplete records may be classified as insufficient data instead of
-                                receiving an inaccurate gap score.
+                            <h2 class="mt-1 text-base font-semibold text-gray-900">
+                                Institution Priority List
+                            </h2>
+
+                            <p class="mt-1 text-sm text-gray-500">
+                                Highest gap scores first, with the main concern and recommended first action.
                             </p>
                         </div>
+
+                        <form method="GET" action="{{ url()->current() }}"
+                            class="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:w-auto xl:grid-cols-5">
+                            <div class="relative sm:col-span-2 xl:col-span-1">
+                                <i
+                                    class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
+
+                                <input type="search" name="q" value="{{ request('q') }}"
+                                    placeholder="Search institution"
+                                    class="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm text-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100 xl:w-48">
+                            </div>
+
+                            <select name="barangay"
+                                class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100">
+                                <option value="">All Barangays</option>
+
+                                @foreach ($barangays ?? [] as $barangay)
+                                    <option value="{{ $barangay->id }}"
+                                        @selected((string) request('barangay') === (string) $barangay->id)>
+                                        {{ $barangay->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+
+                            <select name="type"
+                                class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100">
+                                <option value="">All Types</option>
+                                <option value="School" @selected(request('type') === 'School')>School</option>
+                                <option value="Barangay Hall" @selected(request('type') === 'Barangay Hall')>Barangay Hall</option>
+                                <option value="Local Government Office" @selected(request('type') === 'Local Government Office')>
+                                    Local Government Office
+                                </option>
+                            </select>
+
+                            <select name="risk"
+                                class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100">
+                                <option value="">All Risk Levels</option>
+                                <option value="critical" @selected(request('risk') === 'critical')>Critical</option>
+                                <option value="warning" @selected(request('risk') === 'warning')>Warning</option>
+                                <option value="adequate" @selected(request('risk') === 'adequate')>Adequate</option>
+                                <option value="insufficient_data" @selected(request('risk') === 'insufficient_data')>
+                                    Insufficient Data
+                                </option>
+                            </select>
+
+                            <div class="flex gap-2">
+                                <button type="submit"
+                                    class="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-gray-800">
+                                    <i class="fa-solid fa-filter"></i>
+                                    Apply
+                                </button>
+
+                                @if ($hasFilters)
+                                    <a href="{{ url()->current() }}"
+                                        class="inline-flex items-center justify-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
+                                        title="Clear filters">
+                                        <i class="fa-solid fa-rotate-left"></i>
+                                    </a>
+                                @endif
+                            </div>
+                        </form>
                     </div>
-
-                    <div class="flex-shrink-0 text-left sm:text-right">
-                        <p class="text-2xl font-bold text-red-900">
-                            {{ number_format($averageCompleteness ?? 0, 1) }}%
-                        </p>
-
-                        <p class="text-xs text-red-700">
-                            average completeness
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Filters --}}
-            <div class="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
-                    <div class="flex items-center gap-2 lg:mr-2">
-                        <i class="fa-solid fa-filter text-gray-400"></i>
-
-                        <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                            Filter Institutions
-                        </span>
-                    </div>
-
-                    <select id="barangayFilter"
-                        class="min-w-44 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100">
-                        <option value="">All Barangays</option>
-
-                        @foreach ($barangays ?? [] as $barangay)
-                            <option value="{{ strtolower($barangay) }}">
-                                {{ $barangay }}
-                            </option>
-                        @endforeach
-                    </select>
-
-                    <select id="typeFilter"
-                        class="min-w-44 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100">
-                        <option value="">All Institution Types</option>
-                        <option value="school">School</option>
-                        <option value="barangay hall">Barangay Hall</option>
-                        <option value="local government office">Local Government Office</option>
-                    </select>
-
-                    <select id="riskFilter"
-                        class="min-w-44 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100">
-                        <option value="">All Risk Levels</option>
-                        <option value="critical">Critical</option>
-                        <option value="warning">Warning</option>
-                        <option value="adequate">Adequate</option>
-                        <option value="insufficient_data">Insufficient Data</option>
-                    </select>
-
-                    <button type="button" id="clearFilters"
-                        class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 lg:ml-auto">
-                        <i class="fa-solid fa-rotate-left"></i>
-                        Clear Filters
-                    </button>
-                </div>
-            </div>
-
-            {{-- Institution Priority Table --}}
-            <div class="rounded-xl border border-gray-200 bg-white shadow-sm">
-                <div
-                    class="flex flex-col gap-3 border-b border-gray-200 p-5 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <h2 class="text-base font-semibold text-gray-900">
-                            Institution Priority List
-                        </h2>
-
-                        <p class="mt-1 text-sm text-gray-500">
-                            Institutions ordered from highest to lowest ICT gap
-                        </p>
-                    </div>
-
-                    <span
-                        class="inline-flex w-fit items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600">
-                        {{ $analytics->total() ?? 0 }}
-                        {{ Str::plural('record', $analytics->total() ?? 0) }}
-                    </span>
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th
-                                    class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                                     Institution
                                 </th>
 
-                                <th
-                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                                     Barangay
                                 </th>
 
-                                <th
-                                    class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                    Type
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                    Gap & Risk
                                 </th>
 
-                                <th
-                                    class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                    Risk
+                                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                    Main Concern
                                 </th>
 
-                                <th
-                                    class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                    Gap Score
-                                </th>
-
-                                <th
-                                    class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                    Source
-                                </th>
-
-                                <th
-                                    class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                    Analysis and Recommendation
+                                <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                    Recommended First Action
                                 </th>
                             </tr>
                         </thead>
 
-                        <tbody id="analyticsTableBody" class="divide-y divide-gray-100 bg-white">
-                            @forelse($analytics ?? [] as $analytic)
+                        <tbody class="divide-y divide-gray-100 bg-white">
+                            @forelse ($analytics ?? [] as $analytic)
                                 @php
                                     $institution = $analytic->institution;
 
-                                    $gapScore = $analytic->gap_score !== null ? (float) $analytic->gap_score : null;
+                                    $gapScore = is_numeric($analytic->gap_score)
+                                        ? (float) $analytic->gap_score
+                                        : null;
 
-                                    $riskLevel =
-                                        $analytic->risk_level ??
-                                        ($gapScore === null
-                                            ? 'insufficient_data'
-                                            : ($gapScore >= 80
-                                                ? 'critical'
-                                                : ($gapScore >= 50
-                                                    ? 'warning'
-                                                    : 'adequate')));
+                                    $riskLevel = strtolower(
+                                        (string) (
+                                            $analytic->risk_level
+                                            ?? (
+                                                $gapScore === null
+                                                    ? 'insufficient_data'
+                                                    : ($gapScore >= 80
+                                                        ? 'critical'
+                                                        : ($gapScore >= 50
+                                                            ? 'warning'
+                                                            : 'adequate'))
+                                            )
+                                        )
+                                    );
 
                                     $riskLabel = match ($riskLevel) {
                                         'critical' => 'Critical',
                                         'warning' => 'Warning',
                                         'adequate' => 'Adequate',
-                                        'insufficient_data' => 'Insufficient Data',
-                                        default => ucfirst(str_replace('_', ' ', $riskLevel)),
+                                        default => 'Insufficient Data',
                                     };
 
                                     $riskBadge = match ($riskLevel) {
                                         'critical' => 'bg-red-100 text-red-700',
                                         'warning' => 'bg-amber-100 text-amber-700',
                                         'adequate' => 'bg-green-100 text-green-700',
-                                        'insufficient_data' => 'bg-gray-100 text-gray-700',
                                         default => 'bg-gray-100 text-gray-700',
                                     };
 
-                                    $gapText = match ($riskLevel) {
-                                        'critical' => 'text-red-600',
-                                        'warning' => 'text-amber-600',
-                                        'adequate' => 'text-green-600',
-                                        default => 'text-gray-500',
+                                    $recommendationDetails = $analytic->recommendations_detail;
+
+                                    if (is_string($recommendationDetails)) {
+                                        $recommendationDetails = json_decode(
+                                            $recommendationDetails,
+                                            true
+                                        );
+                                    }
+
+                                    if (!is_array($recommendationDetails)) {
+                                        $recommendationDetails = [];
+                                    }
+
+                                    $rowPriorities = $recommendationDetails['priorities'] ?? [];
+
+                                    if (!is_array($rowPriorities)) {
+                                        $rowPriorities = [];
+                                    }
+
+                                    $firstPriority = $rowPriorities[0] ?? null;
+
+                                    $firstAction = is_array($firstPriority)
+                                        ? ($firstPriority['priority'] ?? null)
+                                        : (is_string($firstPriority) ? $firstPriority : null);
+
+                                    $firstAction = $firstAction
+                                        ?: $analytic->policy_recommendation;
+
+                                    $urgency = is_array($firstPriority)
+                                        ? ($firstPriority['urgency'] ?? null)
+                                        : null;
+
+                                    if (!$urgency && $gapScore !== null) {
+                                        $urgency = match (true) {
+                                            $gapScore >= 80 => 'immediate',
+                                            $gapScore >= 50 => 'short_term',
+                                            default => 'medium_term',
+                                        };
+                                    }
+
+                                    $urgencyLabel = $urgency
+                                        ? str_replace('_', ' ', $urgency)
+                                        : null;
+
+                                    $urgencyClasses = match ($urgency) {
+                                        'immediate' => 'border-red-200 bg-red-50 text-red-700',
+                                        'short_term' => 'border-orange-200 bg-orange-50 text-orange-700',
+                                        'medium_term' => 'border-blue-200 bg-blue-50 text-blue-700',
+                                        default => 'border-gray-200 bg-gray-50 text-gray-600',
                                     };
 
-                                    $gapBar = match ($riskLevel) {
-                                        'critical' => 'bg-red-500',
-                                        'warning' => 'bg-amber-400',
-                                        'adequate' => 'bg-green-500',
-                                        default => 'bg-gray-400',
-                                    };
+                                    $rowDimensions = collect([
+                                        [
+                                            'label' => 'Infrastructure',
+                                            'score' => $analytic->infrastructure_deficit_score,
+                                        ],
+                                        [
+                                            'label' => 'Connectivity',
+                                            'score' => $analytic->connectivity_divide_score,
+                                        ],
+                                        [
+                                            'label' => 'Obsolescence',
+                                            'score' => $analytic->technological_obsolescence_score,
+                                        ],
+                                    ])
+                                        ->filter(fn ($item) => is_numeric($item['score']))
+                                        ->sortByDesc(fn ($item) => (float) $item['score'])
+                                        ->values();
 
-                                    $recommendationDetails = is_array($analytic->recommendations_detail)
-                                        ? $analytic->recommendations_detail
-                                        : [];
-
-                                    $analysisMethod = strtolower(
-                                        (string) ($recommendationDetails['method'] ?? '')
-                                    );
-
-                                    $analysisProvider = strtolower(
-                                        (string) ($recommendationDetails['provider'] ?? '')
-                                    );
-
-                                    $analysisModel = $recommendationDetails['model'] ?? null;
-
-                                    $scoreSource = strtolower(
-                                        (string) ($recommendationDetails['score_source'] ?? '')
-                                    );
-
-                                    $providerLabel = match ($analysisProvider) {
-                                        'gemini' => 'Gemini',
-                                        'groq' => 'Groq',
-                                        'local' => 'Local',
-                                        default => $analysisMethod === 'generative_ai'
-                                            ? 'AI'
-                                            : 'Local',
-                                    };
-
-                                    $providerBadge = match ($analysisProvider) {
-                                        'gemini' => 'bg-red-100 text-red-700',
-                                        'groq' => 'bg-orange-100 text-orange-700',
-                                        'local' => 'bg-gray-100 text-gray-700',
-                                        default => $analysisMethod === 'generative_ai'
-                                            ? 'bg-purple-100 text-purple-700'
-                                            : 'bg-gray-100 text-gray-700',
-                                    };
-
-                                    $providerIcon = match ($analysisProvider) {
-                                        'gemini' => 'fa-solid fa-wand-magic-sparkles',
-                                        'groq' => 'fa-solid fa-bolt',
-                                        default => 'fa-solid fa-microchip',
-                                    };
-
-                                    $scoreSourceLabel = match ($scoreSource) {
-                                        'python_service' => 'Python scores',
-                                        'local_deterministic_fallback' => 'Local scores',
-                                        default => 'Score source unavailable',
-                                    };
+                                    $mainConcern = $rowDimensions->first();
                                 @endphp
 
-                                <tr class="analytics-row transition hover:bg-gray-50"
-                                    data-barangay="{{ strtolower($institution?->barangay?->name ?? '') }}"
-                                    data-type="{{ strtolower($institution?->type ?? '') }}"
-                                    data-risk="{{ strtolower($riskLevel) }}">
-                                    <td class="whitespace-nowrap px-5 py-4">
-                                        <div class="flex items-center gap-3">
-                                            <span
-                                                class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
-                                                <i class="fa-solid fa-building"></i>
-                                            </span>
-
-                                            <div class="min-w-0">
-                                                <p class="max-w-52 truncate text-sm font-semibold text-gray-900">
-                                                    {{ $institution?->name ?? 'Unknown Institution' }}
+                                <tr class="align-top transition hover:bg-gray-50">
+                                    <td class="px-5 py-4">
+                                        @if ($institution)
+                                            <a href="{{ route('institutions.show', $institution) }}"
+                                                class="group block">
+                                                <p
+                                                    class="max-w-64 text-sm font-semibold text-gray-900 transition group-hover:text-red-700">
+                                                    {{ $institution->name }}
                                                 </p>
-                                            </div>
-                                        </div>
+
+                                                <p class="mt-1 text-xs text-gray-500">
+                                                    {{ $institution->type ?? 'Type not specified' }}
+                                                </p>
+                                            </a>
+                                        @else
+                                            <span class="text-sm text-gray-400">
+                                                Institution unavailable
+                                            </span>
+                                        @endif
                                     </td>
 
-                                    <td class="whitespace-nowrap px-4 py-4 text-sm text-gray-600">
+                                    <td class="px-4 py-4 text-sm text-gray-600">
                                         {{ $institution?->barangay?->name ?? 'Not assigned' }}
                                     </td>
 
-                                    <td class="whitespace-nowrap px-4 py-4">
-                                        <span
-                                            class="rounded-md bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
-                                            {{ $institution?->type ?? 'Not specified' }}
-                                        </span>
+                                    <td class="px-4 py-4">
+                                        <div class="flex flex-col items-start gap-1.5">
+                                            <span class="text-sm font-bold {{ $scoreTextClass($gapScore) }}">
+                                                {{ $gapScore !== null ? number_format($gapScore, 1) . '%' : '—' }}
+                                            </span>
+
+                                            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $riskBadge }}">
+                                                {{ $riskLabel }}
+                                            </span>
+                                        </div>
                                     </td>
 
-                                    <td class="whitespace-nowrap px-4 py-4 text-center">
-                                        <span
-                                            class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $riskBadge }}">
-                                            {{ $riskLabel }}
-                                        </span>
-                                    </td>
+                                    <td class="px-4 py-4">
+                                        @if ($mainConcern)
+                                            <p class="text-sm font-semibold text-gray-800">
+                                                {{ $mainConcern['label'] }}
+                                            </p>
 
-                                    <td class="whitespace-nowrap px-4 py-4 text-right">
-                                        @if ($gapScore !== null)
-                                            <div class="flex items-center justify-end gap-3">
-                                                <div class="h-2 w-16 overflow-hidden rounded-full bg-gray-100">
-                                                    <div class="h-full rounded-full {{ $gapBar }}"
-                                                        style="width: {{ min(100, max(0, $gapScore)) }}%"></div>
-                                                </div>
-
-                                                <span class="w-14 text-right text-sm font-bold {{ $gapText }}">
-                                                    {{ number_format($gapScore, 1) }}%
-                                                </span>
-                                            </div>
+                                            <p class="mt-1 text-xs text-gray-500">
+                                                {{ number_format((float) $mainConcern['score'], 1) }}% deficit
+                                            </p>
                                         @else
-                                            <span class="text-xs font-medium text-gray-400">
+                                            <span class="text-sm text-gray-400">
                                                 Not available
                                             </span>
                                         @endif
                                     </td>
 
-                                    <td class="whitespace-nowrap px-4 py-4 text-center">
-                                        <div class="flex flex-col items-center gap-1.5">
-                                            <span
-                                                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold {{ $providerBadge }}"
-                                                @if ($analysisModel)
-                                                    title="{{ $providerLabel }} model: {{ $analysisModel }}"
-                                                @endif>
-                                                <i class="{{ $providerIcon }}"></i>
-                                                {{ $providerLabel }}
-                                            </span>
+                                    <td class="px-5 py-4">
+                                        @if ($firstAction)
+                                            <div class="max-w-xl">
+                                                <div class="flex flex-wrap items-start gap-2">
+                                                    @if ($urgencyLabel)
+                                                        <span
+                                                            class="shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wide {{ $urgencyClasses }}">
+                                                            {{ $urgencyLabel }}
+                                                        </span>
+                                                    @endif
 
-                                            <span class="text-[11px] font-medium text-gray-400">
-                                                {{ $scoreSourceLabel }}
-                                            </span>
-                                        </div>
-                                    </td>
-
-                                    <td class="min-w-80 px-5 py-4">
-                                        @if ($analytic->infrastructure_narrative)
-                                            <div class="mb-3">
-                                                <p class="text-xs font-semibold uppercase tracking-wider text-gray-500">
-                                                    Analysis
-                                                </p>
-
-                                                <p class="mt-1 text-sm leading-relaxed text-gray-700"
-                                                    title="{{ $analytic->infrastructure_narrative }}">
-                                                    {{ Str::limit($analytic->infrastructure_narrative, 130) }}
-                                                </p>
-                                            </div>
-                                        @endif
-
-                                        @if ($analytic->policy_recommendation)
-                                            <div class="rounded-lg bg-red-50 p-3">
-                                                <div class="flex items-start gap-2">
-                                                    <i class="fa-solid fa-lightbulb mt-0.5 text-red-600"></i>
-
-                                                    <div>
-                                                        <p
-                                                            class="text-xs font-semibold uppercase tracking-wider text-red-700">
-                                                            Recommendation
-                                                        </p>
-
-                                                        <p class="mt-1 text-sm font-medium leading-relaxed text-red-800"
-                                                            title="{{ $analytic->policy_recommendation }}">
-                                                            {{ Str::limit($analytic->policy_recommendation, 150) }}
-                                                        </p>
-                                                    </div>
+                                                    <p class="min-w-0 flex-1 text-sm font-medium leading-5 text-gray-800"
+                                                        title="{{ $firstAction }}">
+                                                        {{ Str::limit($firstAction, 150) }}
+                                                    </p>
                                                 </div>
                                             </div>
-                                        @elseif(!$analytic->infrastructure_narrative)
+                                        @else
                                             <span class="text-sm italic text-gray-400">
-                                                No analysis available.
+                                                No recommendation available.
                                             </span>
                                         @endif
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-5 py-16 text-center">
-                                        <i class="fa-solid fa-chart-column text-4xl text-gray-300"></i>
+                                    <td colspan="5" class="px-5 py-14 text-center">
+                                        <span
+                                            class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+                                            <i class="fa-solid fa-chart-column"></i>
+                                        </span>
 
-                                        <p class="mt-4 text-sm font-semibold text-gray-600">
-                                            No analytics records available
+                                        <p class="mt-3 text-sm font-semibold text-gray-700">
+                                            {{ $hasFilters ? 'No institutions match the selected filters.' : 'No analytics records available.' }}
                                         </p>
 
                                         <p class="mt-1 text-xs text-gray-500">
-                                            Run institution analysis to generate decision-support results.
+                                            {{ $hasFilters
+                                                ? 'Clear or change the filters to review other institutions.'
+                                                : 'Run institution analytics to generate decision-support results.' }}
                                         </p>
                                     </td>
                                 </tr>
@@ -969,122 +739,26 @@
                     </table>
                 </div>
 
-                <div id="noFilteredResults" class="hidden border-t border-gray-200 px-5 py-12 text-center">
-                    <i class="fa-solid fa-filter-circle-xmark text-3xl text-gray-300"></i>
-
-                    <p class="mt-3 text-sm font-semibold text-gray-600">
-                        No records match the selected filters.
-                    </p>
-                </div>
-
                 @if (method_exists($analytics, 'links'))
                     <div class="border-t border-gray-200 px-5 py-4">
                         {{ $analytics->links() }}
                     </div>
                 @endif
-            </div>
+            </section>
+
+            @if (($pendingAssessments ?? 0) > 0)
+                <div class="mt-4 flex items-start gap-2 text-xs text-gray-500">
+                    <i class="fa-solid fa-circle-info mt-0.5 text-gray-400"></i>
+                    <p>
+                        {{ number_format((int) $pendingAssessments) }}
+                        active
+                        {{ Str::plural('institution', (int) $pendingAssessments) }}
+                        still
+                        {{ (int) $pendingAssessments === 1 ? 'requires' : 'require' }}
+                        a completed gap assessment.
+                    </p>
+                </div>
+            @endif
         </div>
     </div>
-@endsection
-
-@section('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const barangayFilter = document.getElementById('barangayFilter');
-            const typeFilter = document.getElementById('typeFilter');
-            const riskFilter = document.getElementById('riskFilter');
-            const clearFiltersButton = document.getElementById('clearFilters');
-            const rows = Array.from(
-                document.querySelectorAll('.analytics-row')
-            );
-            const noFilteredResults = document.getElementById(
-                'noFilteredResults'
-            );
-
-            function applyFilters() {
-                const selectedBarangay =
-                    barangayFilter?.value.trim().toLowerCase() ?? '';
-
-                const selectedType =
-                    typeFilter?.value.trim().toLowerCase() ?? '';
-
-                const selectedRisk =
-                    riskFilter?.value.trim().toLowerCase() ?? '';
-
-                let visibleRows = 0;
-
-                rows.forEach((row) => {
-                    const rowBarangay =
-                        row.dataset.barangay?.trim().toLowerCase() ?? '';
-
-                    const rowType =
-                        row.dataset.type?.trim().toLowerCase() ?? '';
-
-                    const rowRisk =
-                        row.dataset.risk?.trim().toLowerCase() ?? '';
-
-                    const matchesBarangay = !selectedBarangay ||
-                        rowBarangay === selectedBarangay;
-
-                    const matchesType = !selectedType ||
-                        rowType === selectedType;
-
-                    const matchesRisk = !selectedRisk ||
-                        rowRisk === selectedRisk;
-
-                    const shouldDisplay =
-                        matchesBarangay &&
-                        matchesType &&
-                        matchesRisk;
-
-                    row.classList.toggle('hidden', !shouldDisplay);
-
-                    if (shouldDisplay) {
-                        visibleRows++;
-                    }
-                });
-
-                if (noFilteredResults) {
-                    noFilteredResults.classList.toggle(
-                        'hidden',
-                        visibleRows > 0 || rows.length === 0
-                    );
-                }
-            }
-
-            barangayFilter?.addEventListener(
-                'change',
-                applyFilters
-            );
-
-            typeFilter?.addEventListener(
-                'change',
-                applyFilters
-            );
-
-            riskFilter?.addEventListener(
-                'change',
-                applyFilters
-            );
-
-            clearFiltersButton?.addEventListener(
-                'click',
-                () => {
-                    if (barangayFilter) {
-                        barangayFilter.value = '';
-                    }
-
-                    if (typeFilter) {
-                        typeFilter.value = '';
-                    }
-
-                    if (riskFilter) {
-                        riskFilter.value = '';
-                    }
-
-                    applyFilters();
-                }
-            );
-        });
-    </script>
 @endsection

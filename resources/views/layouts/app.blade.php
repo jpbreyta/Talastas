@@ -7,7 +7,7 @@
 
         <title>{{ config('app.name', 'GIS-Based Digital Map for ICT Infrastructure & Gap Analysis - Lipa City') }}</title>
 
-        <link rel="icon" type="image/png" href="/images/logo_ict_mapping.png">
+        <link rel="icon" type="image/png" href="/images/talastas.svg">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">

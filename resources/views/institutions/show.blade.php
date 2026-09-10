@@ -84,6 +84,42 @@
 
         $analyticsModel = $recommendationDetails['model'] ?? null;
 
+        /*
+         * Planner-friendly values used only for display.
+         * The authoritative gap scores still come from the analytics record.
+         */
+        $activeComputerCount = max(0, (int) ($institution->number_of_computers ?? 0));
+
+        $usersPerComputer = $populationValue !== null
+            && (int) $populationValue > 0
+            && $activeComputerCount > 0
+                ? round((float) $populationValue / $activeComputerCount, 1)
+                : null;
+
+        $deficitDimensions = collect([
+            [
+                'label' => 'Infrastructure Deficit',
+                'score' => $analytics?->infrastructure_deficit_score,
+                'icon' => 'fa-building-circle-exclamation',
+            ],
+            [
+                'label' => 'Connectivity Divide',
+                'score' => $analytics?->connectivity_divide_score,
+                'icon' => 'fa-wifi',
+            ],
+            [
+                'label' => 'Technological Obsolescence',
+                'score' => $analytics?->technological_obsolescence_score,
+                'icon' => 'fa-clock-rotate-left',
+            ],
+        ])
+            ->filter(fn ($item) => is_numeric($item['score']))
+            ->sortByDesc(fn ($item) => (float) $item['score'])
+            ->values();
+
+        $primaryConcern = $deficitDimensions->first();
+        $decisionSupportVersion = $recommendationDetails['decision_support_version'] ?? null;
+
         $inventoryItems = $institution->ictInventory;
 
         $inventoryTotal = (int) $inventoryItems->sum(
@@ -563,24 +599,28 @@
                                             'value' => $analytics->infrastructure_deficit_score,
                                             'icon' => 'fa-building-circle-exclamation',
                                             'classes' => 'bg-red-50 text-red-600',
+                                            'suffix' => '%',
                                         ],
                                         [
                                             'label' => 'Connectivity Divide',
                                             'value' => $analytics->connectivity_divide_score,
                                             'icon' => 'fa-wifi',
                                             'classes' => 'bg-orange-50 text-orange-600',
+                                            'suffix' => '%',
                                         ],
                                         [
                                             'label' => 'Technological Obsolescence',
                                             'value' => $analytics->technological_obsolescence_score,
                                             'icon' => 'fa-clock-rotate-left',
                                             'classes' => 'bg-purple-50 text-purple-600',
+                                            'suffix' => '%',
                                         ],
                                         [
-                                            'label' => 'Asset-to-User Ratio',
-                                            'value' => $analytics->asset_to_user_ratio,
+                                            'label' => 'Users per Computer',
+                                            'value' => $usersPerComputer,
                                             'icon' => 'fa-users-gear',
                                             'classes' => 'bg-emerald-50 text-emerald-600',
+                                            'suffix' => 'users',
                                         ],
                                     ];
                                 @endphp
@@ -595,8 +635,10 @@
                                             <p class="text-xs font-medium text-gray-500">{{ $metric['label'] }}</p>
                                             <p class="mt-1 text-lg font-bold text-gray-900">
                                                 {{ $metric['value'] !== null ? number_format((float) $metric['value'], 1) : '—' }}
-                                                @if ($metric['value'] !== null)
-                                                    <span class="text-xs font-normal text-gray-400">%</span>
+                                                @if ($metric['value'] !== null && !empty($metric['suffix']))
+                                                    <span class="text-xs font-normal text-gray-400">
+                                                        {{ $metric['suffix'] }}
+                                                    </span>
                                                 @endif
                                             </p>
                                         </div>
@@ -605,48 +647,174 @@
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-                            <article class="rounded-xl border border-gray-200 bg-white p-5">
-                                <div class="mb-3 flex items-center gap-2">
-                                    <span
-                                        class="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-600">
-                                        <i class="fa-solid fa-file-waveform text-sm"></i>
-                                    </span>
-                                    <h3 class="text-sm font-semibold text-gray-900">Infrastructure Analysis</h3>
+                        {{-- LGU Decision Support --}}
+                        <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
+                            {{-- Column 1: Planning Assessment --}}
+                            <article class="flex h-full flex-col rounded-xl border border-gray-200 bg-white p-5">
+                                <div class="mb-3 flex items-start justify-between gap-3">
+                                    <div class="flex items-center gap-2">
+                                        <span
+                                            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600">
+                                            <i class="fa-solid fa-file-waveform text-sm"></i>
+                                        </span>
+                                        <div>
+                                            <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                                                Decision Support
+                                            </p>
+                                            <h3 class="text-sm font-semibold text-gray-900">
+                                                Planning Assessment
+                                            </h3>
+                                        </div>
+                                    </div>
+
+                                    @if ($primaryConcern)
+                                        <span
+                                            class="inline-flex shrink-0 items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[10px] font-semibold text-red-700">
+                                            {{ number_format((float) $primaryConcern['score'], 1) }}%
+                                        </span>
+                                    @endif
                                 </div>
 
+                                @if ($primaryConcern)
+                                    <div class="mb-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                                        <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                                            Primary Concern
+                                        </p>
+                                        <p class="mt-1 flex items-center gap-1.5 text-xs font-semibold text-gray-800">
+                                            <i class="fa-solid {{ $primaryConcern['icon'] }} text-red-500"></i>
+                                            {{ $primaryConcern['label'] }}
+                                        </p>
+                                    </div>
+                                @endif
+
                                 <p class="whitespace-pre-line text-sm leading-6 text-gray-600">
-                                    {{ $analytics->infrastructure_narrative ?: 'No analysis narrative is available yet.' }}
+                                    {{ $analytics->infrastructure_narrative ?: 'No planning assessment is available yet.' }}
                                 </p>
                             </article>
 
-                            <article class="rounded-xl border border-red-200 bg-red-50/40 p-5">
+                            {{-- Column 2: Recommended First Action --}}
+                            <article class="flex h-full flex-col rounded-xl border border-red-200 bg-red-50/40 p-5">
                                 <div class="mb-3 flex items-center gap-2">
                                     <span
-                                        class="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-700">
-                                        <i class="fa-solid fa-lightbulb text-sm"></i>
+                                        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-700">
+                                        <i class="fa-solid fa-bullseye text-sm"></i>
                                     </span>
-                                    <h3 class="text-sm font-semibold text-gray-900">Policy Recommendation</h3>
+                                    <div>
+                                        <p class="text-[11px] font-semibold uppercase tracking-wider text-red-500">
+                                            LGU Action
+                                        </p>
+                                        <h3 class="text-sm font-semibold text-gray-900">
+                                            Recommended First Action
+                                        </h3>
+                                    </div>
                                 </div>
 
                                 <p class="whitespace-pre-line text-sm leading-6 text-gray-700">
                                     {{ $analytics->policy_recommendation ?: 'No policy recommendation is available yet.' }}
                                 </p>
+
+                                @if ($usersPerComputer !== null)
+                                    <div class="mt-auto pt-4">
+                                        <div class="rounded-lg border border-red-100 bg-white/80 px-3 py-2">
+                                            <p class="text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                                                Access Indicator
+                                            </p>
+                                            <p class="mt-1 text-xs font-semibold text-gray-800">
+                                                1 active computer for about
+                                                {{ number_format((float) $usersPerComputer, 1) }}
+                                                {{ strtolower($populationLabel) }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                @endif
+                            </article>
+
+                            {{-- Column 3: Planning Snapshot --}}
+                            <article class="flex h-full flex-col rounded-xl border border-gray-200 bg-gray-50 p-5">
+                                <div class="mb-4 flex items-center gap-2">
+                                    <span
+                                        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
+                                        <i class="fa-solid fa-chart-simple text-sm"></i>
+                                    </span>
+                                    <div>
+                                        <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                                            Quick Reference
+                                        </p>
+                                        <h3 class="text-sm font-semibold text-gray-900">
+                                            Planning Snapshot
+                                        </h3>
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2.5">
+                                    <div class="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2">
+                                        <span class="text-xs text-gray-500">Risk Level</span>
+                                        <span
+                                            class="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold {{ $riskClasses }}">
+                                            {{ $riskLabel }}
+                                        </span>
+                                    </div>
+
+                                    <div class="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2">
+                                        <span class="text-xs text-gray-500">Data Completeness</span>
+                                        <span class="text-xs font-semibold text-gray-800">
+                                            {{ $completenessScore !== null ? number_format((float) $completenessScore, 1) . '%' : '—' }}
+                                        </span>
+                                    </div>
+
+                                    <div class="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2">
+                                        <span class="text-xs text-gray-500">Active Computers</span>
+                                        <span class="text-xs font-semibold text-gray-800">
+                                            {{ number_format($activeComputerCount) }}
+                                        </span>
+                                    </div>
+
+                                    <div class="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2">
+                                        <span class="text-xs text-gray-500">Recorded Internet</span>
+                                        <span class="text-xs font-semibold text-gray-800">
+                                            {{ $institution->internet_speed !== null
+                                                ? number_format((float) $institution->internet_speed, 1) . ' Mbps'
+                                                : '—' }}
+                                        </span>
+                                    </div>
+
+                                    <div class="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2">
+                                        <span class="text-xs text-gray-500">Audit Status</span>
+                                        <span
+                                            class="text-xs font-semibold {{ $institution->requires_audit ? 'text-orange-600' : 'text-green-600' }}">
+                                            {{ $institution->requires_audit ? 'Validation required' : 'No audit flag' }}
+                                        </span>
+                                    </div>
+                                </div>
                             </article>
                         </div>
 
                         @if (count($priorities) > 0)
-                            <div class="mt-4 rounded-xl border border-gray-200 bg-white p-5">
-                                <div class="mb-4 flex items-center gap-2">
-                                    <span
-                                        class="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
-                                        <i class="fa-solid fa-list-check text-sm"></i>
+                            <div class="mt-4">
+                                <div class="mb-3 flex items-center justify-between gap-3">
+                                    <div class="flex items-center gap-2">
+                                        <span
+                                            class="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 text-orange-600">
+                                            <i class="fa-solid fa-list-check text-sm"></i>
+                                        </span>
+                                        <div>
+                                            <p class="text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+                                                Ranked Actions
+                                            </p>
+                                            <h3 class="text-sm font-semibold text-gray-900">
+                                                Recommended Priorities
+                                            </h3>
+                                        </div>
+                                    </div>
+
+                                    <span class="text-[11px] text-gray-400">
+                                        Highest priority first
                                     </span>
-                                    <h3 class="text-sm font-semibold text-gray-900">Recommended Priorities</h3>
                                 </div>
 
-                                <div class="space-y-3">
-                                    @foreach ($priorities as $priority)
+                                {{-- Three compact priority cards instead of full-width rows --}}
+                                <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
+                                    @foreach (array_slice($priorities, 0, 3) as $index => $priority)
                                         @php
                                             $priorityName = is_array($priority)
                                                 ? ($priority['priority'] ?? 'Recommended action')
@@ -659,34 +827,44 @@
                                             $priorityUrgency = is_array($priority)
                                                 ? ($priority['urgency'] ?? null)
                                                 : null;
+
+                                            $priorityUrgencyLabel = $priorityUrgency
+                                                ? str_replace('_', ' ', $priorityUrgency)
+                                                : null;
+
+                                            $priorityUrgencyClasses = match ($priorityUrgency) {
+                                                'immediate' => 'border-red-200 bg-red-50 text-red-700',
+                                                'short_term' => 'border-orange-200 bg-orange-50 text-orange-700',
+                                                'medium_term' => 'border-blue-200 bg-blue-50 text-blue-700',
+                                                default => 'border-gray-200 bg-gray-50 text-gray-600',
+                                            };
                                         @endphp
 
-                                        <div class="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-                                            <span
-                                                class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-red-600 shadow-sm">
-                                                <i class="fa-solid fa-check text-xs"></i>
-                                            </span>
-                                            <div class="min-w-0 flex-1">
-                                                <div class="flex flex-wrap items-center gap-2">
-                                                    <p class="text-sm font-semibold text-gray-800">
-                                                        {{ $priorityName }}
-                                                    </p>
+                                        <article class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                                            <div class="mb-3 flex items-start justify-between gap-3">
+                                                <span
+                                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">
+                                                    {{ $index + 1 }}
+                                                </span>
 
-                                                    @if ($priorityUrgency)
-                                                        <span
-                                                            class="rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[11px] font-medium uppercase tracking-wide text-gray-500">
-                                                            {{ str_replace('_', ' ', $priorityUrgency) }}
-                                                        </span>
-                                                    @endif
-                                                </div>
-
-                                                @if ($priorityRationale)
-                                                    <p class="mt-1 text-xs leading-5 text-gray-500">
-                                                        {{ $priorityRationale }}
-                                                    </p>
+                                                @if ($priorityUrgencyLabel)
+                                                    <span
+                                                        class="rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide {{ $priorityUrgencyClasses }}">
+                                                        {{ $priorityUrgencyLabel }}
+                                                    </span>
                                                 @endif
                                             </div>
-                                        </div>
+
+                                            <h4 class="text-sm font-semibold leading-5 text-gray-900">
+                                                {{ $priorityName }}
+                                            </h4>
+
+                                            @if ($priorityRationale)
+                                                <p class="mt-2 text-xs leading-5 text-gray-500">
+                                                    {{ $priorityRationale }}
+                                                </p>
+                                            @endif
+                                        </article>
                                     @endforeach
                                 </div>
                             </div>
@@ -710,6 +888,13 @@
                                 <span class="inline-flex items-center gap-1.5">
                                     <i class="fa-solid fa-cube text-gray-400"></i>
                                     {{ $analyticsModel }}
+                                </span>
+                            @endif
+
+                            @if ($decisionSupportVersion)
+                                <span class="inline-flex items-center gap-1.5">
+                                    <i class="fa-solid fa-layer-group text-gray-400"></i>
+                                    Decision Support v{{ $decisionSupportVersion }}
                                 </span>
                             @endif
 

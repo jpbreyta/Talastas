@@ -1,0 +1,51 @@
+name: Sync Dev Main to Production Updates
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Dev Main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          path: dev
+
+      - name: Checkout Production Updates
+        uses: actions/checkout@v7
+        with:
+          repository: jpbreyta/lipa-ict-mapping-production
+          ref: updates
+          token: ${{ secrets.PROD_PAT }}
+          path: production
+
+      - name: Sync Dev Files to Production
+        run: |
+          rsync -av --delete \
+            --exclude='.git/' \
+            --exclude='.github/workflows/' \
+            --exclude='.env' \
+            dev/ production/
+
+      - name: Commit and Push Changes
+        run: |
+          cd production
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to sync."
+            exit 0
+          fi
+
+          git commit -m "Sync dev/main to production updates"
+          git push origin updates

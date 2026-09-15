@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -26,6 +27,12 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+
+    public function institutions(): BelongsToMany
+    {
+        return $this->belongsToMany(Institution::class)
+            ->withTimestamps();
+    }
 
     public function isAdmin(): bool
     {
@@ -70,6 +77,21 @@ class User extends Authenticatable
     public function canRunAnalytics(): bool
     {
         return $this->isAdmin();
+    }
+
+    public function canAccessInstitution(Institution|int $institution): bool
+    {
+        if ($this->isAdmin() || $this->isViewer()) {
+            return true;
+        }
+
+        $institutionId = $institution instanceof Institution
+            ? $institution->getKey()
+            : $institution;
+
+        return $this->institutions()
+            ->whereKey($institutionId)
+            ->exists();
     }
 
     public function roleLabel(): string

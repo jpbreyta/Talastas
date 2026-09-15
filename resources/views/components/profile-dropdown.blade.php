@@ -14,19 +14,19 @@
         </span>
         <span class="hidden min-w-0 text-left md:block">
             <span class="block max-w-40 truncate text-sm font-semibold text-slate-900">{{ $user->name }}</span>
-            <span class="block text-[11px] text-slate-500">{{ \Illuminate\Support\Str::headline($user->role) }}</span>
+            <span class="block max-w-52 truncate text-[11px] text-slate-500">{{ $user->roleLabel() }}</span>
         </span>
         <svg class="hidden h-4 w-4 text-slate-400 md:block" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
         </svg>
     </summary>
 
-    <div class="absolute right-0 z-[3000] mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+    <div class="absolute right-0 z-[3000] mt-2 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
         <div class="border-b border-slate-100 px-4 py-3">
             <p class="truncate text-sm font-semibold text-slate-900">{{ $user->name }}</p>
             <p class="truncate text-xs text-slate-500">{{ $user->email }}</p>
             <span class="mt-2 inline-flex rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">
-                {{ \Illuminate\Support\Str::headline($user->role) }}
+                {{ $user->roleLabel() }}
             </span>
         </div>
 

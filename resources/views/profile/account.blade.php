@@ -36,7 +36,7 @@
                     <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Assigned role</dt>
                     <dd class="mt-1">
                         <span class="inline-flex rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-800 ring-1 ring-inset ring-red-200">
-                            {{ \Illuminate\Support\Str::headline($user->role) }}
+                            {{ $user->roleLabel() }}
                         </span>
                     </dd>
                 </div>

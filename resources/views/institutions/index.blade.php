@@ -4,6 +4,8 @@
 @endsection
 
 @section('content')
+    @php($canManageInstitutions = auth()->user()->canManageInstitutions())
+
     <div class="flex h-full min-h-0 flex-col bg-gray-100">
         {{-- Page Header --}}
         <div class="shrink-0 bg-red-700 px-6 py-4">
@@ -18,7 +20,9 @@
                             Institutions
                         </h1>
                         <p class="mt-0.5 text-xs text-red-200">
-                            Manage registered institutions and their ICT profiles
+                            {{ $canManageInstitutions
+                                ? 'Manage registered institutions and their ICT profiles'
+                                : 'View registered institutions and their ICT profiles' }}
                         </p>
                     </div>
                 </div>
@@ -33,11 +37,13 @@
                             class="w-56 rounded-lg border border-red-600 bg-red-800 py-2 pl-9 pr-4 text-sm text-white placeholder-red-300 transition focus:outline-none focus:ring-2 focus:ring-red-300">
                     </div>
 
-                    <button type="button" id="openAddModal" data-open-institution-modal
-                        class="inline-flex items-center gap-2 rounded-lg border border-red-100 bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-50">
-                        <i class="fa-solid fa-plus"></i>
-                        Add Institution
-                    </button>
+                    @if ($canManageInstitutions)
+                        <button type="button" id="openAddModal" data-open-institution-modal
+                            class="inline-flex items-center gap-2 rounded-lg border border-red-100 bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-50">
+                            <i class="fa-solid fa-plus"></i>
+                            Add Institution
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -83,8 +89,7 @@
                                         <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
                                             Status
                                         </th>
-                                        <th
-                                            class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
+                                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
                                             Actions
                                         </th>
                                     </tr>
@@ -120,22 +125,19 @@
                                             <td class="px-4 py-3">
                                                 <div class="flex flex-wrap items-center gap-2">
                                                     @if ($institution->is_active)
-                                                        <span
-                                                            class="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
+                                                        <span class="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
                                                             <i class="fa-solid fa-circle-check text-[10px]"></i>
                                                             Active
                                                         </span>
                                                     @else
-                                                        <span
-                                                            class="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500">
+                                                        <span class="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500">
                                                             <i class="fa-solid fa-circle-minus text-[10px]"></i>
                                                             Inactive
                                                         </span>
                                                     @endif
 
                                                     @if ($institution->is_pilot_site)
-                                                        <span
-                                                            class="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
+                                                        <span class="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
                                                             <i class="fa-solid fa-flask text-[10px]"></i>
                                                             Pilot
                                                         </span>
@@ -151,20 +153,22 @@
                                                         View
                                                     </a>
 
-                                                    <a href="{{ route('institutions.edit', $institution) }}"
-                                                        class="inline-flex items-center gap-1 text-xs font-medium text-gray-600 transition hover:text-gray-900">
-                                                        <i class="fa-solid fa-pen"></i>
-                                                        Edit
-                                                    </a>
+                                                    @if ($canManageInstitutions)
+                                                        <a href="{{ route('institutions.edit', $institution) }}"
+                                                            class="inline-flex items-center gap-1 text-xs font-medium text-gray-600 transition hover:text-gray-900">
+                                                            <i class="fa-solid fa-pen"></i>
+                                                            Edit
+                                                        </a>
 
-                                                    <button type="button"
-                                                        class="delete-institution-button inline-flex items-center gap-1 text-xs font-medium text-gray-400 transition hover:text-red-600"
-                                                        data-delete-url="{{ route('institutions.destroy', $institution) }}"
-                                                        data-institution-id="{{ $institution->id }}"
-                                                        data-institution-name="{{ $institution->name }}">
-                                                        <i class="fa-solid fa-trash"></i>
-                                                        Delete
-                                                    </button>
+                                                        <button type="button"
+                                                            class="delete-institution-button inline-flex items-center gap-1 text-xs font-medium text-gray-400 transition hover:text-red-600"
+                                                            data-delete-url="{{ route('institutions.destroy', $institution) }}"
+                                                            data-institution-id="{{ $institution->id }}"
+                                                            data-institution-name="{{ $institution->name }}">
+                                                            <i class="fa-solid fa-trash"></i>
+                                                            Delete
+                                                        </button>
+                                                    @endif
                                                 </div>
                                             </td>
                                         </tr>
@@ -196,18 +200,24 @@
                     </h3>
 
                     <p class="mt-1 text-sm text-gray-500">
-                        Get started by adding your first institution.
+                        {{ $canManageInstitutions
+                            ? 'Get started by adding your first institution.'
+                            : 'No institution records are currently available.' }}
                     </p>
 
-                    <button type="button" id="openAddModalEmpty" data-open-institution-modal
-                        class="mt-5 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700">
-                        <i class="fa-solid fa-plus"></i>
-                        Add Institution
-                    </button>
+                    @if ($canManageInstitutions)
+                        <button type="button" id="openAddModalEmpty" data-open-institution-modal
+                            class="mt-5 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700">
+                            <i class="fa-solid fa-plus"></i>
+                            Add Institution
+                        </button>
+                    @endif
                 </div>
             @endif
         </div>
 
-        @include('institutions.modals')
+        @if ($canManageInstitutions)
+            @include('institutions.modals')
+        @endif
     </div>
 @endsection

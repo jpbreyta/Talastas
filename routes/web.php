@@ -7,16 +7,13 @@ use App\Http\Controllers\IctMappingController;
 use App\Http\Controllers\InstitutionController;
 use Illuminate\Support\Facades\Route;
 
-/*
-|--------------------------------------------------------------------------
-| Authentication Routes
-|--------------------------------------------------------------------------
-|
-| These routes handle the browser-based login and logout process.
-|
-*/
 require __DIR__ . '/profile_notifications.php';
 
+/*
+|--------------------------------------------------------------------------
+| Authentication
+|--------------------------------------------------------------------------
+*/
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLoginForm'])
         ->name('login');
@@ -28,57 +25,70 @@ Route::middleware('guest')->group(function (): void {
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [AuthController::class, 'logout'])
         ->name('logout');
-});
 
-/*
-|--------------------------------------------------------------------------
-| LGU Administrator Routes
-|--------------------------------------------------------------------------
-|
-| These routes require an authenticated browser session and an administrator
-| role. They are used by the Laravel web interface, not by the Flutter API.
-|
-*/
-
-Route::middleware(['auth', 'rbac:admin'])->group(function (): void {
     /*
     |--------------------------------------------------------------------------
-    | Mapping
+    | Shared read-only portal access
+    | admin, editor, and viewer may access these screens.
     |--------------------------------------------------------------------------
     */
-
     Route::get('/', [IctMappingController::class, 'index'])
         ->name('home');
 
     Route::get('/map', [IctMappingController::class, 'index'])
         ->name('map');
 
-    /*
-    | Return institution GeoJSON using the authenticated browser session.
-    | The web mapping page should use this route instead of the mobile API.
-    */
     Route::get(
         '/map/data/institutions',
         [IctMappingController::class, 'getInstitutionsGeoJSON']
     )->name('map.data.institutions');
 
-    /*
-    | Return barangay GeoJSON for the Laravel mapping page when required.
-    */
     Route::get(
         '/map/data/barangays',
         [IctMappingController::class, 'getBarangaysGeoJSON']
     )->name('map.data.barangays');
 
-    /*
-    |--------------------------------------------------------------------------
-    | Analytics
-    |--------------------------------------------------------------------------
-    */
-
     Route::get('/analytics', [AnalyticsController::class, 'index'])
         ->name('analytics');
 
+    Route::resource('institutions', InstitutionController::class)
+        ->only(['index', 'show']);
+
+    Route::resource('ict-inventory', IctInventoryController::class)
+        ->only(['index', 'show']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Editor capabilities
+|--------------------------------------------------------------------------
+| System Administrators inherit editor access through the RBAC middleware.
+| Editors may create and update ICT inventory records, but may not delete
+| records or administer institution master data.
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'rbac:editor'])->group(function (): void {
+    Route::get('/ict-inventory/create', [IctInventoryController::class, 'create'])
+        ->name('ict-inventory.create');
+
+    Route::post('/ict-inventory', [IctInventoryController::class, 'store'])
+        ->name('ict-inventory.store');
+
+    Route::get('/ict-inventory/{ict_inventory}/edit', [IctInventoryController::class, 'edit'])
+        ->name('ict-inventory.edit');
+
+    Route::put('/ict-inventory/{ict_inventory}', [IctInventoryController::class, 'update'])
+        ->name('ict-inventory.update');
+
+    Route::patch('/ict-inventory/{ict_inventory}', [IctInventoryController::class, 'update']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| System Administrator capabilities
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth', 'rbac:admin'])->group(function (): void {
     Route::post(
         '/institutions/{institution}/analytics/run',
         [AnalyticsController::class, 'analyzeInstitution']
@@ -86,28 +96,28 @@ Route::middleware(['auth', 'rbac:admin'])->group(function (): void {
         ->whereNumber('institution')
         ->name('institutions.analytics.run');
 
-    /*
-    |--------------------------------------------------------------------------
-    | Institutions
-    |--------------------------------------------------------------------------
-    */
-
-    /*
-    | This route must remain before the resource routes for clarity.
-    | It searches for institution locations from the web modal.
-    */
     Route::post(
         '/institutions/geocode',
         [InstitutionController::class, 'geocode']
     )->name('institutions.geocode');
 
-    Route::resource('institutions', InstitutionController::class);
+    Route::get('/institutions/create', [InstitutionController::class, 'create'])
+        ->name('institutions.create');
 
-    /*
-    |--------------------------------------------------------------------------
-    | ICT Inventory
-    |--------------------------------------------------------------------------
-    */
+    Route::post('/institutions', [InstitutionController::class, 'store'])
+        ->name('institutions.store');
 
-    Route::resource('ict-inventory', IctInventoryController::class);
+    Route::get('/institutions/{institution}/edit', [InstitutionController::class, 'edit'])
+        ->name('institutions.edit');
+
+    Route::put('/institutions/{institution}', [InstitutionController::class, 'update'])
+        ->name('institutions.update');
+
+    Route::patch('/institutions/{institution}', [InstitutionController::class, 'update']);
+
+    Route::delete('/institutions/{institution}', [InstitutionController::class, 'destroy'])
+        ->name('institutions.destroy');
+
+    Route::delete('/ict-inventory/{ict_inventory}', [IctInventoryController::class, 'destroy'])
+        ->name('ict-inventory.destroy');
 });

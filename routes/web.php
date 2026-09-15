@@ -1,10 +1,13 @@
 <?php
 
 use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\AssignedIctInventoryController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\IctInventoryController;
 use App\Http\Controllers\IctMappingController;
 use App\Http\Controllers\InstitutionController;
+use App\Http\Controllers\PortalIctInventoryController;
+use App\Http\Controllers\PortalInstitutionController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
@@ -24,21 +27,21 @@ Route::middleware('auth')->group(function (): void {
 });
 
 Route::middleware(['auth', 'rbac:editor'])->group(function (): void {
-    Route::get('/ict-inventory/create', [IctInventoryController::class, 'create'])
+    Route::get('/ict-inventory/create', [AssignedIctInventoryController::class, 'create'])
         ->name('ict-inventory.create');
 
-    Route::post('/ict-inventory', [IctInventoryController::class, 'store'])
+    Route::post('/ict-inventory', [AssignedIctInventoryController::class, 'store'])
         ->name('ict-inventory.store');
 
-    Route::get('/ict-inventory/{ict_inventory}/edit', [IctInventoryController::class, 'edit'])
+    Route::get('/ict-inventory/{ict_inventory}/edit', [AssignedIctInventoryController::class, 'edit'])
         ->whereNumber('ict_inventory')
         ->name('ict-inventory.edit');
 
-    Route::put('/ict-inventory/{ict_inventory}', [IctInventoryController::class, 'update'])
+    Route::put('/ict-inventory/{ict_inventory}', [AssignedIctInventoryController::class, 'update'])
         ->whereNumber('ict_inventory')
         ->name('ict-inventory.update');
 
-    Route::patch('/ict-inventory/{ict_inventory}', [IctInventoryController::class, 'update'])
+    Route::patch('/ict-inventory/{ict_inventory}', [AssignedIctInventoryController::class, 'update'])
         ->whereNumber('ict_inventory');
 });
 
@@ -115,17 +118,17 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/analytics', [AnalyticsController::class, 'index'])
         ->name('analytics');
 
-    Route::get('/institutions', [InstitutionController::class, 'index'])
+    Route::get('/institutions', [PortalInstitutionController::class, 'index'])
         ->name('institutions.index');
 
-    Route::get('/institutions/{institution}', [InstitutionController::class, 'show'])
+    Route::get('/institutions/{institution}', [PortalInstitutionController::class, 'show'])
         ->whereNumber('institution')
         ->name('institutions.show');
 
-    Route::get('/ict-inventory', [IctInventoryController::class, 'index'])
+    Route::get('/ict-inventory', [PortalIctInventoryController::class, 'index'])
         ->name('ict-inventory.index');
 
-    Route::get('/ict-inventory/{ict_inventory}', [IctInventoryController::class, 'show'])
+    Route::get('/ict-inventory/{ict_inventory}', [PortalIctInventoryController::class, 'show'])
         ->whereNumber('ict_inventory')
         ->name('ict-inventory.show');
 });

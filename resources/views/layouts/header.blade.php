@@ -1,4 +1,4 @@
-<header class="bg-red-900 border-b border-red-800 sticky top-0 z-[100]">
+<header class="bg-red-900 border-b border-red-800 sticky top-0 z-[5000] isolate">
     <div class="w-full px-4 sm:px-6 lg:px-8">
         <div class="flex items-center h-16 gap-4">
             <!-- Logo & Branding -->

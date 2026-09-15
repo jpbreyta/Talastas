@@ -32,13 +32,53 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
+    public function isEditor(): bool
+    {
+        return $this->role === 'editor';
+    }
+
+    public function isViewer(): bool
+    {
+        return $this->role === 'viewer';
+    }
+
     public function canEdit(): bool
     {
-        return in_array($this->role, ['admin', 'editor']);
+        return in_array($this->role, ['admin', 'editor'], true);
     }
 
     public function canView(): bool
     {
-        return true;
+        return in_array($this->role, ['admin', 'editor', 'viewer'], true);
+    }
+
+    public function canManageInstitutions(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    public function canManageInventory(): bool
+    {
+        return $this->canEdit();
+    }
+
+    public function canDeleteInventory(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    public function canRunAnalytics(): bool
+    {
+        return $this->isAdmin();
+    }
+
+    public function roleLabel(): string
+    {
+        return match ($this->role) {
+            'admin' => 'System Administrator',
+            'editor' => 'Barangay Focal Person / IT Coordinator',
+            'viewer' => 'LGU City Planner',
+            default => 'User',
+        };
     }
 }

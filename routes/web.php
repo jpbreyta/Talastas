@@ -5,15 +5,11 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\IctInventoryController;
 use App\Http\Controllers\IctMappingController;
 use App\Http\Controllers\InstitutionController;
+use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
 require __DIR__ . '/profile_notifications.php';
 
-/*
-|--------------------------------------------------------------------------
-| Authentication
-|--------------------------------------------------------------------------
-*/
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLoginForm'])
         ->name('login');
@@ -27,14 +23,6 @@ Route::middleware('auth')->group(function (): void {
         ->name('logout');
 });
 
-/*
-|--------------------------------------------------------------------------
-| Editor capabilities
-|--------------------------------------------------------------------------
-| Register /create before the read-only /{record} routes below so Laravel
-| never interprets the literal word "create" as a model identifier.
-|--------------------------------------------------------------------------
-*/
 Route::middleware(['auth', 'rbac:editor'])->group(function (): void {
     Route::get('/ict-inventory/create', [IctInventoryController::class, 'create'])
         ->name('ict-inventory.create');
@@ -54,12 +42,21 @@ Route::middleware(['auth', 'rbac:editor'])->group(function (): void {
         ->whereNumber('ict_inventory');
 });
 
-/*
-|--------------------------------------------------------------------------
-| System Administrator capabilities
-|--------------------------------------------------------------------------
-*/
 Route::middleware(['auth', 'rbac:admin'])->group(function (): void {
+    Route::get('/admin/users', [UserManagementController::class, 'index'])
+        ->name('admin.users.index');
+
+    Route::post('/admin/users', [UserManagementController::class, 'store'])
+        ->name('admin.users.store');
+
+    Route::put('/admin/users/{user}', [UserManagementController::class, 'update'])
+        ->whereNumber('user')
+        ->name('admin.users.update');
+
+    Route::delete('/admin/users/{user}', [UserManagementController::class, 'destroy'])
+        ->whereNumber('user')
+        ->name('admin.users.destroy');
+
     Route::get('/institutions/create', [InstitutionController::class, 'create'])
         ->name('institutions.create');
 
@@ -98,15 +95,6 @@ Route::middleware(['auth', 'rbac:admin'])->group(function (): void {
         ->name('ict-inventory.destroy');
 });
 
-/*
-|--------------------------------------------------------------------------
-| Shared read-only portal access
-|--------------------------------------------------------------------------
-| All authenticated roles may use the same Talastas shell and inspect maps,
-| institution records, inventory records, analytics, notifications, and their
-| own profile. Mutation permissions are enforced in the groups above.
-|--------------------------------------------------------------------------
-*/
 Route::middleware('auth')->group(function (): void {
     Route::get('/', [IctMappingController::class, 'index'])
         ->name('home');

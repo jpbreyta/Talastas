@@ -4,10 +4,10 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\AssignedIctInventoryController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\IctInventoryController;
-use App\Http\Controllers\IctMappingController;
 use App\Http\Controllers\InstitutionController;
 use App\Http\Controllers\PortalIctInventoryController;
 use App\Http\Controllers\PortalInstitutionController;
+use App\Http\Controllers\PortalMappingController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
@@ -99,20 +99,20 @@ Route::middleware(['auth', 'rbac:admin'])->group(function (): void {
 });
 
 Route::middleware('auth')->group(function (): void {
-    Route::get('/', [IctMappingController::class, 'index'])
+    Route::get('/', [PortalMappingController::class, 'index'])
         ->name('home');
 
-    Route::get('/map', [IctMappingController::class, 'index'])
+    Route::get('/map', [PortalMappingController::class, 'index'])
         ->name('map');
 
     Route::get(
         '/map/data/institutions',
-        [IctMappingController::class, 'getInstitutionsGeoJSON']
+        [PortalMappingController::class, 'getInstitutionsGeoJSON']
     )->name('map.data.institutions');
 
     Route::get(
         '/map/data/barangays',
-        [IctMappingController::class, 'getBarangaysGeoJSON']
+        [PortalMappingController::class, 'getBarangaysGeoJSON']
     )->name('map.data.barangays');
 
     Route::get('/analytics', [AnalyticsController::class, 'index'])

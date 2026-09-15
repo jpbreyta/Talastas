@@ -1,7 +1,6 @@
 <header class="bg-red-900 border-b border-red-800 sticky top-0 z-[5000] isolate">
     <div class="w-full px-4 sm:px-6 lg:px-8">
         <div class="flex items-center h-16 gap-4">
-            <!-- Logo & Branding -->
             <div class="flex items-center gap-3 shrink-0 md:w-64">
                 <a href="{{ route('home') }}" class="flex items-center gap-2.5">
                     <div class="w-9 h-9 bg-white rounded-lg flex items-center justify-center shrink-0">
@@ -17,50 +16,45 @@
                 </a>
             </div>
 
-            <!-- Primary Navigation -->
             <nav class="hidden md:flex items-center justify-center gap-1 flex-1" aria-label="Primary navigation">
                 <a href="{{ route('home') }}"
-                    class="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors
+                    class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
                         {{ request()->routeIs('home') || request()->routeIs('map') ? 'bg-red-800 text-white' : 'text-red-200 hover:text-white hover:bg-red-800' }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a2 2 0 002 2h2a2 2 0 002-2v-4a1 1 0 011-1h2a1 1 0 011 1v4a2 2 0 002 2h2" />
-                    </svg>
-                    Home
+                    <i class="fa-solid fa-map-location-dot text-xs"></i>
+                    Map
                 </a>
 
                 <a href="{{ route('institutions.index') }}"
-                    class="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors
+                    class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
                         {{ request()->routeIs('institutions.*') ? 'bg-red-800 text-white' : 'text-red-200 hover:text-white hover:bg-red-800' }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                    Institutions
+                    <i class="fa-solid fa-building text-xs"></i>
+                    {{ auth()->user()->isEditor() ? 'My Institutions' : 'Institutions' }}
                 </a>
 
                 <a href="{{ route('ict-inventory.index') }}"
-                    class="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors
+                    class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
                         {{ request()->routeIs('ict-inventory.*') ? 'bg-red-800 text-white' : 'text-red-200 hover:text-white hover:bg-red-800' }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    Inventory
+                    <i class="fa-solid fa-boxes-stacked text-xs"></i>
+                    {{ auth()->user()->isEditor() ? 'My Inventory' : 'Inventory' }}
                 </a>
 
                 <a href="{{ route('analytics') }}"
-                    class="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors
+                    class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
                         {{ request()->routeIs('analytics') ? 'bg-red-800 text-white' : 'text-red-200 hover:text-white hover:bg-red-800' }}">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
+                    <i class="fa-solid fa-chart-line text-xs"></i>
                     Analytics
                 </a>
+
+                @if (auth()->user()->isAdmin())
+                    <a href="{{ route('admin.users.index') }}"
+                        class="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors
+                            {{ request()->routeIs('admin.users.*') ? 'bg-red-800 text-white' : 'text-red-200 hover:text-white hover:bg-red-800' }}">
+                        <i class="fa-solid fa-users-gear text-xs"></i>
+                        Users
+                    </a>
+                @endif
             </nav>
 
-            <!-- Live notification + profile controls -->
             <div class="ml-auto shrink-0">
                 @include('partials.account-controls')
             </div>

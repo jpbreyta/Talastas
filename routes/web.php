@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Route;
 | These routes handle the browser-based login and logout process.
 |
 */
+require __DIR__ . '/profile_notifications.php';
 
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [AuthController::class, 'showLoginForm'])

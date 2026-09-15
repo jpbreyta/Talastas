@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ config('app.name', 'GIS-Based Digital Map for ICT Infrastructure & Gap Analysis - Lipa City') }}</title>
+    <title>{{ config('app.name', 'GIS-Based Digital Map for ICT Infrastructure & Gap Analysis - Lipa City') }}</title>
 
-        <link rel="icon" type="image/png" href="/images/talastas.svg">
+    <link rel="icon" type="image/png" href="/images/talastas.svg">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -16,8 +16,48 @@
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    @auth
+        {{--
+            Presentation-only role guard.
+            Real authorization is enforced by route middleware; these rules simply
+            keep controls that the current user cannot execute out of the UI.
+        --}}
+        @if (! auth()->user()->canManageInstitutions())
+            <style>
+                [data-open-institution-modal],
+                [data-delete-institution],
+                .delete-institution-button,
+                [data-open-notes-modal],
+                [data-infrastructure-analytics-form],
+                a[href$="/institutions/create"],
+                a[href*="/institutions/"][href$="/edit"] {
+                    display: none !important;
+                }
+            </style>
+        @endif
+
+        @if (! auth()->user()->canManageInventory())
+            <style>
+                a[href$="/ict-inventory/create"],
+                a[href*="/ict-inventory/create?"],
+                a[href*="/ict-inventory/"][href$="/edit"],
+                a[href*="/ict-inventory/"][href*="/edit?"] {
+                    display: none !important;
+                }
+            </style>
+        @endif
+
+        @if (! auth()->user()->canDeleteInventory())
+            <style>
+                form:has(input[name="_method"][value="DELETE"]) {
+                    display: none !important;
+                }
+            </style>
+        @endif
+    @endauth
 </head>
-<body class="font-sans antialiased bg-gray-50 @hasSection('dashboard-layout') overflow-hidden h-screen @endif">
+<body class="font-sans antialiased bg-gray-50 @auth role-{{ auth()->user()->role }} @endauth @hasSection('dashboard-layout') overflow-hidden h-screen @endif">
     <div id="app" class="flex flex-col @hasSection('dashboard-layout') h-screen overflow-hidden @else min-h-screen @endif">
         @include('layouts.header')
 

@@ -48,8 +48,10 @@ class AssignedIctInventoryController extends IctInventoryController
         return parent::store($request);
     }
 
-    public function edit(Request $request, IctInventory $ict_inventory)
+    public function edit(IctInventory $ict_inventory)
     {
+        $request = request();
+
         $this->authorizeAssignment(
             $request,
             (int) $ict_inventory->institution_id

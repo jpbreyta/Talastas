@@ -3,12 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Models\Institution;
-use Illuminate\Http\Request;
 
 class PortalMappingController extends IctMappingController
 {
-    public function getInstitutionsGeoJSON(Request $request)
+    public function getInstitutionsGeoJSON()
     {
+        $request = request();
+
         $query = Institution::query()->with([
             'institutionAnalytics',
             'auditor',

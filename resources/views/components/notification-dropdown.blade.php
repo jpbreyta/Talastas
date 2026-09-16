@@ -5,7 +5,7 @@
 
 <details class="relative">
     <summary
-        class="list-none cursor-pointer inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-red-700/20"
+        class="list-none cursor-pointer inline-flex items-center justify-center rounded-md px-3 py-2 text-red-200 transition-colors hover:text-white hover:bg-red-800 relative"
         aria-label="Notifications"
     >
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">

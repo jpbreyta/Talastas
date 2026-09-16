@@ -750,52 +750,17 @@
                 ===================================================== -->
                 <div>
 
-                    <!-- Small badge -->
-                    <div
-                        class="
-                            inline-flex
-                            items-center
-                            gap-2
-                            rounded-full
-                            bg-[#F7ECEE]
-                            px-3
-                            py-1.5
-                            text-[11px]
-                            font-semibold
-                            text-[#7A1F2B]
-                            hover:bg-[#7A1F2B]
-                            hover:text-white
-                            transition-all
-                            duration-300
-                        "
-                    >
-
-                        <span
-                            class="
-                                w-1.5
-                                h-1.5
-                                rounded-full
-                                bg-[#7A1F2B]
-                                gold-pulse
-                            "
-                        ></span>
-
-                        AUTHORIZED ACCESS
-
-                    </div>
-
                     <h2
                         class="
-                            mt-5
                             text-3xl
-                            sm:text-[34px]
+                            sm:text-[36px]
                             leading-tight
                             font-bold
                             tracking-tight
                             text-slate-900
                         "
                     >
-                        Administrator Portal
+                        Administrator Sign In
                     </h2>
 
                     <p
@@ -807,7 +772,7 @@
                             font-medium
                         "
                     >
-                        Sign in to the platform.
+                        Enter your credentials to access the system.
                     </p>
 
                 </div>

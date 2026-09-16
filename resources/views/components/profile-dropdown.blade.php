@@ -8,15 +8,15 @@
 @endphp
 
 <details class="relative">
-    <summary class="list-none cursor-pointer flex items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-red-700/20">
-        <span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-red-800 text-xs font-bold text-white">
+    <summary class="list-none cursor-pointer flex items-center gap-2 rounded-md px-3 py-2 transition-colors text-sm font-medium text-red-200 hover:text-white hover:bg-red-800">
+        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold text-white">
             {{ $initials ?: 'U' }}
         </span>
         <span class="hidden min-w-0 text-left md:block">
-            <span class="block max-w-40 truncate text-sm font-semibold text-slate-900">{{ $user->name }}</span>
-            <span class="block max-w-52 truncate text-[11px] text-slate-500">{{ $user->roleLabel() }}</span>
+            <span class="block max-w-40 truncate leading-tight">{{ $user->name }}</span>
+            <span class="block max-w-52 truncate text-[11px] leading-tight opacity-80">{{ $user->roleLabel() }}</span>
         </span>
-        <svg class="hidden h-4 w-4 text-slate-400 md:block" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+        <svg class="hidden h-4 w-4 md:block" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
             <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
         </svg>
     </summary>

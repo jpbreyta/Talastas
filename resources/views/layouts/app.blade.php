@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'GIS-Based Digital Map for ICT Infrastructure & Gap Analysis - Lipa City') }}</title>
+    <title>{{ config('app.name', 'TALASTAS') }}</title>
 
     <link rel="icon" type="image/png" href="/images/talastas.svg">
 

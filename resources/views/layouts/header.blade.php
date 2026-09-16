@@ -1,19 +1,19 @@
 <header class="bg-red-900 border-b border-red-800 sticky top-0 z-[5000] isolate">
     <div class="w-full px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center h-16 gap-4">
-            <div class="flex items-center gap-3 shrink-0 md:w-80">
-                <a href="{{ route('home') }}" class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 bg-white rounded-lg flex items-center justify-center shrink-0 p-1">
+        <div class="flex items-center h-16 gap-4 justify-between relative">
+            <div class="flex items-center gap-2.5 shrink-0">
+                <a href="{{ route('home') }}" class="flex items-center gap-2">
+                    <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center shrink-0 p-1">
                         <img src="{{ asset('images/logo_ict_mapping.png') }}" alt="TALASTAS Logo" class="w-full h-full object-contain">
                     </div>
-                    <div class="hidden sm:block">
-                        <span class="text-sm font-bold text-white block leading-tight">TALASTAS</span>
-                        <span class="text-[10px] text-red-300 leading-tight whitespace-nowrap">Technology And Location Analytics Spatial Tracking & Assessment System</span>
+                    <div class="hidden lg:block leading-none">
+                        <span class="text-base font-bold text-white block">TALASTAS</span>
+                        <span class="text-[11px] text-red-300 block mt-0.5">Technology And Location Analytics Spatial Tracking & Assessment System</span>
                     </div>
                 </a>
             </div>
 
-            <nav class="hidden md:flex items-center justify-center gap-0.5 flex-1" aria-label="Primary navigation">
+            <nav class="hidden md:flex items-center justify-center gap-0.5 absolute left-1/2 transform -translate-x-1/2" aria-label="Primary navigation">
                 <a href="{{ route('home') }}"
                     class="flex items-center gap-1.5 px-2 py-2 rounded-md text-xs font-medium transition-colors
                         {{ request()->routeIs('home') || request()->routeIs('map') ? 'bg-red-800 text-white' : 'text-red-200 hover:text-white hover:bg-red-800' }}">
@@ -52,7 +52,7 @@
                 @endif
             </nav>
 
-            <div class="ml-auto shrink-0">
+            <div class="shrink-0">
                 @include('partials.account-controls')
             </div>
         </div>

@@ -12,10 +12,32 @@ class PortalIctInventoryController extends Controller
     public function index(Request $request)
     {
         $query = Institution::query()
+            ->select([
+                'id',
+                'name',
+                'type',
+                'barangay_id',
+            ])
             ->with([
                 'barangay:id,name',
                 'ictInventory' => function ($query): void {
-                    $query->latest('asset_id');
+                    $query
+                        ->select([
+                            'asset_id',
+                            'institution_id',
+                            'category',
+                            'asset_name',
+                            'brand',
+                            'model',
+                            'quantity',
+                            'condition',
+                            'acquisition_year',
+                            'status',
+                            'location',
+                            'specifications',
+                            'needs_maintenance',
+                        ])
+                        ->latest('asset_id');
                 },
             ])
             ->withSum('ictInventory as total_assets_count', 'quantity')

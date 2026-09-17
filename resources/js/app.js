@@ -11,6 +11,136 @@ const debouncedInputIds = new Set([
 
 const inputTimers = new WeakMap();
 
+function createMapLoadingOverlay() {
+    if (!document.getElementById('map') || document.getElementById('talastasMapLoading')) {
+        return;
+    }
+
+    const mapContainer = document.getElementById('map')?.parentElement;
+    if (!mapContainer) {
+        return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'talastasMapLoading';
+    overlay.setAttribute('role', 'status');
+    overlay.setAttribute('aria-live', 'polite');
+    overlay.className = 'absolute inset-0 z-[1400] flex items-center justify-center bg-slate-100/95 transition-opacity duration-300';
+    overlay.innerHTML = `
+        <div class="w-full max-w-3xl px-6">
+            <div class="mb-5 flex items-center justify-center gap-3 text-sm font-medium text-slate-600">
+                <i class="fa-solid fa-circle-notch fa-spin text-red-700" aria-hidden="true"></i>
+                <span data-map-loading-label>Loading map data...</span>
+            </div>
+
+            <div class="animate-pulse space-y-4 motion-reduce:animate-none">
+                <div class="mx-auto h-10 max-w-sm rounded-lg bg-slate-200"></div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="h-16 rounded-xl bg-slate-200"></div>
+                    <div class="h-16 rounded-xl bg-slate-200"></div>
+                    <div class="h-16 rounded-xl bg-slate-200"></div>
+                </div>
+                <div class="h-72 rounded-2xl border border-slate-200 bg-slate-200"></div>
+            </div>
+        </div>
+    `;
+
+    mapContainer.appendChild(overlay);
+}
+
+function finishMapLoading() {
+    const overlay = document.getElementById('talastasMapLoading');
+    if (!overlay) {
+        return;
+    }
+
+    overlay.classList.add('opacity-0', 'pointer-events-none');
+    window.setTimeout(() => overlay.remove(), 320);
+}
+
+function showMapLoadingError() {
+    createMapLoadingOverlay();
+
+    const overlay = document.getElementById('talastasMapLoading');
+    if (!overlay) {
+        return;
+    }
+
+    overlay.classList.remove('opacity-0', 'pointer-events-none');
+    overlay.innerHTML = `
+        <div class="mx-auto max-w-md rounded-2xl border border-red-200 bg-white p-6 text-center shadow-sm">
+            <span class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600">
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+            </span>
+            <h2 class="mt-3 text-sm font-semibold text-slate-900">Map data could not be loaded</h2>
+            <p class="mt-1 text-xs leading-5 text-slate-500">Check your connection and try refreshing the page.</p>
+            <button type="button" data-map-retry class="mt-4 inline-flex items-center gap-2 rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-800">
+                <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                Retry
+            </button>
+        </div>
+    `;
+
+    overlay.querySelector('[data-map-retry]')?.addEventListener('click', () => {
+        window.location.reload();
+    });
+}
+
+// Track the two map data requests so the skeleton stays visible until both are
+// finished. This works with the existing inline map code without duplicating it.
+if (typeof window.fetch === 'function') {
+    const nativeFetch = window.fetch.bind(window);
+    const requiredMapRequests = new Set([
+        '/data/lipa-city-barangays.geojson',
+        '/map/data/institutions',
+    ]);
+    const completedMapRequests = new Set();
+    let mapRequestFailed = false;
+
+    window.fetch = async (...args) => {
+        const rawUrl = args[0] instanceof Request ? args[0].url : String(args[0]);
+        let pathname = '';
+
+        try {
+            pathname = new URL(rawUrl, window.location.origin).pathname;
+        } catch {
+            pathname = rawUrl;
+        }
+
+        const isMapRequest = requiredMapRequests.has(pathname);
+
+        if (isMapRequest) {
+            createMapLoadingOverlay();
+        }
+
+        try {
+            const response = await nativeFetch(...args);
+
+            if (isMapRequest) {
+                if (!response.ok) {
+                    mapRequestFailed = true;
+                    showMapLoadingError();
+                } else {
+                    completedMapRequests.add(pathname);
+
+                    if (!mapRequestFailed && completedMapRequests.size === requiredMapRequests.size) {
+                        finishMapLoading();
+                    }
+                }
+            }
+
+            return response;
+        } catch (error) {
+            if (isMapRequest) {
+                mapRequestFailed = true;
+                showMapLoadingError();
+            }
+
+            throw error;
+        }
+    };
+}
+
 // Debounce high-frequency client-side search handlers without coupling the
 // shared bundle to page-specific filtering implementations. The synthetic event
 // is marked so it can pass through to the page's existing input listener once.
@@ -194,6 +324,7 @@ function installSubmitLoadingState() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    createMapLoadingOverlay();
     installInstitutionSearch();
     installAnalyticsLoadingState();
     installSubmitLoadingState();

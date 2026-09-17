@@ -10,6 +10,17 @@ class PortalInstitutionController extends Controller
     public function index(Request $request)
     {
         $query = Institution::query()
+            ->select([
+                'id',
+                'name',
+                'type',
+                'barangay_id',
+                'student_population',
+                'staff_population',
+                'is_active',
+                'is_pilot_site',
+                'created_at',
+            ])
             ->with('barangay:id,name')
             ->latest();
 

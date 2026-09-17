@@ -7,15 +7,21 @@
 
     <title>{{ config('app.name', 'TALASTAS') }}</title>
 
-    <link rel="icon" type="image/png" href="/images/talastas.svg">
+    <link rel="icon" type="image/svg+xml" href="/images/talastas-favicon.svg">
 
     <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
+    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
-    <!-- Scripts -->
+    <!-- Core assets -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+
+    {{-- Heavy GIS dependencies are only needed by the map/home routes. --}}
+    @if (request()->routeIs('home') || request()->routeIs('map'))
+        @vite('resources/js/gis.js')
+    @endif
 
     @auth
         {{--
@@ -65,7 +71,6 @@
             @yield('content')
         </main>
 
-        {{-- Footer always rendered; in dashboard-layout it is flex-shrink-0 and stays pinned --}}
         @include('layouts.footer')
     </div>
     @yield('scripts')

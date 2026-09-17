@@ -1,8 +1,5 @@
 @import 'tailwindcss';
 
-@import 'leaflet/dist/leaflet.css';
-@import 'leaflet-search/dist/leaflet-search.min.css';
-
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
@@ -50,6 +47,13 @@
     border-radius: 50%;
     width: 12px;
     height: 12px;
+}
+
+/* Lighthouse identified the Barangays state color transition as a
+   non-composited animation. State changes are clearer and cheaper when applied
+   immediately; hover feedback remains provided by Tailwind classes. */
+#toggleBarangays {
+    transition: none;
 }
 
 /* Analytics table styling */

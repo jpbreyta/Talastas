@@ -31,12 +31,13 @@ export default defineConfig({
                         return undefined;
                     }
 
-                    if (id.includes('leaflet') || id.includes('@geoman-io')) {
-                        return 'vendor-leaflet';
+                    // Keep the optional heatmap plugin in its own lazy chunk.
+                    if (id.includes('leaflet.heat')) {
+                        return 'vendor-leaflet-heat';
                     }
 
-                    if (id.includes('@turf')) {
-                        return 'vendor-turf';
+                    if (id.includes('leaflet')) {
+                        return 'vendor-leaflet';
                     }
 
                     if (id.includes('axios')) {

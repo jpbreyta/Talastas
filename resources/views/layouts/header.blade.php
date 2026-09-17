@@ -4,7 +4,7 @@
             <div class="flex items-center gap-2.5 shrink-0">
                 <a href="{{ route('home') }}" class="flex items-center gap-2">
                     <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center shrink-0 p-1">
-                        <img src="{{ asset('images/logo_ict_mapping.png') }}" alt="TALASTAS Logo" class="w-full h-full object-contain">
+                        <img src="{{ asset('images/talastas-favicon.svg') }}" alt="TALASTAS Logo" width="32" height="32" decoding="async" class="w-full h-full object-contain">
                     </div>
                     <div class="hidden lg:block leading-none">
                         <span class="text-base font-bold text-white block">TALASTAS</span>

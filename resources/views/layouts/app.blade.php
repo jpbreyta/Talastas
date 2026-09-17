@@ -7,7 +7,7 @@
 
     <title>{{ config('app.name', 'GIS-Based Digital Map for ICT Infrastructure & Gap Analysis - Lipa City') }}</title>
 
-    <link rel="icon" type="image/svg+xml" href="/images/talastas.svg">
+    <link rel="icon" type="image/svg+xml" href="/images/talastas-favicon.svg">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
@@ -15,9 +15,13 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
-    <!-- Core assets. Page-specific heavy bundles are pushed by the relevant view. -->
+    <!-- Core assets -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @stack('head-assets')
+
+    {{-- Heavy GIS dependencies are only needed by the map/home routes. --}}
+    @if (request()->routeIs('home') || request()->routeIs('map'))
+        @vite('resources/js/gis.js')
+    @endif
 
     @auth
         {{--

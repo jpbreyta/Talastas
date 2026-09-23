@@ -20,8 +20,8 @@ jobs:
       - name: Checkout Production Updates
         uses: actions/checkout@v7
         with:
-          repository: jpbreyta/lipa-ict-mapping-production
-          ref: updates
+          repository: jpbreyta/Talastas
+          ref: sync-dev-updates
           token: ${{ secrets.PROD_PAT }}
           path: production
 
@@ -48,4 +48,4 @@ jobs:
           fi
 
           git commit -m "Sync dev/main to production updates"
-          git push origin updates
+          git push origin sync-dev-updates

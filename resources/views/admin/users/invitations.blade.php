@@ -7,7 +7,7 @@
     @include('admin.users._tabs', ['activeTab' => 'invitations'])
     @include('admin.users._feedback')
     @if (!\App\Services\SecurityMail::available())
-        <p role="alert" class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">System email is not configured. Complete the Gmail sender and queue setup before sending invitations or recovery instructions. No credentials are displayed here.</p>
+        <p role="alert" class="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">System email is not configured on the server. Sender and queue setup must be completed before sending invitations, recovery instructions or administrator verification codes. Signing in as an administrator does not configure email delivery.</p>
     @endif
     <div class="grid items-start gap-6 lg:grid-cols-5 lg:gap-8">
         <section class="users-card p-5 sm:p-6 lg:col-span-2" aria-labelledby="inviteHeading">

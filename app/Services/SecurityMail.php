@@ -29,7 +29,7 @@ class SecurityMail
     public static function requireConfigured(): void
     {
         if (! self::available()) {
-            throw ValidationException::withMessages(['mail' => 'System email is not configured. Ask the System Admin to complete sender and queue setup. No email was sent.']);
+            throw ValidationException::withMessages(['mail' => 'System email is not configured on the server. Sender and queue setup must be completed before email can be sent, including administrator verification codes. No email was sent.']);
         }
     }
 

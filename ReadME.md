@@ -22,6 +22,40 @@ The system is built using a modern Three-Tier Architecture for scalability and s
 - **Database**: Supabase (PostgreSQL 15) with PostGIS for advanced spatial queries and real-time data sync.
 - **AI Integration**: Custom algorithms for predictive modeling and automated diagnostic reporting.
 
+## Runtime Requirements for Live Analytics and Notifications
+
+The institution analytics and notification interfaces now update without a full
+page refresh. The runtime must support background jobs and Server-Sent Events
+(SSE).
+
+- **PHP:** 8.2 or newer.
+- **Laravel:** use the version installed by `composer.lock`.
+- **Queue:** `QUEUE_CONNECTION=database`.
+- **Queue worker:** keep `php artisan queue:work` running so analytics jobs are
+  processed outside the web request.
+- **Queue retry window:** keep `DB_QUEUE_RETRY_AFTER` greater than the
+  analytics job timeout. The project default is `180` seconds for a
+  `120`-second analytics job timeout.
+- **SSE-capable web server:** use Apache, Nginx + PHP-FPM, or another
+  concurrency-capable PHP deployment for live notification and analytics
+  streams. For reliable SSE testing on Windows, prefer XAMPP/WAMP Apache over a
+  single-threaded development server.
+- **Reverse proxy:** do not buffer `text/event-stream` responses. The
+  application also sends `X-Accel-Buffering: no` and no-cache headers.
+- **Frontend assets:** rebuild Vite assets after JavaScript changes with
+  `npm run build` or keep `npm run dev` running.
+
+Recommended development processes:
+
+```bash
+php artisan queue:work --tries=3 --timeout=120
+npm run dev
+```
+
+The analytics workflow is: asynchronous POST -> background queue job -> SSE
+processing state -> in-place analytics rendering. The notification workflow is:
+instant fetch when the bell panel opens -> SSE updates while the panel is open.
+
 ## Key Features
 
 ▶ **Interactive Heatmaps**: Visualizes "hot spots" of digital inequity.  

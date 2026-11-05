@@ -44,7 +44,7 @@ Route::middleware('rbac:admin')->group(function (): void {
     */
 
     Route::post('/institutions/geocode', [InstitutionController::class, 'geocode'])
-        ->name('institutions.geocode');
+        ->middleware('throttle:30,1')->name('institutions.geocode');
 
     Route::post('/institutions', [InstitutionController::class, 'store'])
         ->name('institutions.store');
@@ -52,10 +52,6 @@ Route::middleware('rbac:admin')->group(function (): void {
     Route::put('/institutions/{institution}', [InstitutionController::class, 'update'])
         ->whereNumber('institution')
         ->name('institutions.update');
-
-    Route::patch('/institutions/{institution}', [InstitutionController::class, 'update'])
-        ->whereNumber('institution')
-        ->name('institutions.patch');
 
     Route::delete('/institutions/{institution}', [InstitutionController::class, 'destroy'])
         ->whereNumber('institution')

@@ -8,20 +8,26 @@
 
     <title>{{ config('app.name', 'TALASTAS') }}</title>
 
-    <link rel="icon" type="image/svg+xml" href="/images/talastas-favicon.svg">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo_ict_mapping.png') }}">
 
     <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
-    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600&display=swap" rel="stylesheet" />
+    @include('partials.fonts')
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 
     <!-- Core assets -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    {{-- Heavy GIS dependencies are only needed by the map/home routes. --}}
+    {{-- GIS dependencies are loaded only on screens that render maps. --}}
     @if (request()->routeIs('home') || request()->routeIs('map'))
         @vite('resources/js/gis.js')
+    @elseif (
+        request()->routeIs('institutions.index')
+        || request()->routeIs('institutions.create')
+        || request()->routeIs('institutions.edit')
+        || request()->routeIs('institutions.show')
+    )
+        @vite('resources/js/institution-location.js')
     @endif
 
     @auth
@@ -35,7 +41,6 @@
                 [data-open-institution-modal],
                 [data-delete-institution],
                 .delete-institution-button,
-                [data-open-notes-modal],
                 [data-infrastructure-analytics-form],
                 a[href$="/institutions/create"],
                 a[href*="/institutions/"][href$="/edit"] {
@@ -64,16 +69,33 @@
         @endif
     @endauth
 </head>
-<body class="font-sans antialiased bg-gray-50 @auth role-{{ auth()->user()->role }} @endauth @hasSection('dashboard-layout') overflow-hidden h-screen @endif">
-    <div id="app" class="flex flex-col @hasSection('dashboard-layout') h-screen overflow-hidden @else min-h-screen @endif">
+<body class="talastas-app font-sans antialiased bg-gray-50 @auth role-{{ auth()->user()->role }} @endauth @hasSection('dashboard-layout') overflow-hidden h-screen @endif">
+    @include('layouts.sidebar')
+    <div id="app" class="talastas-shell min-w-0 flex flex-col @hasSection('dashboard-layout') h-screen overflow-hidden @else min-h-screen @endif">
         @include('layouts.header')
 
-        <main class="@hasSection('dashboard-layout') flex-1 min-h-0 overflow-hidden flex flex-col @else flex-1 @endif">
+        <main class="min-w-0 @hasSection('dashboard-layout') flex-1 min-h-0 overflow-hidden flex flex-col @else flex-1 @endif">
             @yield('content')
         </main>
 
-        @include('layouts.footer')
+        @hasSection('dashboard-layout')
+        @else
+            @include('layouts.footer')
+        @endif
     </div>
+    @include('partials.notifications')
+    @auth
+    <script>
+    (() => {
+        const beat = () => {
+            if (document.visibilityState !== 'visible') return;
+            fetch(@json(route('activity.heartbeat')), {method:'POST',headers:{'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]').content,'Accept':'application/json'},credentials:'same-origin'}).catch(() => {});
+        };
+        setInterval(beat, 60000);
+        document.addEventListener('visibilitychange',beat);
+    })();
+    </script>
+    @endauth
     @yield('scripts')
 </body>
 </html>

@@ -2,11 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use App\Rules\ValidPasswordInput;
+use App\Services\AccountAccess;
 use App\Services\NotificationService;
+use App\Services\PasswordPolicy;
+use App\Services\SecurityAudit;
+use App\Services\SecurityMail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AccountProfileController extends Controller
@@ -23,33 +29,32 @@ class AccountProfileController extends Controller
         NotificationService $notificationService,
     ): RedirectResponse {
         $validated = $request->validate([
-            'current_password' => ['required', 'current_password'],
-            'password' => [
-                'required',
-                'confirmed',
-                Password::min(12)
-                    ->letters()
-                    ->mixedCase()
-                    ->numbers(),
-            ],
+            'current_password' => ['required', 'string', 'max:4096', new ValidPasswordInput, 'current_password'],
+            'password' => PasswordPolicy::rules(),
         ]);
 
         $user = $request->user();
 
-        $user->forceFill([
-            'password' => Hash::make($validated['password']),
-        ])->save();
-
-        // Revoke mobile/API tokens after a password change where Sanctum is used.
-        if (method_exists($user, 'tokens')) {
-            $user->tokens()->delete();
-        }
+        DB::transaction(function () use ($user, $validated) {
+            $locked = User::lockForUpdate()->findOrFail($user->id);
+            $locked->password = $validated['password'];
+            AccountAccess::invalidate($locked);
+            SecurityAudit::record('password.changed', $locked->id);
+            if (SecurityMail::available()) {
+                SecurityMail::queue('password_changed', (string) $locked->id, $locked->security_version);
+            } else {
+                SecurityAudit::record('notification.unavailable', $locked->id, 'failed');
+            }
+        });
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         $notificationService->accountSecurityChanged(
             $user,
             'Your password was changed successfully. Existing API/mobile access tokens were revoked.',
         );
 
-        return back()->with('status', 'password-updated');
+        return redirect()->route('login')->with('status', 'Password changed. Sign in again.');
     }
 }

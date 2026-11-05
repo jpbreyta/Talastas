@@ -1,5 +1,8 @@
 @extends('layouts.app')
 
+@section('page-title', 'User Profile')
+@section('page-icon', 'fa-user')
+
 @section('content')
 <style>
     .profile-input {
@@ -85,22 +88,9 @@
 
 <div class="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
     <!-- Page Header -->
-    <div class="mb-6">
-        <div class="flex items-center gap-2.5 mb-1.5">
-            <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-[#7A1F2B] to-[#58151E] flex items-center justify-center shadow-md">
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-            </div>
-            <div>
-                <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-[#7A1F2B]">Account</p>
-                <h1 class="text-xl font-bold text-[#7A1F2B]">User profile</h1>
-            </div>
-        </div>
-        <p class="text-xs text-slate-600 ml-10.5">
-            Review your authenticated account information and manage your password.
-        </p>
-    </div>
+    <x-page-header title="User profile" subtitle="Review your account and manage your password." class="mb-4">
+
+    </x-page-header>
 
     <!-- Success Message -->
     @if (session('status') === 'password-updated')
@@ -118,6 +108,11 @@
             </div>
         </div>
     @endif
+
+    <section aria-label="Policies" class="mb-5 rounded-xl border border-gray-200 bg-white p-4 text-sm">
+        @include('partials.legal-links')
+        <a href="{{ route('legal.review') }}" class="mt-3 inline-block font-medium text-red-900 underline">Review Terms status and my acceptance history</a>
+    </section>
 
     <!-- Main Grid -->
     <div class="grid gap-5 lg:grid-cols-[1fr_1.1fr]">

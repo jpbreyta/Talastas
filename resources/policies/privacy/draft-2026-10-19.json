@@ -1,0 +1,89 @@
+{
+  "version": "draft-2026-10-19",
+  "status": "draft",
+  "effective_at": null,
+  "approved_by": null,
+  "approved_at": null,
+  "required_confirmations": {
+    "controller_identity": null,
+    "privacy_contact": null,
+    "lawful_bases": null,
+    "retention_schedule": null,
+    "recipients_and_transfers": null,
+    "account_deletion": null,
+    "gate_scope": null
+  },
+  "change_summary": "Initial draft for institutional, legal and privacy review. Not effective or approved.",
+  "title": "Privacy Notice",
+  "sections": [
+    {
+      "heading": "Draft notice and responsible organization",
+      "paragraphs": [
+        "This draft describes source-code-verified processing in TALASTAS - ICT Mapping. It is not an approved institutional notice or legal compliance certification. Personal information controller identity, address, Data Protection Officer or privacy contact, complaint escalation and effective date: REQUIRES CONFIRMATION. Branding and repository ownership alone do not establish the legal controller.",
+        "The institution must supply the approved notice during staff onboarding before account information is collected, where applicable. A login link alone cannot establish that provisioned users received timely notice."
+      ]
+    },
+    {
+      "heading": "Information processed and its sources",
+      "paragraphs": [
+        "Administrators create accounts using name, email, role, a password stored as a hash, and institution assignments where applicable. Users supply login credentials; the web uses session cookies and the API issues Sanctum bearer tokens. The sessions schema supports IP address and user-agent storage when the database session driver is used. Actual deployment driver, cookie settings, infrastructure logs and retention require confirmation.",
+        "Activity tracking stores user identifiers/names, hashed session identifiers, channel and session times. Record-change logs include actor, action, record identifier, changed field names and time. Audits and reports can contain author/preparer identities and user-entered notes. Institution names, inventories and building coordinates are institutional information but may identify people when combined with other content.",
+        "If you select device location, the browser obtains operator latitude/longitude and accuracy. The institution save can record those actor details, verification flag and location source in administrator activity logs, separately from the institution point or geometry. Manual coordinates and location search remain available; browser permission is not a determination of the institution's lawful basis.",
+        "When Terms are accepted, a separate ledger records your account identifier, policy version, requirement identifier, exact content snapshot/hash and server acceptance time. It does not collect additional IP, GPS or device fingerprints for acceptance. Acknowledgement of draft Terms does not constitute institutional policy approval."
+      ]
+    },
+    {
+      "heading": "Purposes and lawful processing",
+      "paragraphs": [
+        "Verified functions use account information for authentication, permissions and assignments; institution/inventory/audit information for mapping and assessment; activity information for accountability; device-location information for location verification and saved activity provenance; and report data for planning. The Terms ledger documents deliberate version-specific acknowledgement.",
+        "The controller must confirm and document the applicable lawful basis for each operation, including any sensitive personal information, before adoption. This draft does not select consent, public authority, contract or legitimate interests on the institution's behalf. Terms acceptance does not create blanket consent to processing."
+      ]
+    },
+    {
+      "heading": "Access, recipients and external services",
+      "paragraphs": [
+        "Server-side roles and institution assignments restrict protected actions. Administrators can access activity logs. Editors are scoped to assigned institutions for applicable work. Planners and administrators can access permitted reports; web and API export permissions differ. Authorized report recipients and sharing policies require confirmation.",
+        "The code supports an analytics service and configurable Gemini/Groq narrative requests containing institution identifiers and inventory/connectivity evidence. Actual provider use, controller/processor roles, contracts, hosting countries, retention, transfers and safeguards require confirmation; provider code alone does not prove a live transfer.",
+        "Location searches and lookups can contact Nominatim-compatible endpoints. Map tiles, fonts and other external web assets can expose request/network metadata to their hosts. The enabled endpoints, hosting providers, recipient arrangements and policies require deployment review. This notice does not claim anonymous processing, a no-sharing guarantee or an approved international-transfer arrangement."
+      ]
+    },
+    {
+      "heading": "Retention, deletion and security",
+      "paragraphs": [
+        "Approved retention periods, legal holds, backup expiry and disposal procedures for accounts, sessions, GPS/activity logs, audit records, reports and future acceptance evidence: REQUIRES CONFIRMATION. No retention period is asserted by this draft. The acceptance feature adds no scheduled purge. Its schema separates the receipt from a deleted account by nulling the account reference, leaving the policy snapshot/time; whether that handling and any retention are authorized must be reviewed before acceptance is enabled.",
+        "Verified controls include password hashing, web CSRF protection, login throttling, authenticated web/API routes, bearer-token handling, role checks and institution assignments. Production configuration forces HTTPS URL generation, but this does not prove deployment transport, encryption at rest, backups, hosting security, staff access controls or incident procedures. Those operational safeguards require confirmation. No system can be described as risk-free on this evidence."
+      ]
+    },
+    {
+      "heading": "Your rights and contact or complaint channels",
+      "paragraphs": [
+        "Depending on the facts and applicable exceptions, Philippine law provides rights to information, access, objection, correction, erasure or blocking, portability and remedies. These rights are not an unconditional promise of immediate deletion of every official record. Request verification and handling must be proportionate.",
+        "The controller's identity, DPO/privacy contact, request procedure and response arrangements require confirmation. The app has no verified privacy-request inbox or submission workflow. Until an official contact is designated, use your institution's established administrative contact rather than sending sensitive material to an invented address. The National Privacy Commission publishes data-subject and complaint guidance on its official website."
+      ]
+    },
+    {
+      "heading": "Review, updates and references",
+      "paragraphs": [
+        "Publish an approved effective version after institutional/privacy review. Material changes should be explained before the affected processing. Updating this notice is not automatically consent to a new purpose or lawful basis. The report's ISO/IEC references are governance and quality guidance, not proof of certification or a universal checkbox requirement."
+      ]
+    }
+  ],
+  "references": [
+    {
+      "label": "RA 10173: Sections 11, 12, 13, 16, 18, 20 and 21",
+      "url": "https://privacy.gov.ph/Data-Privacy-Act/"
+    },
+    {
+      "label": "IRR: privacy principles, lawful processing, security and data-subject rights",
+      "url": "https://privacy.gov.ph/implementing-rules%20regulations-data-privacy-act-2012/"
+    },
+    {
+      "label": "NPC Circular 2023-04: Guidelines on Consent",
+      "url": "https://privacy.gov.ph/wp-content/uploads/2023/11/NPC-Circular-No.-2023-04_Guidelines-on-Consent_07Nov2023.pdf"
+    },
+    {
+      "label": "National Privacy Commission: official guidance and channels",
+      "url": "https://privacy.gov.ph/"
+    }
+  ]
+}

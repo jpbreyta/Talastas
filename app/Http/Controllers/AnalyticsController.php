@@ -6,130 +6,105 @@ use App\Jobs\ProcessInstitutionAnalytics;
 use App\Models\Barangay;
 use App\Models\Institution;
 use App\Models\InstitutionAnalytics;
-use App\Services\InstitutionInventorySummaryService;
+use App\Services\AnalyticsPrescription;
+use Dompdf\Dompdf;
+use Dompdf\Options;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class AnalyticsController extends Controller
 {
     public function index(Request $request): View
     {
+        $user = $request->user();
+
+        // Editors see only institutions they are assigned to.
+        // Viewers see city-wide aggregate only (no per-institution rows).
         $analyticsQuery = $this->activeAnalyticsQuery();
 
-        $this->applyIndexFilters(
-            $analyticsQuery,
-            $request
-        );
+        if ($user->isEditor()) {
+            $analyticsQuery->whereHas('institution', function (Builder $q) use ($user): void {
+                $q->whereHas('assignedUsers', fn ($a) => $a->whereKey($user->id));
+            });
+        }
+
+        $this->applyIndexFilters($analyticsQuery, $request);
+
+        $prescription = app(AnalyticsPrescription::class)->build((clone $analyticsQuery)->get());
+
+        if ($user->isViewer()) {
+            $analyticsQuery->whereRaw('1 = 0');
+        }
+
+        $direction = $request->query('order') === 'asc' ? 'asc' : 'desc';
+        if ($request->query('sort') === 'name') {
+            $analyticsQuery->orderBy(
+                Institution::query()->select('name')->whereColumn('institutions.id', 'institution_analytics.institution_id'),
+                $direction
+            );
+        } else {
+            $analyticsQuery->orderByRaw('CASE WHEN gap_score IS NULL THEN 1 ELSE 0 END')->orderBy('gap_score', $direction);
+        }
 
         $analytics = $analyticsQuery
-            ->orderByRaw(
-                'CASE WHEN gap_score IS NULL THEN 1 ELSE 0 END'
-            )
-            ->orderByDesc('gap_score')
+            ->orderBy('institution_analytics.id')
             ->paginate(15)
             ->withQueryString();
 
-        $summary = $this->summaryData();
+        $summary = $this->summaryData($request);
 
-        $institutionCount =
-            $summary['institution_count'];
+        $averageGapScore = $summary['average_gap_score'];
 
-        $analyzedInstitutionCount =
-            $summary['analyzed_institution_count'];
+        $infrastructureDeficit = $summary['infrastructure_deficit_score'];
+        $connectivityDivide = $summary['connectivity_divide_score'];
+        $technologicalObsolescence = $summary['technological_obsolescence_score'];
+        $latestAnalysisDate = $summary['latest_analysis_date'];
 
-        $pendingAssessments =
-            $summary['pending_assessment_count'];
-
-        $analysisCoveragePercentage =
-            $summary['analysis_coverage_percentage'];
-
-        $averageGapScore =
-            $summary['average_gap_score'];
-
-        $criticalAreas =
-            $summary['critical'];
-
-        $needsAttention =
-            $summary['warning'];
-
-        $adequateAreas =
-            $summary['adequate'];
-
-        $insufficientData =
-            $summary['insufficient_data'];
-
-        $infrastructureDeficit =
-            $summary['infrastructure_deficit_score'];
-
-        $connectivityDivide =
-            $summary['connectivity_divide_score'];
-
-        $technologicalObsolescence =
-            $summary['technological_obsolescence_score'];
-
-        $averageCompleteness =
-            $summary['data_completeness_score'];
-
-        $latestAnalysisDate =
-            $summary['latest_analysis_date'];
-
-        $overallRiskLevel =
-            $this->riskLevelFromNullableScore(
-                $averageGapScore
-            );
-
-        $primaryCityConcern =
-            $this->primaryCityConcern(
-                $summary
-            );
-
-        $barangayScores =
-            $this->barangayScores();
+        $primaryCityConcern = $this->primaryCityConcern($summary);
+        $barangayScores = $this->barangayScores($request);
 
         $barangays = Barangay::query()
             ->orderBy('name')
-            ->get([
-                'id',
-                'name',
-            ]);
+            ->get(['id', 'name']);
 
         return view('analytics', compact(
             'analytics',
-            'institutionCount',
-            'analyzedInstitutionCount',
-            'pendingAssessments',
-            'analysisCoveragePercentage',
             'averageGapScore',
-            'criticalAreas',
-            'needsAttention',
-            'adequateAreas',
-            'insufficientData',
             'infrastructureDeficit',
             'connectivityDivide',
             'technologicalObsolescence',
-            'averageCompleteness',
             'latestAnalysisDate',
-            'overallRiskLevel',
             'primaryCityConcern',
             'barangayScores',
-            'barangays'
+            'barangays',
+            'prescription'
         ));
     }
 
-    public function getAnalytics(): JsonResponse
+    public function getAnalytics(Request $request): JsonResponse
     {
-        $summary = $this->summaryData();
+        $summary = $this->summaryData($request);
 
-        $analytics = $this->activeAnalyticsQuery()
-            ->orderByRaw(
-                'CASE WHEN gap_score IS NULL THEN 1 ELSE 0 END'
-            )
+        $query = $this->activeAnalyticsQuery();
+        if ($request->user()->isEditor()) {
+            $query->whereHas('institution.assignedUsers', fn ($q) => $q->whereKey($request->user()->id));
+        }
+        $this->applyIndexFilters($query, $request);
+        $prescription = app(AnalyticsPrescription::class)->build((clone $query)->get());
+        if ($request->user()->isViewer()) {
+            $query->whereRaw('1 = 0');
+        }
+        $analytics = $query
+            ->orderByRaw('CASE WHEN gap_score IS NULL THEN 1 ELSE 0 END')
             ->orderByDesc('gap_score')
             ->get();
 
@@ -137,216 +112,550 @@ class AnalyticsController extends Controller
             'success' => true,
             'data' => $analytics,
             'summary' => $summary,
-
-            /*
-             * Keep these API fields for compatibility with any existing
-             * clients even though the simplified Blade no longer displays
-             * all of them at once.
-             */
-            'primary_city_concern' =>
-                $this->primaryCityConcern(
-                    $summary
-                ),
-
-            'barangay_scores' =>
-                $this->barangayScores(),
-
-            'infrastructure_status' =>
-                $this->infrastructureStatus(),
-
-            'priority_needs' =>
-                $this->priorityNeeds(),
-
-            'generated_at' =>
-                now()->toIso8601String(),
+            'prescription' => $prescription,
+            'primary_city_concern' => $this->primaryCityConcern($summary),
+            'barangay_scores' => $this->barangayScores($request),
+            'priority_needs' => $this->priorityNeeds(),
+            'generated_at' => now()->toIso8601String(),
         ]);
     }
 
     public function analyzeInstitution(
         Request $request,
-        Institution $institution,
-        InstitutionInventorySummaryService $summaryService
+        Institution $institution
     ): JsonResponse|RedirectResponse {
-        $institution->loadMissing(
-            'ictInventory'
-        );
+        if (!in_array($institution->type, ['School', 'Barangay Hall'], true)) {
+            $message = 'This institution type is outside the approved TALASTAS capstone scope.';
 
-        if ($institution->ictInventory->isEmpty()) {
-            $message =
-                'Add at least one inventory item before running infrastructure analytics.';
-
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $message,
-                    'institution_id' =>
-                        $institution->id,
-                ], 422);
-            }
-
-            return redirect()
-                ->route(
-                    'institutions.show',
-                    $institution
-                )
-                ->with(
-                    'error',
-                    $message
-                );
+            return $request->expectsJson()
+                ? response()->json(['success' => false, 'message' => $message], 422)
+                : redirect()->route('institutions.show', $institution)->with('error', $message);
         }
 
-        $summaryService->sync(
-            $institution
+        $request->validate(['include_software' => ['sometimes', 'boolean']]);
+        $includeSoftware = $request->boolean('include_software', true);
+        $institution->loadMissing('ictInventory.component');
+
+        $existingAnalytics = InstitutionAnalytics::query()
+            ->where('institution_id', $institution->id)
+            ->first();
+
+        if (
+            $existingAnalytics
+            && in_array(
+                $existingAnalytics->processing_status,
+                ['queued', 'processing'],
+                true
+            )
+            && filled($existingAnalytics->processing_token)
+        ) {
+            $processingToken =
+                (string) $existingAnalytics->processing_token;
+
+            $message =
+                'ICT analytics is already processing.';
+
+            return $request->expectsJson()
+                ? response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'institution_id' => $institution->id,
+                    'processing_token' => $processingToken,
+                    'stream_url' => route(
+                        'institutions.analytics.stream',
+                        [
+                            'institution' => $institution->id,
+                            'token' => $processingToken,
+                        ]
+                    ),
+                    'state_url' => route(
+                        'institutions.analytics.state',
+                        [
+                            'institution' => $institution->id,
+                            'token' => $processingToken,
+                        ]
+                    ),
+                ], 202)
+                : redirect()
+                    ->route(
+                        'institutions.show',
+                        $institution
+                    )
+                    ->with('success', $message);
+        }
+
+        $processingToken = (string) Str::uuid();
+
+        InstitutionAnalytics::query()->updateOrCreate(
+            ['institution_id' => $institution->id],
+            [
+                'processing_token' => $processingToken,
+                'processing_status' => 'queued',
+                'processing_stage' => 'queued',
+                'processing_started_at' => now(),
+                'processing_completed_at' => null,
+                'processing_error' => null,
+            ]
         );
 
         ProcessInstitutionAnalytics::dispatch(
-            $institution->id
+            $institution->id,
+            $processingToken,
+            $includeSoftware
         )->afterCommit();
 
         $message =
-            'Infrastructure analytics was added to the processing queue.';
+            'ICT analytics is processing in the background.';
 
-        if ($request->expectsJson()) {
-            return response()->json([
+        return $request->expectsJson()
+            ? response()->json([
                 'success' => true,
                 'message' => $message,
-                'institution_id' =>
-                    $institution->id,
-            ], 202);
-        }
-
-        return redirect()
-            ->route(
-                'institutions.show',
-                $institution
-            )
-            ->with(
-                'success',
-                $message
-            );
+                'institution_id' => $institution->id,
+                'processing_token' => $processingToken,
+                'stream_url' => route(
+                    'institutions.analytics.stream',
+                    [
+                        'institution' => $institution->id,
+                        'token' => $processingToken,
+                    ]
+                ),
+                'state_url' => route(
+                    'institutions.analytics.state',
+                    [
+                        'institution' => $institution->id,
+                        'token' => $processingToken,
+                    ]
+                ),
+            ], 202)
+            : redirect()
+                ->route('institutions.show', $institution)
+                ->with('success', $message);
     }
 
     public function analyzeAll(): JsonResponse
     {
         $institutionIds = Institution::query()
-            ->where(
-                'is_active',
-                true
-            )
+            ->where('is_active', true)
+            ->whereIn('type', ['School', 'Barangay Hall'])
             ->pluck('id');
 
-        foreach (
-            $institutionIds
-            as $institutionId
-        ) {
+        $queuedCount = 0;
+
+        foreach ($institutionIds as $institutionId) {
+            $existing = InstitutionAnalytics::query()
+                ->where(
+                    'institution_id',
+                    (int) $institutionId
+                )
+                ->first();
+
+            if (
+                $existing
+                && in_array(
+                    $existing->processing_status,
+                    ['queued', 'processing'],
+                    true
+                )
+            ) {
+                continue;
+            }
+
+            $processingToken = (string) Str::uuid();
+
+            InstitutionAnalytics::query()->updateOrCreate(
+                ['institution_id' => (int) $institutionId],
+                [
+                    'processing_token' => $processingToken,
+                    'processing_status' => 'queued',
+                    'processing_started_at' => now(),
+                    'processing_completed_at' => null,
+                    'processing_error' => null,
+                ]
+            );
+
             ProcessInstitutionAnalytics::dispatch(
-                (int) $institutionId
+                (int) $institutionId,
+                $processingToken
             )->afterCommit();
+
+            $queuedCount++;
         }
 
         return response()->json([
             'success' => true,
             'message' =>
-                'All active institutions were added to the analytics queue.',
-            'queued_count' =>
-                $institutionIds->count(),
+                'Active public schools and barangay halls that were not already processing were added to the analytics queue.',
+            'queued_count' => $queuedCount,
         ]);
     }
 
-    public function export(): StreamedResponse
-    {
-        $fileName =
-            'ict-gap-analytics-'
-            . now()->format(
-                'Y-m-d-His'
+    public function institutionAnalyticsState(
+        Request $request,
+        Institution $institution
+    ): JsonResponse {
+        $request->validate(['token' => ['nullable', 'string', 'max:255']]);
+        if (
+            $request->user()->isEditor()
+            && !$request->user()->canAccessInstitution(
+                $institution->id
             )
-            . '.csv';
+        ) {
+            abort(
+                403,
+                'You are not assigned to this institution.'
+            );
+        }
 
-        $analytics =
-            $this->activeAnalyticsQuery()
-                ->orderByRaw(
-                    'CASE WHEN gap_score IS NULL THEN 1 ELSE 0 END'
-                )
-                ->orderByDesc(
-                    'gap_score'
-                )
-                ->get();
+        $analytics = InstitutionAnalytics::query()
+            ->where('institution_id', $institution->id)
+            ->first();
+
+        if (!$analytics) {
+            return response()->json([
+                'success' => true,
+                'state' => [
+                    'status' => 'idle',
+                    'processing_token' => null,
+                    'analysis_date' => null,
+                    'error' => null,
+                ],
+            ]);
+        }
+
+        $requestedToken = trim(
+            (string) $request->query('token', '')
+        );
+
+        $state = $this->analyticsProcessingState(
+            $analytics,
+            $requestedToken
+        );
+
+        return response()->json([
+            'success' => true,
+            'state' => $state,
+        ]);
+    }
+
+    public function streamInstitutionAnalytics(
+        Request $request,
+        Institution $institution
+    ): StreamedResponse {
+        $request->validate(['token' => ['nullable', 'string', 'max:255']]);
+        if (
+            $request->user()->isEditor()
+            && !$request->user()->canAccessInstitution(
+                $institution->id
+            )
+        ) {
+            abort(
+                403,
+                'You are not assigned to this institution.'
+            );
+        }
+
+        $requestedToken = trim(
+            (string) $request->query('token', '')
+        );
+
+        return response()->stream(
+            function () use (
+                $institution,
+                $requestedToken
+            ): void {
+                @set_time_limit(0);
+                echo "retry: 1500\n\n";
+
+                $lastPayload = null;
+                $startedAt = microtime(true);
+
+                while (
+                    connection_aborted() === 0
+                    && (microtime(true) - $startedAt) < 55
+                ) {
+                    $analytics = InstitutionAnalytics::query()
+                        ->where(
+                            'institution_id',
+                            $institution->id
+                        )
+                        ->first();
+
+                    if (!$analytics) {
+                        $payload = [
+                            'status' => 'idle',
+                            'processing_token' => null,
+                            'analysis_date' => null,
+                            'error' => null,
+                        ];
+                    } else {
+                        $payload =
+                            $this->analyticsProcessingState(
+                                $analytics,
+                                $requestedToken
+                            );
+                    }
+
+                    $encoded = json_encode(
+                        $payload,
+                        JSON_UNESCAPED_SLASHES
+                        | JSON_UNESCAPED_UNICODE
+                    );
+
+                    if ($encoded !== $lastPayload) {
+                        echo "event: analytics.status\n";
+                        echo "data: {$encoded}\n\n";
+
+                        $lastPayload = $encoded;
+                    } else {
+                        echo ": keep-alive\n\n";
+                    }
+
+                    if (ob_get_level() > 0) {
+                        @ob_flush();
+                    }
+
+                    flush();
+
+                    if (
+                        in_array(
+                            $payload['status'] ?? null,
+                            [
+                                'completed',
+                                'failed',
+                                'superseded',
+                            ],
+                            true
+                        )
+                    ) {
+                        break;
+                    }
+
+                    usleep(1000000);
+                }
+            },
+            200,
+            [
+                'Content-Type' => 'text/event-stream',
+                'Cache-Control' => 'no-cache, no-store, must-revalidate',
+                'Connection' => 'keep-alive',
+                'X-Accel-Buffering' => 'no',
+            ]
+        );
+    }
+
+    private function analyticsProcessingState(
+        InstitutionAnalytics $analytics,
+        string $requestedToken = ''
+    ): array {
+        $currentToken =
+            (string) ($analytics->processing_token ?? '');
+
+        if (
+            $requestedToken !== ''
+            && $currentToken !== ''
+            && !hash_equals(
+                $currentToken,
+                $requestedToken
+            )
+        ) {
+            return [
+                'status' => 'superseded',
+                'processing_token' => $currentToken,
+                'analysis_date' =>
+                    $analytics->analysis_date?->toIso8601String(),
+                'error' => null,
+            ];
+        }
+
+        return [
+            'status' =>
+                $analytics->processing_status
+                ?? (
+                    $analytics->analysis_date
+                        ? 'completed'
+                        : 'idle'
+                ),
+            'processing_token' =>
+                $analytics->processing_token,
+            'stage' =>
+                $analytics->processing_stage,
+            'analysis_date' =>
+                $analytics->analysis_date?->toIso8601String(),
+            'started_at' =>
+                $analytics->processing_started_at?->toIso8601String(),
+            'completed_at' =>
+                $analytics->processing_completed_at?->toIso8601String(),
+            'assessment_status' => $analytics->risk_level,
+            'assessment' => data_get($analytics->recommendations_detail, 'assessment'),
+            'metrics' => [
+                'gap_score' =>
+                    $analytics->gap_score,
+                'infrastructure_deficit_score' =>
+                    $analytics->infrastructure_deficit_score,
+                'connectivity_divide_score' =>
+                    $analytics->connectivity_divide_score,
+                'technological_obsolescence_score' =>
+                    $analytics->technological_obsolescence_score,
+            ],
+            'error' =>
+                $analytics->processing_status === 'failed'
+                    ? 'Analytics processing failed. Review the application and queue logs, then try again.'
+                    : null,
+        ];
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        abort_unless($request->user()->isAdmin() || $request->user()->isViewer(), 403);
+        $fileName =
+            'ict-gap-analytics-' . now()->format('Y-m-d-His') . '.csv';
+
+        $analyticsQuery = $this->activeAnalyticsQuery()
+            ->orderByRaw('CASE WHEN gap_score IS NULL THEN 1 ELSE 0 END')
+            ->orderByDesc('gap_score');
+
+        $this->applyIndexFilters($analyticsQuery, $request);
+
+        $analytics = $analyticsQuery->get();
 
         return Response::streamDownload(
-            function () use (
-                $analytics
-            ): void {
-                $file = fopen(
-                    'php://output',
-                    'w'
-                );
+            function () use ($analytics): void {
+                $file = fopen('php://output', 'w');
 
                 fputcsv($file, [
                     'Institution',
                     'Barangay',
                     'Type',
-                    'Overall Gap Score',
-                    'Risk Level',
-                    'Infrastructure Deficit',
-                    'Connectivity Divide',
-                    'Technological Obsolescence',
-                    'Data Completeness',
-                    'Analysis',
-                    'Recommendation',
+                    'Overall ICT Gap (%)',
+                    'Assessment Status',
+                    'Infrastructure Deficit (%)',
+                    'Connectivity Divide (%)',
+                    'Technological Obsolescence Proxy (%)',
+                    'Infrastructure Narrative',
+                    'Policy Recommendation',
+                    'Reported Internet Connections',
+                    'Scored Internet Connections',
+                    'Plans With Identifiable Speeds',
+                    'Price-Only Plans',
+                    'Ambiguous Plans',
+                    'Unrecorded Plans',
+                    'Connections Missing Details',
+                    'Connectivity Unavailable Reasons',
                 ]);
 
-                foreach (
-                    $analytics
-                    as $analytic
-                ) {
-                    fputcsv($file, [
-                        $analytic
-                            ->institution
-                            ?->name,
-
-                        $analytic
-                            ->institution
-                            ?->barangay
-                            ?->name,
-
-                        $analytic
-                            ->institution
-                            ?->type,
-
-                        $analytic
-                            ->gap_score,
-
-                        $analytic
-                            ->risk_level,
-
-                        $analytic
-                            ->infrastructure_deficit_score,
-
-                        $analytic
-                            ->connectivity_divide_score,
-
-                        $analytic
-                            ->technological_obsolescence_score,
-
-                        $analytic
-                            ->data_completeness_score,
-
-                        $analytic
-                            ->infrastructure_narrative,
-
-                        $analytic
-                            ->policy_recommendation,
-                    ]);
+                foreach ($analytics as $analytic) {
+                    $connectivity = data_get($analytic->recommendations_detail, 'connectivity_assessment', []);
+                    fputcsv($file, array_map([$this, 'safeCsvValue'], [
+                        $analytic->institution?->name,
+                        $analytic->institution?->barangay?->name,
+                        $analytic->institution?->type,
+                        $analytic->gap_score,
+                        $analytic->risk_level,
+                        $analytic->infrastructure_deficit_score,
+                        $analytic->connectivity_divide_score,
+                        $analytic->technological_obsolescence_score,
+                        $analytic->infrastructure_narrative,
+                        $analytic->policy_recommendation,
+                        $connectivity['reported_connection_count'] ?? null,
+                        $connectivity['valid_connection_count'] ?? null,
+                        data_get($connectivity, 'plan_counts.identifiable'),
+                        data_get($connectivity, 'plan_counts.price_only'),
+                        data_get($connectivity, 'plan_counts.ambiguous'),
+                        data_get($connectivity, 'plan_counts.not_recorded'),
+                        $connectivity['missing_connection_count'] ?? null,
+                        implode(' ', array_map([\App\Services\InternetConnectivityAssessment::class, 'reasonLabel'], $connectivity['reason_codes'] ?? [])),
+                    ]));
                 }
 
                 fclose($file);
             },
             $fileName,
-            [
-                'Content-Type' =>
-                    'text/csv; charset=UTF-8',
-            ]
+            ['Content-Type' => 'text/csv; charset=UTF-8']
         );
+    }
+
+    private function safeCsvValue(mixed $value): mixed
+    {
+        if (is_string($value) && preg_match('/^[\x00-\x20]*[=+@-]/', $value)) {
+            return "'".$value;
+        }
+
+        return $value;
+    }
+
+    public function exportPdf(Request $request): \Illuminate\Http\Response
+    {
+        abort_unless($request->user()->isAdmin() || $request->user()->isViewer(), 403);
+        $query = $this->activeAnalyticsQuery();
+        $this->applyIndexFilters($query, $request);
+        $records = $query->orderByDesc('gap_score')->get();
+        $prescription = app(AnalyticsPrescription::class)->build($records);
+        $summary = $this->summaryData();
+        $generatedAt = now()->timezone('Asia/Manila');
+        $preparedBy = $request->user()->name;
+        $filters = $request->only(['q', 'barangay', 'type', 'risk', 'date_from', 'date_to']);
+        $options = new Options(['isRemoteEnabled' => false, 'isPhpEnabled' => false, 'defaultFont' => 'DejaVu Sans', 'chroot' => public_path()]);
+        $pdf = new Dompdf($options);
+        $pdf->loadHtml(view('reports.lgu-analytics', compact('records', 'prescription', 'summary', 'generatedAt', 'preparedBy', 'filters'))->render());
+        $pdf->setPaper('A4', 'portrait');
+        $pdf->render();
+        $pdf->getCanvas()->page_text(42, 805, 'TALASTAS | Lipa City ICT Planning | Page {PAGE_NUM} of {PAGE_COUNT}', 'Helvetica', 8, [0.35, 0.35, 0.35]);
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="lipa-city-ict-planning-'.$generatedAt->format('Y-m-d-His').'.pdf"',
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
+    public function pythonHealth(): JsonResponse
+    {
+        $baseUrl = rtrim(
+            (string) config(
+                'services.python_analytics.url'
+            ),
+            '/'
+        );
+
+        $timeout = (int) config(
+            'services.python_analytics.health_check_timeout',
+            3
+        );
+
+        try {
+            $response = Http::acceptJson()
+                ->connectTimeout($timeout)
+                ->timeout($timeout)
+                ->get($baseUrl . '/health');
+
+            if (!$response->successful()) {
+                return response()->json([
+                    'success' => false,
+                    'status' => 'unavailable',
+                    'url' => $baseUrl,
+                    'http_status' => $response->status(),
+                    'message' => 'Python analytics service returned an error status.',
+                ], 503);
+            }
+
+            $data = $response->json();
+
+            return response()->json([
+                'success' => true,
+                'status' => 'available',
+                'url' => $baseUrl,
+                'http_status' => $response->status(),
+                'data' => is_array($data) ? $data : ['raw' => $data],
+            ]);
+        } catch (Throwable $exception) {
+            return response()->json([
+                'success' => false,
+                'status' => 'unreachable',
+                'url' => $baseUrl,
+                'message' => $exception->getMessage(),
+            ], 503);
+        }
     }
 
     private function activeAnalyticsQuery(): Builder
@@ -356,386 +665,159 @@ class AnalyticsController extends Controller
                 'institution:id,name,type,barangay_id,is_active',
                 'institution.barangay:id,name',
             ])
-            ->whereHas(
-                'institution',
-                function (
-                    Builder $query
-                ): void {
-                    $query->where(
-                        'is_active',
-                        true
-                    );
-                }
-            );
+            ->whereHas('institution', function (Builder $query): void {
+                $query
+                    ->where('is_active', true)
+                    ->whereIn('type', ['School', 'Barangay Hall']);
+            });
     }
 
     private function applyIndexFilters(
         Builder $query,
         Request $request
     ): void {
-        $search =
-            trim(
-                (string)
-                    $request->query(
-                        'q',
-                        ''
-                    )
-            );
-
-        $barangayId =
-            $request->query(
-                'barangay'
-            );
-
-        $type =
-            trim(
-                (string)
-                    $request->query(
-                        'type',
-                        ''
-                    )
-            );
-
-        $risk =
-            trim(
-                (string)
-                    $request->query(
-                        'risk',
-                        ''
-                    )
-            );
+        $request->validate([
+            'q' => 'nullable|string|max:255',
+            'barangay' => 'nullable|integer|min:1',
+            'type' => 'nullable|string|max:50',
+            'risk' => 'nullable|string|max:50',
+            'sort' => 'nullable|string|max:50',
+            'order' => 'nullable|string|max:10',
+            'date_from' => 'nullable|date_format:Y-m-d',
+            'date_to' => 'nullable|date_format:Y-m-d'.($request->filled('date_from') ? '|after_or_equal:date_from' : ''),
+        ]);
+        foreach (['date_from' => '>=', 'date_to' => '<='] as $key => $operator) {
+            if ($request->filled($key)) {
+                $date = Carbon::parse($request->query($key));
+                $query->where('analysis_date', $operator, $key === 'date_from' ? $date->startOfDay() : $date->endOfDay());
+            }
+        }
+        $search = trim((string) $request->query('q', ''));
+        $barangayId = $request->query('barangay');
+        $type = trim((string) $request->query('type', ''));
+        $status = trim((string) $request->query('risk', ''));
 
         if ($search !== '') {
-            $query->whereHas(
-                'institution',
-                function (
-                    Builder $institutionQuery
-                ) use (
-                    $search
-                ): void {
-                    $institutionQuery
-                        ->whereRaw(
-                            'LOWER(name) LIKE ?',
-                            [
-                                '%'
-                                . mb_strtolower(
-                                    $search
-                                )
-                                . '%',
-                            ]
-                        );
-                }
-            );
+            $query->whereHas('institution', function (Builder $institutionQuery) use ($search): void {
+                $institutionQuery->whereRaw(
+                    'LOWER(name) LIKE ?',
+                    ['%' . mb_strtolower($search) . '%']
+                );
+            });
         }
 
-        if (
-            is_numeric($barangayId)
-            && (int) $barangayId > 0
-        ) {
-            $query->whereHas(
-                'institution',
-                function (
-                    Builder $institutionQuery
-                ) use (
-                    $barangayId
-                ): void {
-                    $institutionQuery->where(
-                        'barangay_id',
-                        (int) $barangayId
-                    );
-                }
-            );
+        if (is_numeric($barangayId) && (int) $barangayId > 0) {
+            $query->whereHas('institution', function (Builder $institutionQuery) use ($barangayId): void {
+                $institutionQuery->where('barangay_id', (int) $barangayId);
+            });
         }
 
-        $allowedTypes = [
-            'School',
-            'Barangay Hall',
-            'Local Government Office',
-        ];
-
-        if (
-            in_array(
-                $type,
-                $allowedTypes,
-                true
-            )
-        ) {
-            $query->whereHas(
-                'institution',
-                function (
-                    Builder $institutionQuery
-                ) use (
-                    $type
-                ): void {
-                    $institutionQuery->where(
-                        'type',
-                        $type
-                    );
-                }
-            );
+        if (in_array($type, ['School', 'Barangay Hall'], true)) {
+            $query->whereHas('institution', function (Builder $institutionQuery) use ($type): void {
+                $institutionQuery->where('type', $type);
+            });
         }
 
-        $allowedRisks = [
-            'critical',
-            'warning',
-            'adequate',
-            'insufficient_data',
-        ];
-
-        if (
-            in_array(
-                $risk,
-                $allowedRisks,
-                true
-            )
-        ) {
-            $query->where(
-                'risk_level',
-                $risk
-            );
+        if (in_array($status, ['assessed', 'insufficient_data'], true)) {
+            $query->where('risk_level', $status);
         }
     }
 
-    private function summaryData(): array
-    {
-        $institutionCount =
-            Institution::query()
-                ->where(
-                    'is_active',
-                    true
-                )
-                ->count();
+    private function summaryData(?Request $request = null): array
+    { 
+        $institutionCount = Institution::query()
+            ->where('is_active', true)
+            ->whereIn('type', ['School', 'Barangay Hall'])
+            ->count(); 
 
-        /*
-         * One aggregate query replaces the previous set of repeated AVG and
-         * risk-count queries.
-         */
-        $aggregate =
-            InstitutionAnalytics::query()
-                ->whereHas(
-                    'institution',
-                    function (
-                        Builder $query
-                    ): void {
-                        $query->where(
-                            'is_active',
-                            true
-                        );
-                    }
-                )
-                ->selectRaw(
-                    'AVG(gap_score) AS average_gap_score'
-                )
-                ->selectRaw(
-                    'AVG(infrastructure_deficit_score) AS infrastructure_deficit_score'
-                )
-                ->selectRaw(
-                    'AVG(connectivity_divide_score) AS connectivity_divide_score'
-                )
-                ->selectRaw(
-                    'AVG(technological_obsolescence_score) AS technological_obsolescence_score'
-                )
-                ->selectRaw(
-                    'AVG(data_completeness_score) AS data_completeness_score'
-                )
-                ->selectRaw(
-                    'SUM(CASE WHEN gap_score IS NOT NULL THEN 1 ELSE 0 END) AS analyzed_institution_count'
-                )
-                ->selectRaw(
-                    "SUM(CASE WHEN risk_level = 'critical' THEN 1 ELSE 0 END) AS critical_count"
-                )
-                ->selectRaw(
-                    "SUM(CASE WHEN risk_level = 'warning' THEN 1 ELSE 0 END) AS warning_count"
-                )
-                ->selectRaw(
-                    "SUM(CASE WHEN risk_level = 'adequate' THEN 1 ELSE 0 END) AS adequate_count"
-                )
-                ->selectRaw(
-                    "SUM(CASE WHEN risk_level = 'insufficient_data' THEN 1 ELSE 0 END) AS insufficient_data_count"
-                )
-                ->selectRaw(
-                    'MAX(analysis_date) AS latest_analysis_date'
-                )
-                ->first();
+        $aggregateQuery = InstitutionAnalytics::query()
+            ->whereHas('institution', function (Builder $query): void {
+                $query
+                    ->where('is_active', true)
+                    ->whereIn('type', ['School', 'Barangay Hall']);
+            });
+
+        if ($request) {
+            $this->applyIndexFilters($aggregateQuery, $request);
+        }
+
+        $aggregate = $aggregateQuery
+            ->selectRaw('AVG(gap_score) AS average_gap_score')
+            ->selectRaw('AVG(infrastructure_deficit_score) AS infrastructure_deficit_score')
+            ->selectRaw('AVG(connectivity_divide_score) AS connectivity_divide_score')
+            ->selectRaw('AVG(technological_obsolescence_score) AS technological_obsolescence_score')
+            ->selectRaw('SUM(CASE WHEN gap_score IS NOT NULL THEN 1 ELSE 0 END) AS analyzed_institution_count')
+            ->selectRaw("SUM(CASE WHEN risk_level = 'assessed' THEN 1 ELSE 0 END) AS assessed_count")
+            ->selectRaw("SUM(CASE WHEN risk_level = 'insufficient_data' THEN 1 ELSE 0 END) AS insufficient_data_count")
+            ->selectRaw('MAX(analysis_date) AS latest_analysis_date')
+            ->first();
 
         $analyzedInstitutionCount =
-            (int) (
-                $aggregate
-                    ?->analyzed_institution_count
-                ?? 0
-            );
+            (int) ($aggregate?->analyzed_institution_count ?? 0);
 
-        $analysisCoveragePercentage =
-            $institutionCount > 0
-                ? round(
-                    (
-                        $analyzedInstitutionCount
-                        / $institutionCount
-                    ) * 100,
-                    1
-                )
-                : 0.0;
-
-        $latestAnalysisDate =
-            $aggregate
-                ?->latest_analysis_date;
+        $analysisCoveragePercentage = $institutionCount > 0
+            ? round(($analyzedInstitutionCount / $institutionCount) * 100, 1)
+            : 0.0;
 
         return [
             'average_gap_score' =>
-                $this->nullableRounded(
-                    $aggregate
-                        ?->average_gap_score
-                ),
-
+                $this->nullableRounded($aggregate?->average_gap_score),
             'infrastructure_deficit_score' =>
-                $this->nullableRounded(
-                    $aggregate
-                        ?->infrastructure_deficit_score
-                ),
-
+                $this->nullableRounded($aggregate?->infrastructure_deficit_score),
             'connectivity_divide_score' =>
-                $this->nullableRounded(
-                    $aggregate
-                        ?->connectivity_divide_score
-                ),
-
+                $this->nullableRounded($aggregate?->connectivity_divide_score),
             'technological_obsolescence_score' =>
-                $this->nullableRounded(
-                    $aggregate
-                        ?->technological_obsolescence_score
-                ),
-
-            'data_completeness_score' =>
-                $this->nullableRounded(
-                    $aggregate
-                        ?->data_completeness_score
-                ),
-
-            'institution_count' =>
-                $institutionCount,
-
-            'analyzed_institution_count' =>
-                $analyzedInstitutionCount,
-
+                $this->nullableRounded($aggregate?->technological_obsolescence_score),
+            'institution_count' => $institutionCount,
+            'analyzed_institution_count' => $analyzedInstitutionCount,
             'pending_assessment_count' =>
-                max(
-                    0,
-                    $institutionCount
-                    - $analyzedInstitutionCount
-                ),
-
+                max(0, $institutionCount - $analyzedInstitutionCount),
             'analysis_coverage_percentage' =>
                 $analysisCoveragePercentage,
 
-            'critical' =>
-                (int) (
-                    $aggregate
-                        ?->critical_count
-                    ?? 0
-                ),
-
-            'warning' =>
-                (int) (
-                    $aggregate
-                        ?->warning_count
-                    ?? 0
-                ),
-
-            'adequate' =>
-                (int) (
-                    $aggregate
-                        ?->adequate_count
-                    ?? 0
-                ),
-
+            'assessed' => (int) ($aggregate?->assessed_count ?? 0),
             'insufficient_data' =>
-                (int) (
-                    $aggregate
-                        ?->insufficient_data_count
-                    ?? 0
-                ),
+                (int) ($aggregate?->insufficient_data_count ?? 0),
 
-            'latest_analysis_date' =>
-                $latestAnalysisDate
-                    ? Carbon::parse(
-                        $latestAnalysisDate
-                    )->toIso8601String()
-                    : null,
+            'latest_analysis_date' => $aggregate?->latest_analysis_date
+                ? Carbon::parse($aggregate->latest_analysis_date)->toIso8601String()
+                : null,
         ];
     }
 
-    private function primaryCityConcern(
-        array $summary
-    ): ?array {
-        $dimensions = [
-            [
-                'key' =>
-                    'infrastructure',
-                'label' =>
-                    'Infrastructure Deficit',
-                'score' =>
-                    $summary[
-                        'infrastructure_deficit_score'
-                    ] ?? null,
-            ],
-            [
-                'key' =>
-                    'connectivity',
-                'label' =>
-                    'Connectivity Divide',
-                'score' =>
-                    $summary[
-                        'connectivity_divide_score'
-                    ] ?? null,
-            ],
-            [
-                'key' =>
-                    'obsolescence',
-                'label' =>
-                    'Technological Obsolescence',
-                'score' =>
-                    $summary[
-                        'technological_obsolescence_score'
-                    ] ?? null,
-            ],
-        ];
-
-        $available =
-            array_values(
-                array_filter(
-                    $dimensions,
-                    fn (
-                        array $dimension
-                    ): bool =>
-                        is_numeric(
-                            $dimension[
-                                'score'
-                            ]
-                        )
-                )
-            );
-
-        if ($available === []) {
-            return null;
-        }
-
-        usort(
-            $available,
-            fn (
-                array $a,
-                array $b
-            ): int =>
-                (float) $b['score']
-                <=>
-                (float) $a['score']
-        );
-
-        return $available[0];
-    }
-
-    private function barangayScores()
+    private function primaryCityConcern(array $summary): ?array
     {
-        return Institution::query()
+        $dimensions = collect([
+            [
+                'key' => 'infrastructure',
+                'label' => 'Infrastructure Deficit',
+                'score' => $summary['infrastructure_deficit_score'] ?? null,
+            ],
+            [
+                'key' => 'connectivity',
+                'label' => 'Connectivity Divide',
+                'score' => $summary['connectivity_divide_score'] ?? null,
+            ],
+            [
+                'key' => 'obsolescence',
+                'label' => 'Technological Obsolescence Proxy',
+                'score' => $summary['technological_obsolescence_score'] ?? null,
+            ],
+        ])->filter(fn (array $dimension): bool => is_numeric($dimension['score']))
+          ->sortByDesc('score')
+          ->values();
+
+        return $dimensions->first();
+    }
+
+    /**
+     * Barangay value is a descriptive mean of complete institution composite
+     * scores. Institution type remains available in the detailed table/filter;
+     * the score is not presented as a standards-based barangay compliance rate.
+     */
+    private function barangayScores(?Request $request = null)
+    {
+        $query = Institution::query()
             ->join(
                 'institution_analytics',
                 'institutions.id',
@@ -748,296 +830,85 @@ class AnalyticsController extends Controller
                 '=',
                 'barangays.id'
             )
-            ->where(
-                'institutions.is_active',
-                true
-            )
-            ->whereNotNull(
-                'institution_analytics.gap_score'
-            )
-            ->select([
-                'barangays.id',
-                'barangays.name',
-            ])
-            ->selectRaw(
-                'AVG(
-                    institution_analytics.gap_score
-                ) AS average_gap_score'
-            )
-            ->selectRaw(
-                'COUNT(
-                    institutions.id
-                ) AS institution_count'
-            )
-            ->groupBy(
-                'barangays.id',
-                'barangays.name'
-            )
-            ->orderByDesc(
-                'average_gap_score'
-            )
+            ->where('institutions.is_active', true)
+            ->whereIn('institutions.type', ['School', 'Barangay Hall'])
+            ->whereNotNull('institution_analytics.gap_score');
+
+        if ($request) {
+            $selected = $this->activeAnalyticsQuery();
+            $this->applyIndexFilters($selected, $request);
+            $query->whereIn('institution_analytics.id', $selected->select('institution_analytics.id'));
+        }
+
+        return $query
+            ->select(['barangays.id', 'barangays.name'])
+            ->selectRaw('AVG(institution_analytics.gap_score) AS average_gap_score')
+            ->selectRaw('COUNT(institutions.id) AS institution_count')
+            ->groupBy('barangays.id', 'barangays.name')
+            ->orderByDesc('average_gap_score')
             ->get()
-            ->map(
-                function (
-                    $barangay
-                ): array {
-                    $score =
-                        round(
-                            (float)
-                                $barangay
-                                    ->average_gap_score,
-                            2
-                        );
-
-                    return [
-                        'id' =>
-                            (int)
-                                $barangay->id,
-
-                        'name' =>
-                            $barangay->name,
-
-                        'gap_score' =>
-                            $score,
-
-                        'institution_count' =>
-                            (int)
-                                $barangay
-                                    ->institution_count,
-
-                        'risk_level' =>
-                            $this
-                                ->riskLevelFromScore(
-                                    $score
-                                ),
-                    ];
-                }
-            )
+            ->map(function ($barangay): array {
+                return [
+                    'id' => (int) $barangay->id,
+                    'name' => $barangay->name,
+                    'gap_score' => round((float) $barangay->average_gap_score, 2),
+                    'institution_count' => (int) $barangay->institution_count,
+                    'risk_level' => 'assessed',
+                ];
+            })
             ->values();
     }
 
-    /*
-     * Retained for API compatibility. The simplified analytics page does not
-     * display this section because it duplicated information already conveyed
-     * by the three research gap dimensions.
-     */
-    private function infrastructureStatus(): array
-    {
-        return [
-            'computer_laboratories' =>
-                $this
-                    ->institutionAvailabilityPercentage(
-                        'has_computer_lab'
-                    ),
-
-            'internet_connectivity' =>
-                $this
-                    ->internetAvailabilityPercentage(),
-
-            'smart_tvs' =>
-                $this
-                    ->institutionAvailabilityPercentage(
-                        'has_smart_tv'
-                    ),
-
-            'projected_whiteboards' =>
-                $this
-                    ->institutionAvailabilityPercentage(
-                        'has_projected_whiteboard'
-                    ),
-
-            'public_address_systems' =>
-                $this
-                    ->institutionAvailabilityPercentage(
-                        'has_public_address_system'
-                    ),
-        ];
-    }
-
-    /*
-     * Retained for API compatibility, but aligned with the actual research
-     * dimensions instead of inferring interventions from missing fields.
+    /**
+     * Prevalence of any measured non-zero gap. No arbitrary 50% threshold is
+     * used to define a priority institution.
      */
     private function priorityNeeds()
     {
         return collect([
             [
-                'key' =>
-                    'infrastructure',
-                'label' =>
-                    'Infrastructure Deficit',
-                'count' =>
-                    $this->analyticsDeficitCount(
-                        'infrastructure_deficit_score'
-                    ),
+                'key' => 'infrastructure',
+                'label' => 'Infrastructure Deficit',
+                'count' => $this->analyticsGapPrevalenceCount(
+                    'infrastructure_deficit_score'
+                ),
             ],
             [
-                'key' =>
-                    'connectivity',
-                'label' =>
-                    'Connectivity Divide',
-                'count' =>
-                    $this->analyticsDeficitCount(
-                        'connectivity_divide_score'
-                    ),
+                'key' => 'connectivity',
+                'label' => 'Connectivity Divide',
+                'count' => $this->analyticsGapPrevalenceCount(
+                    'connectivity_divide_score'
+                ),
             ],
             [
-                'key' =>
-                    'obsolescence',
-                'label' =>
-                    'Technological Obsolescence',
-                'count' =>
-                    $this->analyticsDeficitCount(
-                        'technological_obsolescence_score'
-                    ),
+                'key' => 'obsolescence',
+                'label' => 'Technological Obsolescence Proxy',
+                'count' => $this->analyticsGapPrevalenceCount(
+                    'technological_obsolescence_score'
+                ),
             ],
         ])
-            ->filter(
-                fn (
-                    array $need
-                ): bool =>
-                    $need['count'] > 0
-            )
-            ->sortByDesc(
-                'count'
-            )
+            ->filter(fn (array $need): bool => $need['count'] > 0)
+            ->sortByDesc('count')
             ->values();
     }
 
-    private function analyticsDeficitCount(
-        string $field
-    ): int {
+    private function analyticsGapPrevalenceCount(string $field): int
+    {
         return InstitutionAnalytics::query()
-            ->where(
-                $field,
-                '>=',
-                50
-            )
-            ->whereHas(
-                'institution',
-                function (
-                    Builder $query
-                ): void {
-                    $query->where(
-                        'is_active',
-                        true
-                    );
-                }
-            )
+            ->where($field, '>', 0)
+            ->whereHas('institution', function (Builder $query): void {
+                $query
+                    ->where('is_active', true)
+                    ->whereIn('type', ['School', 'Barangay Hall']);
+            })
             ->count();
     }
 
-    private function institutionAvailabilityPercentage(
-        string $field
-    ): float {
-        $total =
-            Institution::query()
-                ->where(
-                    'is_active',
-                    true
-                )
-                ->count();
-
-        if ($total === 0) {
-            return 0.0;
-        }
-
-        $available =
-            Institution::query()
-                ->where(
-                    'is_active',
-                    true
-                )
-                ->where(
-                    $field,
-                    true
-                )
-                ->count();
-
-        return round(
-            (
-                $available
-                / $total
-            ) * 100,
-            1
-        );
-    }
-
-    private function internetAvailabilityPercentage(): float
+    private function nullableRounded(mixed $value): ?float
     {
-        $total =
-            Institution::query()
-                ->where(
-                    'is_active',
-                    true
-                )
-                ->count();
-
-        if ($total === 0) {
-            return 0.0;
-        }
-
-        $connected =
-            Institution::query()
-                ->where(
-                    'is_active',
-                    true
-                )
-                ->whereNotNull(
-                    'internet_speed'
-                )
-                ->where(
-                    'internet_speed',
-                    '>',
-                    0
-                )
-                ->count();
-
-        return round(
-            (
-                $connected
-                / $total
-            ) * 100,
-            1
-        );
-    }
-
-    private function riskLevelFromNullableScore(
-        mixed $score
-    ): string {
-        if (!is_numeric($score)) {
-            return 'insufficient_data';
-        }
-
-        return $this->riskLevelFromScore(
-            (float) $score
-        );
-    }
-
-    private function riskLevelFromScore(
-        float $score
-    ): string {
-        if ($score >= 80) {
-            return 'critical';
-        }
-
-        if ($score >= 50) {
-            return 'warning';
-        }
-
-        return 'adequate';
-    }
-
-    private function nullableRounded(
-        mixed $value
-    ): ?float {
-        if (!is_numeric($value)) {
-            return null;
-        }
-
-        return round(
-            (float) $value,
-            2
-        );
+        return is_numeric($value)
+            ? round((float) $value, 2)
+            : null;
     }
 }

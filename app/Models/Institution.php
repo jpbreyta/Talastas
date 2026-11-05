@@ -13,20 +13,45 @@ class Institution extends Model
 {
     use HasFactory;
 
-    public const INVENTORY_SUMMARY_FIELDS = [
-        'number_of_computers',
-        'has_projected_whiteboard',
-        'has_smart_tv',
-        'has_public_address_system',
-        'needs_maintenance',
-    ];
+    public function save(array $options = [])
+    {
+        if (!$this->exists || $this->isDirty(['name', 'barangay_id'])) {
+            $duplicate = static::query()
+                ->where('barangay_id', $this->barangay_id)
+                ->whereRaw('LOWER(TRIM(name)) = LOWER(TRIM(?))', [$this->name])
+                ->when($this->exists, fn ($query) => $query->whereKeyNot($this->getKey()))
+                ->exists();
+
+            if ($duplicate) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'name' => 'This institution already exists in the selected barangay.',
+                ]);
+            }
+        }
+
+        try {
+            return parent::save($options);
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $exception) {
+            // The database also rejects duplicates when concurrent requests
+            // both pass the check above before either insert commits.
+            if (!str_contains($exception->getMessage(), 'institutions_barangay_name_unique')) {
+                throw $exception;
+            }
+
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'name' => 'This institution already exists in the selected barangay.',
+            ]);
+        }
+    }
 
     protected $table = 'institutions';
 
     protected $fillable = [
+        'q10_number_of_connections',
         'name',
         'type',
         'barangay_id',
+        'location_source',
         'latitude',
         'longitude',
         'location_geojson',
@@ -37,11 +62,19 @@ class Institution extends Model
         'student_population',
         'staff_population',
         'isp_provider',
+        'isp_connection_plan',
+        'has_internet_connection',
+        'has_backup_internet_link',
+        'has_public_access_network',
+        'bandwidth_allocation_mbps',
+        'download_speed_mbps',
+        'upload_speed_mbps',
+        'latency_ms',
+        'throughput_mbps',
         'internet_speed',
         'api_key',
         'has_computer_lab',
         'notes',
-        'is_pilot_site',
         'data_completeness_score',
         'requires_audit',
         'last_audited_at',
@@ -50,7 +83,13 @@ class Institution extends Model
         'is_active',
     ];
 
+    protected $hidden = [
+        'location_geometry',
+        'api_key',
+    ];
+
     protected $casts = [
+        'q10_number_of_connections' => 'integer',
         'latitude' => 'float',
         'longitude' => 'float',
         'location_geojson' => 'array',
@@ -59,6 +98,14 @@ class Institution extends Model
         'osm_id' => 'integer',
         'student_population' => 'integer',
         'staff_population' => 'integer',
+        'has_internet_connection' => 'boolean',
+        'has_backup_internet_link' => 'boolean',
+        'has_public_access_network' => 'boolean',
+        'bandwidth_allocation_mbps' => 'float',
+        'download_speed_mbps' => 'float',
+        'upload_speed_mbps' => 'float',
+        'latency_ms' => 'float',
+        'throughput_mbps' => 'float',
         'internet_speed' => 'float',
         'number_of_computers' => 'integer',
         'data_completeness_score' => 'float',
@@ -67,38 +114,19 @@ class Institution extends Model
         'has_smart_tv' => 'boolean',
         'has_public_address_system' => 'boolean',
         'needs_maintenance' => 'boolean',
-        'is_pilot_site' => 'boolean',
         'requires_audit' => 'boolean',
         'is_active' => 'boolean',
         'last_audited_at' => 'datetime',
     ];
 
-    protected static function booted(): void
-    {
-        static::creating(function (Institution $institution): void {
-            $institution->forceFill(
-                array_merge(
-                    $institution->inventorySummaryDefaults(),
-                    ['has_computer_lab' => $institution->has_computer_lab ?? false]
-                )
-            );
-        });
-
-        static::updating(function (Institution $institution): void {
-            foreach (self::INVENTORY_SUMMARY_FIELDS as $field) {
-                if ($institution->isDirty($field)) {
-                    $institution->setAttribute(
-                        $field,
-                        $institution->getOriginal($field)
-                    );
-                }
-            }
-        });
-    }
-
     public function institutionAnalytics(): HasOne
     {
         return $this->hasOne(InstitutionAnalytics::class, 'institution_id');
+    }
+
+    public function internetConnections(): HasMany
+    {
+        return $this->hasMany(InstitutionInternetConnection::class)->orderBy('connection_number');
     }
 
     public function ictInventory(): HasMany
@@ -117,47 +145,9 @@ class Institution extends Model
             ->withTimestamps();
     }
 
-    public function auditor(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'audited_by');
-    }
-
     public function barangay(): BelongsTo
     {
         return $this->belongsTo(Barangay::class, 'barangay_id');
     }
 
-    public function getAnalysisPopulation(): int
-    {
-        if ($this->type === 'School') {
-            return (int) ($this->student_population ?? 0);
-        }
-
-        return (int) ($this->staff_population ?? 0);
-    }
-
-    public function applyInventorySummary(array $summary): void
-    {
-        $allowedSummary = array_intersect_key(
-            $summary,
-            array_flip(self::INVENTORY_SUMMARY_FIELDS)
-        );
-
-        if ($allowedSummary === []) {
-            return;
-        }
-
-        $this->forceFill($allowedSummary)->saveQuietly();
-    }
-
-    protected function inventorySummaryDefaults(): array
-    {
-        return [
-            'number_of_computers' => 0,
-            'has_projected_whiteboard' => false,
-            'has_smart_tv' => false,
-            'has_public_address_system' => false,
-            'needs_maintenance' => false,
-        ];
-    }
 }

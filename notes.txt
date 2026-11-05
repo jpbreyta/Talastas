@@ -1,3 +1,0 @@
-run this in cmd
-
-"C:\Program Files\PostgreSQL\16\bin\postgres.exe" -D "C:\PostgreSQLData\16-main"

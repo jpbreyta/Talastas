@@ -1,52 +1,35 @@
 @extends('layouts.app')
 
+@section('page-title', 'Institutions')
+@section('page-icon', 'fa-building')
+
 @section('dashboard-layout')
+@endsection
+
+@section('page-tools')
+<div class="relative">
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                        </div>
+
+                        <input id="institutionSearch" name="search" form="institutionListFilters" value="{{ request('search') }}" aria-label="Search institutions" type="search" placeholder="Search institutions..."
+                            class="w-36 sm:w-56 rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-4 text-sm text-slate-900 placeholder-slate-400 transition focus:outline-none focus:ring-2 focus:ring-red-100">
+                    </div>
+
+                    @if (auth()->user()->canManageInstitutions())
+                        <button type="button" id="openAddModal" data-open-institution-modal
+                            class="page-header-primary inline-flex items-center gap-2 rounded-lg border border-red-100 bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-50">
+                            <i class="fa-solid fa-plus"></i>
+                            Add Institution
+                        </button>
+                    @endif
 @endsection
 
 @section('content')
     @php($canManageInstitutions = auth()->user()->canManageInstitutions())
 
-    <div class="flex h-full min-h-0 flex-col bg-gray-100">
+    <div data-institution-list class="flex h-full min-h-0 flex-col bg-gray-100">
         {{-- Page Header --}}
-        <div class="shrink-0 bg-red-700 px-6 py-4">
-            <div class="flex items-center justify-between gap-4">
-                <div class="flex min-w-0 items-center gap-3">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-600 text-red-100">
-                        <i class="fa-solid fa-building"></i>
-                    </div>
-
-                    <div class="min-w-0">
-                        <h1 class="text-xl font-semibold leading-tight tracking-tight text-white">
-                            Institutions
-                        </h1>
-                        <p class="mt-0.5 text-xs text-red-200">
-                            {{ $canManageInstitutions
-                                ? 'Manage registered institutions and their ICT profiles'
-                                : 'View registered institutions and their ICT profiles' }}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="flex shrink-0 items-center gap-3">
-                    <div class="relative hidden sm:block">
-                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-red-300">
-                            <i class="fa-solid fa-magnifying-glass text-sm"></i>
-                        </div>
-
-                        <input id="institutionSearch" type="text" placeholder="Search institutions..."
-                            class="w-56 rounded-lg border border-red-600 bg-red-800 py-2 pl-9 pr-4 text-sm text-white placeholder-red-300 transition focus:outline-none focus:ring-2 focus:ring-red-300">
-                    </div>
-
-                    @if ($canManageInstitutions)
-                        <button type="button" id="openAddModal" data-open-institution-modal
-                            class="inline-flex items-center gap-2 rounded-lg border border-red-100 bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm transition hover:bg-red-50">
-                            <i class="fa-solid fa-plus"></i>
-                            Add Institution
-                        </button>
-                    @endif
-                </div>
-            </div>
-        </div>
 
         {{-- Validation Errors --}}
         @if ($errors->any())
@@ -65,156 +48,84 @@
             </div>
         @endif
 
-        {{-- Content Area --}}
-        <div class="flex min-h-0 flex-1 flex-col">
-            @if ($institutions->count() > 0)
-                <div class="min-h-0 flex-1 overflow-y-auto px-5 pb-1 pt-3">
-                    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                        <div class="overflow-x-auto">
-                            <table class="w-full min-w-[800px] text-sm">
-                                <thead class="sticky top-0 z-10">
-                                    <tr class="border-b border-gray-200 bg-gray-50 text-left">
-                                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
-                                            Institution
-                                        </th>
-                                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
-                                            Sector
-                                        </th>
-                                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
-                                            Barangay
-                                        </th>
-                                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
-                                            Population
-                                        </th>
-                                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
-                                            Status
-                                        </th>
-                                        <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
-                                            Actions
-                                        </th>
-                                    </tr>
-                                </thead>
+        {{-- Sort and Filter Toolbar --}}
+        <div class="shrink-0 border-b border-gray-200 bg-gray-50/70 px-5 py-2">
+            <form id="institutionListFilters" method="GET" action="{{ route('institutions.index') }}"
+                class="talastas-filter-controls flex flex-wrap items-center gap-4">
 
-                                <tbody class="divide-y divide-gray-100">
-                                    @foreach ($institutions as $institution)
-                                        <tr id="institution-row-{{ $institution->id }}" class="inst-row transition hover:bg-red-50/40">
-                                            <td class="px-4 py-3">
-                                                <span class="font-medium text-gray-900">
-                                                    {{ $institution->name }}
-                                                </span>
-                                            </td>
+                <div class="flex w-full flex-wrap items-center gap-4 sm:w-auto">
+                    <div class="w-full sm:w-60">
+                        <label for="barangayFilter"
+                            class="sr-only">
+                            Barangay
+                        </label>
+                        <select id="barangayFilter" name="barangay"
+                            class="h-10 w-full appearance-auto rounded-md border border-gray-300 bg-white px-3 text-gray-700 transition hover:bg-gray-50 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100">
+                            <option value="">Filter by Barangay</option>
+                            @foreach ($barangays as $barangay)
+                                <option value="{{ $barangay->id }}"
+                                    @selected((string) request('barangay') === (string) $barangay->id)>
+                                    {{ $barangay->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                                            <td class="px-4 py-3 text-gray-500">
-                                                {{ $institution->type }}
-                                            </td>
-
-                                            <td class="px-4 py-3 text-gray-500">
-                                                {{ $institution->barangay?->name ?? '—' }}
-                                            </td>
-
-                                            <td class="px-4 py-3 text-gray-500">
-                                                {{ $institution->type === 'School'
-                                                    ? ($institution->student_population !== null
-                                                        ? number_format($institution->student_population)
-                                                        : '—')
-                                                    : ($institution->staff_population !== null
-                                                        ? number_format($institution->staff_population)
-                                                        : '—') }}
-                                            </td>
-
-                                            <td class="px-4 py-3">
-                                                <div class="flex flex-wrap items-center gap-2">
-                                                    @if ($institution->is_active)
-                                                        <span class="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
-                                                            <i class="fa-solid fa-circle-check text-[10px]"></i>
-                                                            Active
-                                                        </span>
-                                                    @else
-                                                        <span class="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500">
-                                                            <i class="fa-solid fa-circle-minus text-[10px]"></i>
-                                                            Inactive
-                                                        </span>
-                                                    @endif
-
-                                                    @if ($institution->is_pilot_site)
-                                                        <span class="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">
-                                                            <i class="fa-solid fa-flask text-[10px]"></i>
-                                                            Pilot
-                                                        </span>
-                                                    @endif
-                                                </div>
-                                            </td>
-
-                                            <td class="px-4 py-3">
-                                                <div class="flex items-center justify-end gap-3">
-                                                    <a href="{{ route('institutions.show', $institution) }}"
-                                                        class="inline-flex items-center gap-1 text-xs font-medium text-red-600 transition hover:text-red-800">
-                                                        <i class="fa-solid fa-eye"></i>
-                                                        View
-                                                    </a>
-
-                                                    @if ($canManageInstitutions)
-                                                        <a href="{{ route('institutions.edit', $institution) }}"
-                                                            class="inline-flex items-center gap-1 text-xs font-medium text-gray-600 transition hover:text-gray-900">
-                                                            <i class="fa-solid fa-pen"></i>
-                                                            Edit
-                                                        </a>
-
-                                                        <button type="button"
-                                                            class="delete-institution-button inline-flex items-center gap-1 text-xs font-medium text-gray-400 transition hover:text-red-600"
-                                                            data-delete-url="{{ route('institutions.destroy', $institution) }}"
-                                                            data-institution-id="{{ $institution->id }}"
-                                                            data-institution-name="{{ $institution->name }}">
-                                                            <i class="fa-solid fa-trash"></i>
-                                                            Delete
-                                                        </button>
-                                                    @endif
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div id="noResults" class="hidden py-12 text-center">
-                            <i class="fa-solid fa-magnifying-glass text-2xl text-gray-300"></i>
-                            <p class="mt-3 text-sm text-gray-500">
-                                No institutions match your search.
-                            </p>
-                        </div>
+                    <div class="w-full sm:w-60">
+                        <label for="institutionSort"
+                            class="sr-only">
+                            Sort By
+                        </label>
+                        <select id="institutionSort" name="sort"
+                            class="h-10 w-full appearance-auto rounded-md border border-gray-300 bg-white px-3 text-gray-700 transition hover:bg-gray-50 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100">
+                            <option value="barangay_asc"
+                                @selected(request('sort', 'barangay_asc') === 'barangay_asc')>
+                                Sort By: Barangay A-Z
+                            </option>
+                            <option value="barangay_desc"
+                                @selected(request('sort') === 'barangay_desc')>
+                                Barangay Z-A
+                            </option>
+                            <option value="name_asc"
+                                @selected(request('sort') === 'name_asc')>
+                                Institution A-Z
+                            </option>
+                            <option value="name_desc"
+                                @selected(request('sort') === 'name_desc')>
+                                Institution Z-A
+                            </option>
+                            <option value="newest"
+                                @selected(request('sort') === 'newest')>
+                                Newest
+                            </option>
+                        </select>
                     </div>
                 </div>
 
-                <div class="shrink-0 border-t border-gray-200 bg-white px-5 py-2">
-                    {{ $institutions->links() }}
+                <div class="ml-auto flex shrink-0 items-center gap-4">
+                    <button type="submit"
+                        class="inline-flex h-10 items-center gap-2 rounded-md border border-red-700 bg-transparent px-4 text-sm font-medium text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700">
+                        <i class="fa-solid fa-filter text-xs" aria-hidden="true"></i>
+                        Apply
+                    </button>
+
+                    <a data-institution-reset href="{{ route('institutions.index') }}"
+                        class="inline-flex h-10 items-center gap-2 rounded-md border-0 bg-transparent px-4 text-sm font-medium text-gray-600 transition hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700">
+                        <i class="fa-solid fa-rotate-left text-xs" aria-hidden="true"></i> Reset
+                    </a>
                 </div>
-            @else
-                <div class="flex flex-1 flex-col items-center justify-center px-5 text-center">
-                    <div class="flex h-14 w-14 items-center justify-center rounded-full bg-red-50 text-red-500">
-                        <i class="fa-solid fa-building text-xl"></i>
-                    </div>
-
-                    <h3 class="mt-4 text-sm font-semibold text-gray-900">
-                        No institutions yet
-                    </h3>
-
-                    <p class="mt-1 text-sm text-gray-500">
-                        {{ $canManageInstitutions
-                            ? 'Get started by adding your first institution.'
-                            : 'No institution records are currently available.' }}
-                    </p>
-
-                    @if ($canManageInstitutions)
-                        <button type="button" id="openAddModalEmpty" data-open-institution-modal
-                            class="mt-5 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700">
-                            <i class="fa-solid fa-plus"></i>
-                            Add Institution
-                        </button>
-                    @endif
-                </div>
-            @endif
+            </form>
         </div>
+
+        <div data-institution-search-status @if (!filled(request('search'))) hidden @endif
+            class="shrink-0 px-5 py-3">
+            <div data-institution-list-status role="status" aria-live="polite" aria-atomic="true"
+                class="inline-flex max-w-full items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow-sm">
+                <i data-institution-status-icon class="fa-solid fa-building-columns text-red-700" aria-hidden="true"></i>
+                <span data-institution-status-label>{{ number_format($institutions->total()) }} {{ $institutions->total() === 1 ? 'institution' : 'institutions' }}</span>
+            </div>
+        </div>
+        @include('institutions._table-results')
 
         @if ($canManageInstitutions)
             @include('institutions.modals')

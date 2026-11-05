@@ -16,6 +16,14 @@ return [
             'NOMINATIM_BASE_URL',
             'https://nominatim.openstreetmap.org/search'
         ),
+        'lookup_url' => env(
+            'NOMINATIM_LOOKUP_URL',
+            'https://nominatim.openstreetmap.org/lookup'
+        ),
+        'reverse_url' => env(
+            'NOMINATIM_REVERSE_URL',
+            'https://nominatim.openstreetmap.org/reverse'
+        ),
 
         'output_format' => env(
             'NOMINATIM_OUTPUT_FORMAT',
@@ -33,12 +41,8 @@ return [
 
         'user_agent' => env(
             'NOMINATIM_USER_AGENT',
-            'LipaGisMapping/1.0 ('
-                . env(
-                    'NOMINATIM_APP_EMAIL',
-                    'jpreytapogi@gmail.com'
-                )
-                . ')'
+            'LipaGisMapping/1.0'
+                . (env('NOMINATIM_APP_EMAIL') ? ' (' . env('NOMINATIM_APP_EMAIL') . ')' : '')
         ),
     ],
 
@@ -60,6 +64,27 @@ return [
         'timeout' => (int) env(
             'PYTHON_ANALYTICS_TIMEOUT',
             15
+        ),
+
+        'health_check_timeout' => (int) env(
+            'PYTHON_ANALYTICS_HEALTH_TIMEOUT',
+            3
+        ),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Geometry Complexity Limits
+    |--------------------------------------------------------------------------
+    |
+    | Maximum coordinate count accepted for institution boundary geometry.
+    | Prevents PostGIS denial of service from maliciously large polygons.
+    |
+    */
+    'geometry' => [
+        'max_coordinates' => (int) env(
+            'GEOMETRY_MAX_COORDINATES',
+            10000
         ),
     ],
 
@@ -150,8 +175,11 @@ return [
 
         'model' => env(
             'GROQ_MODEL',
-            'llama-3.1-8b-instant'
+            'openai/gpt-oss-20b'
         ),
+
+        // Separate from Gemini's output budget: GPT-OSS also spends tokens on reasoning.
+        'max_completion_tokens' => (int) env('GROQ_MAX_COMPLETION_TOKENS', 2400),
 
         'base_url' => env(
             'GROQ_BASE_URL',

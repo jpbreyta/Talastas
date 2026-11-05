@@ -5,30 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>TALASTAS | Administrator Portal</title>
+    <title>TALASTAS | Sign In</title>
 
-    <!--
-        Replace this with the official TALASTAS logo once available.
-        Example:
-        /images/talastas-logo.png
-    -->
-    <link rel="icon" type="image/png" href="{{ asset('images/talastas.svg') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo_ict_mapping.png') }}">
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link
-        href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700,800"
-        rel="stylesheet"
-    />
+    @include('partials.fonts')
 
     <!-- Scripts -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
-        body {
-            font-family: 'Instrument Sans', sans-serif;
-        }
-
         /*
         |--------------------------------------------------------------------------
         | TALASTAS Brand Colors
@@ -153,15 +139,15 @@
         .login-input:focus {
             border-color: #7A1F2B;
             background-color: #ffffff;
-            box-shadow: 
-                0 0 0 4px rgba(122, 31, 43, 0.10),
-                0 4px 12px rgba(122, 31, 43, 0.08);
-            transform: translateY(-1px);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(122, 31, 43, 0.08);
         }
 
-        .login-input:focus-visible {
-            outline: 2px solid #7A1F2B;
-            outline-offset: 2px;
+        @media (forced-colors: active) {
+            .login-input:focus-visible {
+                outline: 2px solid Highlight;
+                outline-offset: 2px;
+            }
         }
 
         .login-button {
@@ -285,9 +271,21 @@
 
         .login-input.border-red-500:focus {
             border-color: #ef4444 !important;
-            box-shadow: 
-                0 0 0 4px rgba(239, 68, 68, 0.10),
-                0 4px 12px rgba(239, 68, 68, 0.08);
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.08);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .talastas-pattern,
+            .talastas-highlight,
+            .talastas-glow,
+            .logo-glow {
+                animation: none;
+            }
+
+            .login-input,
+            .login-button,
+            .login-button::before {
+                transition: none;
+            }
         }
     </style>
 </head>
@@ -441,189 +439,18 @@
                 "
             >
 
-                <!-- ====================================================
-                     TOP BRAND
-                ===================================================== -->
-                <header class="flex items-center gap-4">
-
-                    <!-- Logo -->
-                    <div
-                        class="
-                            h-14
-                            w-14
-                            rounded-2xl
-                            bg-white
-                            flex
-                            items-center
-                            justify-center
-                            logo-glow
-                            overflow-hidden
-                        "
-                    >
-                        <img
-                            src="{{ asset('images/logo_ict_mapping.png') }}"
-                            alt="TALASTAS Logo"
-                            class="h-11 w-11 object-contain"
-                        >
-                    </div>
-
-                    <div>
-                        <h1
-                            class="
-                                text-[28px]
-                                font-extrabold
-                                tracking-[0.16em]
-                                leading-none
-                                talastas-highlight
-                                talastas-glow
-                            "
-                        >
-                            TALASTAS
-                        </h1>
-
-                        <p
-                            class="
-                                text-xs
-                                text-white/80
-                                mt-2
-                                tracking-wide
-                                font-semibold
-                            "
-                        >
-                            ICT Infrastructure Intelligence
-                        </p>
-                    </div>
-                </header>
-
-                <!-- ====================================================
-                     MAIN BRAND MESSAGE
-                ===================================================== -->
-                <div class="max-w-2xl">
-
-                    <!-- Tagline -->
-                    <div class="flex items-center gap-3 mb-6">
-
-                        <span
-                            class="
-                                block
-                                h-0.5
-                                w-12
-                                bg-[#D6A84B]
-                                gold-pulse
-                            "
-                        ></span>
-
-                        <p
-                            class="
-                                uppercase
-                                tracking-[0.24em]
-                                text-xs
-                                font-bold
-                                text-[#E7C36C]
-                            "
-                        >
-                            Map. Understand. Decide.
-                        </p>
-
-                    </div>
-
-                    <!-- Main Heading -->
-                    <h2
-                        class="
-                            text-[42px]
-                            xl:text-[56px]
-                            leading-[1.05]
-                            font-extrabold
-                            tracking-[-0.04em]
-                            max-w-xl
-                            animate-fadeInUp
-                        "
-                    >
-                        ICT Infrastructure
-                        <span class="text-[#E7C36C] talastas-glow">
-                            Intelligence
-                        </span>
+                <!-- Concise brand message in the original visual area. -->
+                <div class="flex max-w-xl flex-1 flex-col justify-center py-10">
+                    <span class="mb-6 block h-0.5 w-12 bg-[#D6A84B]" aria-hidden="true"></span>
+                    <h2 class="text-[36px] xl:text-[48px] leading-[1.1] font-extrabold tracking-[-0.04em]">
+                        Alam.<br>
+                        Kabisado.<br>
+                        <span class="text-[#E7C36C]">Tukoy.</span>
                     </h2>
-
-                    <!-- Description -->
-                    <p
-                        class="
-                            mt-6
-                            text-base
-                            leading-relaxed
-                            text-white/75
-                            max-w-lg
-                        "
-                    >
-                        GIS-based infrastructure mapping and gap analysis
-                        for Lipa City's public institutions.
+                    <p class="mt-5 text-sm leading-relaxed text-white/70">
+                        Impormasyong malinaw.<br>
+                        Desisyong mas tiyak.
                     </p>
-
-                    <!-- TALASTAS Meaning -->
-                    <div
-                        class="
-                            mt-12
-                            max-w-lg
-                            rounded-2xl
-                            border
-                            border-white/15
-                            bg-white/5
-                            backdrop-blur-sm
-                            px-7
-                            py-6
-                            hover:bg-white/10
-                            hover:border-white/25
-                            transition-all
-                            duration-300
-                            float-animation
-                        "
-                    >
-                        <div class="flex gap-4">
-
-                            <div
-                                class="
-                                    mt-1
-                                    h-10
-                                    w-1
-                                    rounded-full
-                                    bg-[#D6A84B]
-                                    shrink-0
-                                    gold-pulse
-                                "
-                            ></div>
-
-                            <div>
-
-                                <p
-                                    class="
-                                        text-xs
-                                        uppercase
-                                        tracking-[0.2em]
-                                        font-semibold
-                                        text-white/60
-                                        mb-3
-                                    "
-                                >
-                                    <span class="talastas-highlight font-extrabold text-sm">TALASTAS</span>
-                                </p>
-
-                                <p
-                                    class="
-                                        text-[15px]
-                                        leading-relaxed
-                                        text-white/95
-                                        font-semibold
-                                    "
-                                >
-                                    Technology And Location Analytics
-                                    Spatial Tracking & Assessment System
-                                </p>
-
-                            </div>
-
-                        </div>
-                    </div>
-
                 </div>
 
                 <!-- ====================================================
@@ -679,76 +506,16 @@
 
             <div class="w-full max-w-107.5">
 
-                <!-- ====================================================
-                     MOBILE BRANDING
-                ===================================================== -->
-                <div class="lg:hidden mb-10 text-center animate-fadeInUp">
-
-                    <div
-                        class="
-                            mx-auto
-                            h-16
-                            w-16
-                            rounded-2xl
-                            bg-[#7A1F2B]
-                            flex
-                            items-center
-                            justify-center
-                            logo-glow
-                        "
-                    >
-
-                        <img
-                            src="{{ asset('images/logo_ict_mapping.png') }}"
-                            alt="TALASTAS Logo"
-                            class="
-                                h-12
-                                w-12
-                                object-contain
-                                bg-white
-                                rounded-xl
-                                p-1
-                            "
-                        >
-
-                    </div>
-
-                    <h1
-                        class="
-                            mt-4
-                            text-3xl
-                            font-extrabold
-                            tracking-[0.14em]
-                            text-[#7A1F2B]
-                            talastas-highlight
-                        "
-                        style="
-                            background: linear-gradient(135deg, #7A1F2B 0%, #D6A84B 50%, #7A1F2B 100%);
-                            -webkit-background-clip: text;
-                            -webkit-text-fill-color: transparent;
-                            background-clip: text;
-                        "
-                    >
-                        TALASTAS
-                    </h1>
-
-                    <p
-                        class="
-                            mt-1
-                            text-xs
-                            font-bold
-                            text-[#7A1F2B]/70
-                        "
-                    >
-                        Map. Understand. Decide.
-                    </p>
-
-                </div>
+                <img src="{{ asset('images/LandScapeBG.png') }}"
+                    alt="TALASTAS - GIS-Based ICT Mapping System" width="866" height="288"
+                    class="mb-5 block h-auto w-full max-w-[336px] sm:max-w-[380px]">
 
                 <!-- ====================================================
                      LOGIN HEADER
                 ===================================================== -->
                 <div>
+
+                    <span class="mb-4 block h-0.5 w-12 bg-[#D6A84B]" aria-hidden="true"></span>
 
                     <h2
                         class="
@@ -760,19 +527,19 @@
                             text-slate-900
                         "
                     >
-                        Administrator Sign In
+                        Welcome Back
                     </h2>
 
                     <p
                         class="
-                            mt-3
+                            mt-1.5
                             text-sm
                             leading-relaxed
                             text-slate-600
                             font-medium
                         "
                     >
-                        Enter your credentials to access the system.
+                        Sign in to your TALASTAS account
                     </p>
 
                 </div>
@@ -780,407 +547,52 @@
                 <!-- ====================================================
                      LOGIN FORM
                 ===================================================== -->
-                <form
-                    method="POST"
-                    action="{{ url('/login') }}"
-                    class="mt-8"
-                >
-
-                    @csrf
-
-                    <!-- =================================================
-                         EMAIL
-                    ================================================== -->
-                    <div class="mb-5">
-
-                        <label
-                            for="email"
-                            class="
-                                block
-                                text-sm
-                                font-semibold
-                                text-slate-700
-                                mb-2
-                            "
-                        >
-                            Email Address
-                        </label>
-
-                        <div class="relative">
-
-                            <!-- Email Icon -->
-                            <div
-                                class="
-                                    pointer-events-none
-                                    absolute
-                                    inset-y-0
-                                    left-0
-                                    flex
-                                    items-center
-                                    pl-4
-                                    text-slate-400
-                                "
-                            >
-                                <svg
-                                    class="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="1.8"
-                                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8m-18 8V8a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"
-                                    />
-                                </svg>
-                            </div>
-
-                            <input
-                                id="email"
-                                type="email"
-                                name="email"
-                                value="{{ old('email') }}"
-                                required
-                                autofocus
-                                autocomplete="username"
-                                placeholder="Enter your email address"
-                                class="
-                                    login-input
-                                    w-full
-                                    pl-12
-                                    pr-4
-                                    py-3.5
-                                    border
-                                    {{ $errors->has('email') ? 'border-red-500' : '' }}
-                                    rounded-xl
-                                    text-sm
-                                    text-slate-900
-                                    placeholder:text-slate-400
-                                    outline-none
-                                "
-                            >
-
-                        </div>
-
-                        @error('email')
-                            <div
-                                class="
-                                    flex
-                                    items-center
-                                    gap-1.5
-                                    mt-2
-                                    text-xs
-                                    text-red-600
-                                "
-                            >
-                                <svg
-                                    class="w-4 h-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    />
-                                </svg>
-
-                                <span>{{ $message }}</span>
-                            </div>
-                        @enderror
-
-                    </div>
-
-                    <!-- =================================================
-                         PASSWORD
-                    ================================================== -->
-                    <div class="mb-7">
-
-                        <label
-                            for="password"
-                            class="
-                                block
-                                text-sm
-                                font-semibold
-                                text-slate-700
-                                mb-2
-                            "
-                        >
-                            Password
-                        </label>
-
-                        <div class="relative">
-
-                            <!-- Lock -->
-                            <div
-                                class="
-                                    pointer-events-none
-                                    absolute
-                                    inset-y-0
-                                    left-0
-                                    flex
-                                    items-center
-                                    pl-4
-                                    text-slate-400
-                                "
-                            >
-                                <svg
-                                    class="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="1.8"
-                                        d="M12 11c1.105 0 2 .895 2 2s-.895 2-2 2-2-.895-2-2 .895-2 2-2zm6-2V7a6 6 0 00-12 0v2m-1 0h14a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2v-8a2 2 0 012-2z"
-                                    />
-                                </svg>
-                            </div>
-
-                            <input
-                                id="password"
-                                type="password"
-                                name="password"
-                                required
-                                autocomplete="current-password"
-                                placeholder="Enter your password"
-                                class="
-                                    login-input
-                                    w-full
-                                    pl-12
-                                    pr-12
-                                    py-3.5
-                                    border
-                                    {{ $errors->has('password') ? 'border-red-500' : '' }}
-                                    rounded-xl
-                                    text-sm
-                                    text-slate-900
-                                    placeholder:text-slate-400
-                                    outline-none
-                                "
-                            >
-
-                            <!-- Password Toggle -->
-                            <button
-                                type="button"
-                                id="togglePassword"
-                                class="
-                                    absolute
-                                    inset-y-0
-                                    right-0
-                                    flex
-                                    items-center
-                                    pr-4
-                                    text-slate-400
-                                    hover:text-[#7A1F2B]
-                                    transition-colors
-                                    duration-200
-                                "
-                                aria-label="Toggle password visibility"
-                            >
-
-                                <!-- Eye -->
-                                <svg
-                                    id="eyeOpen"
-                                    class="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="1.8"
-                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                    />
-
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="1.8"
-                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                    />
-                                </svg>
-
-                                <!-- Eye Off -->
-                                <svg
-                                    id="eyeClosed"
-                                    class="w-5 h-5 hidden"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="1.8"
-                                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.956 9.956 0 012.223-3.592m3.31-2.048A9.956 9.956 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.97 9.97 0 01-4.132 5.411M15 12a3 3 0 01-3 3m-2.121-5.121A3 3 0 0112 9m9 12L3 3"
-                                    />
-                                </svg>
-
-                            </button>
-
-                        </div>
-
-                        @error('password')
-                            <div
-                                class="
-                                    flex
-                                    items-center
-                                    gap-1.5
-                                    mt-2
-                                    text-xs
-                                    text-red-600
-                                "
-                            >
-                                <svg
-                                    class="w-4 h-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="2"
-                                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                    />
-                                </svg>
-
-                                <span>{{ $message }}</span>
-                            </div>
-                        @enderror
-
-                    </div>
-
-                    <!-- =================================================
-                         LOGIN BUTTON
-                    ================================================== -->
-                    <button
-                        type="submit"
-                        class="
-                            login-button
-                            w-full
-                            flex
-                            items-center
-                            justify-center
-                            gap-2.5
-                            py-3.5
-                            px-5
-                            rounded-xl
-                            bg-[#7A1F2B]
-                            text-white
-                            text-sm
-                            font-semibold
-                            focus:outline-none
-                            focus:ring-4
-                            focus:ring-[#7A1F2B]/15
-                            relative
-                            overflow-hidden
-                        "
-                    >
-
-                        <span class="relative z-10">Sign In</span>
-
-                        <svg
-                            class="w-4 h-4 relative z-10"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M9 5l7 7-7 7"
-                            />
-                        </svg>
-
-                    </button>
-
-                </form>
-
-                <!-- ====================================================
-                     SECURITY NOTICE
-                ===================================================== -->
-                <div
-                    class="
-                        mt-7
-                        rounded-xl
-                        border
-                        border-[#7A1F2B]/10
-                        bg-[#F7ECEE]/70
-                        px-4
-                        py-4
-                    "
-                >
-
-                    <div class="flex items-start gap-3">
-
-                        <div
-                            class="
-                                flex
-                                items-center
-                                justify-center
-                                w-8
-                                h-8
-                                rounded-lg
-                                bg-white
-                                text-[#7A1F2B]
-                                shrink-0
-                            "
-                        >
-
-                            <svg
-                                class="w-4.5 h-4.5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="1.8"
-                                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2h-1V7a5 5 0 00-10 0v4H6a2 2 0 00-2 2v6a2 2 0 002 2zm3-10V7a3 3 0 116 0v4H9z"
-                                />
-                            </svg>
-
-                        </div>
-
-                        <div>
-
-                            <p
-                                class="
-                                    text-xs
-                                    font-semibold
-                                    text-slate-800
-                                "
-                            >
-                                Secure Access
-                            </p>
-
-                            <p
-                                class="
-                                    mt-1.5
-                                    text-[11px]
-                                    leading-relaxed
-                                    text-slate-600
-                                "
-                            >
-                                Access restricted to authorized personnel.
-                                Activities are monitored for security.
-                            </p>
-
-                        </div>
-
-                    </div>
-
+            <form class="mt-6" method="POST" action="{{ route('login.submit') }}">
+                @csrf
+                <div class="mb-3">
+                    <label for="email" class="mb-2 block text-slate-700">Email</label>
+                    <input id="email" type="email" name="email" value="{{ old('email') }}"
+                        required autofocus autocomplete="username" aria-describedby="emailError"
+                        aria-invalid="{{ $errors->has('email') ? 'true' : 'false' }}"
+                        class="login-input h-12 w-full rounded-xl border bg-white px-3 text-slate-900 outline-none {{ $errors->has('email') ? 'border-red-500' : 'border-slate-300' }}">
+                    <p id="emailError" class="mt-1.5 min-h-5 text-xs leading-5 text-red-700" aria-live="polite">@error('email'){{ $message }}@enderror</p>
                 </div>
+
+                <div>
+                    <label for="password" class="mb-2 block text-slate-700">Password</label>
+                    <div class="relative">
+                        <input id="password" type="password" name="password" required autocomplete="current-password"
+                            aria-describedby="passwordError" aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}"
+                            class="login-input h-12 w-full rounded-xl border bg-white py-2 pl-3 pr-12 text-slate-900 outline-none {{ $errors->has('password') ? 'border-red-500' : 'border-slate-300' }}">
+                        <button id="togglePassword" type="button" aria-label="Show password" aria-controls="password" aria-pressed="false"
+                            class="absolute inset-y-0 right-0 flex h-12 w-12 items-center justify-center rounded-xl text-slate-500 hover:text-red-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700">
+                            <svg id="eyeOpen" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                            <svg id="eyeClosed" class="hidden h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.956 9.956 0 012.223-3.592m3.31-2.048A9.956 9.956 0 0112 5c4.478 0 8.268 2.943 9.542 7a9.97 9.97 0 01-4.132 5.411M15 12a3 3 0 01-3 3m-2.121-5.121A3 3 0 0112 9m9 12L3 3" />
+                            </svg>
+                        </button>
+                    </div>
+                    <p id="passwordError" class="mt-1.5 min-h-5 text-xs leading-5 text-red-700" aria-live="polite">@error('password'){{ $message }}@enderror</p>
+                </div>
+
+                <label for="remember" class="mt-2 inline-flex min-h-11 cursor-pointer items-center gap-2 text-slate-600">
+                    <input id="remember" type="checkbox" name="remember" value="1" @checked(old('remember'))
+                        class="h-4 w-4 accent-red-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700">
+                    Remember me
+                </label>
+
+                <button type="submit" class="login-button mt-4 flex min-h-12 w-full items-center justify-center rounded-xl bg-[#7A1F2B] px-4 py-3 text-white hover:bg-[#58151E] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700">
+                    Sign In
+                </button>
+            </form>
+            <p class="mt-4 text-center text-sm"><a class="text-red-900 underline" href="{{ route('security.recovery') }}">Forgot password?</a></p>
+            @if (session('status'))
+                <p role="status" class="mt-4 text-center text-sm text-red-900">{{ session('status') }}</p>
+            @endif
+            <div class="flex justify-center text-center text-slate-600 [&>nav]:justify-center">@include('partials.legal-links')</div>
 
             </div>
 
@@ -1192,45 +604,20 @@
          PASSWORD VISIBILITY
     ================================================================= -->
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-
+        document.addEventListener('DOMContentLoaded', () => {
             const passwordInput = document.getElementById('password');
             const togglePassword = document.getElementById('togglePassword');
-
             const eyeOpen = document.getElementById('eyeOpen');
             const eyeClosed = document.getElementById('eyeClosed');
 
-            if (
-                passwordInput &&
-                togglePassword &&
-                eyeOpen &&
-                eyeClosed
-            ) {
-
-                togglePassword.addEventListener('click', function () {
-
-                    const isPassword =
-                        passwordInput.type === 'password';
-
-                    passwordInput.type =
-                        isPassword
-                            ? 'text'
-                            : 'password';
-
-                    eyeOpen.classList.toggle(
-                        'hidden',
-                        isPassword
-                    );
-
-                    eyeClosed.classList.toggle(
-                        'hidden',
-                        !isPassword
-                    );
-
-                });
-
-            }
-
+            togglePassword.addEventListener('click', () => {
+                const showPassword = passwordInput.type === 'password';
+                passwordInput.type = showPassword ? 'text' : 'password';
+                togglePassword.setAttribute('aria-label', showPassword ? 'Hide password' : 'Show password');
+                togglePassword.setAttribute('aria-pressed', String(showPassword));
+                eyeOpen.classList.toggle('hidden', showPassword);
+                eyeClosed.classList.toggle('hidden', !showPassword);
+            });
         });
     </script>
 

@@ -1,0 +1,87 @@
+{
+  "version": "draft-2026-10-19",
+  "status": "draft",
+  "effective_at": null,
+  "approved_by": null,
+  "approved_at": null,
+  "required_confirmations": {
+    "controller_identity": null,
+    "privacy_contact": null,
+    "lawful_bases": null,
+    "retention_schedule": null,
+    "recipients_and_transfers": null,
+    "account_deletion": null,
+    "gate_scope": null
+  },
+  "change_summary": "Initial draft for institutional, legal and privacy review. Not effective or approved.",
+  "title": "Terms and Conditions",
+  "requirement_version": "initial-terms-review",
+  "sections": [
+    {
+      "heading": "Draft status and authority",
+      "paragraphs": [
+        "This is a proposed policy for TALASTAS - ICT Mapping. It is not yet effective, legally approved, or a compliance certification. The authorized operator, approving institution, effective date, support contact and enforcement decision require confirmation. Existing permissions continue to govern access while this draft is reviewed."
+      ]
+    },
+    {
+      "heading": "Authorized access and accounts",
+      "paragraphs": [
+        "Use TALASTAS only through an account assigned to you for authorized institutional work. Administrators provision accounts and manage permitted records and assignments. Barangay Focal Persons and ICT Coordinators share the editor role and work within assigned institutions. LGU City Planners use the viewer role for permitted mapping, planning and reporting. These Terms do not grant permissions or alter server-side role and assignment checks.",
+        "Keep credentials and bearer tokens confidential. Do not share accounts, impersonate another person, use a departed colleague's account or attempt to expand your assigned access. Sign out on shared devices and report suspected compromise through the institution's established support process; the official reporting contact and escalation procedure require confirmation."
+      ]
+    },
+    {
+      "heading": "Institution, inventory and audit integrity",
+      "paragraphs": [
+        "Enter institution names, barangays, coordinates, inventory counts, equipment conditions and audit details accurately, using information you are authorized to provide. Check detected map locations and boundaries before saving. Correct or report errors through the authorized workflow; do not fabricate, conceal or deliberately misclassify records.",
+        "Use audit statuses only within authority delegated by your institution. The system currently permits assigned editors to submit its available audit statuses; these Terms do not resolve who is institutionally authorized to approve or validate audits. That authority requires owner confirmation. Do not place unrelated personal information, passwords or sensitive case details in free-text records."
+      ]
+    },
+    {
+      "heading": "Device location and mapping",
+      "paragraphs": [
+        "The optional device-location tool requests browser permission when selected. Captured operator coordinates and reported accuracy are distinct from the corrected institution point; when the institution is saved, actor location details can be retained in administrator activity logs. Manual entry and location search are available alternatives. Review the separate Privacy Notice before using device location.",
+        "Map features and geocoding results support institutional mapping and require verification. They are not a land survey, property-title determination or guarantee of boundary accuracy."
+      ]
+    },
+    {
+      "heading": "Analytics and AI-assisted recommendations",
+      "paragraphs": [
+        "Scores use inventory and connectivity evidence through the scoring service or local fallback. Configured Gemini or Groq requests can send institution name, type, barangay and inventory/connectivity evidence to external providers for narrative recommendations. Actual enabled providers, contracts, hosting and onward processing require confirmation. Do not assume this information is anonymous.",
+        "Review scores, missing-data indicators and generated narratives against source records before using them for planning. Outputs do not authorize procurement, certify compliance or replace accountable human judgment. Use external AI features only within institutionally authorized processing and disclosure arrangements; these arrangements remain subject to review."
+      ]
+    },
+    {
+      "heading": "Reports, exports and permitted sharing",
+      "paragraphs": [
+        "Download PDF and CSV reports only where your account is authorized. Protect offline copies and share only with recipients authorized for the stated institutional purpose. Check report accuracy, date, scope and source before circulation. PDFs may identify their preparer. Do not publish account, audit or device-location information merely because you can view or export it.",
+        "The approved classification, onward-sharing rules, storage locations and retention/disposal schedule for exports require confirmation. Follow applicable institutional handling instructions and report accidental disclosure through the established incident process."
+      ]
+    },
+    {
+      "heading": "Prohibited conduct and security responsibilities",
+      "paragraphs": [
+        "Do not bypass authentication, role checks or institution assignments; access other users' tokens or records without authority; introduce malicious code; disrupt services; scrape or redistribute protected records without authorization; falsify audit trails; or use the system for unrelated surveillance or unlawful activity. Authorized security testing requires its own scope and permission.",
+        "Report suspected errors, unauthorized access or disclosure promptly. Administrators should review account roles and assignments through existing controls. Grounds and procedures for suspension, appeal, incident response and dispute resolution require institutional approval; this draft does not establish new penalties or waive legal rights."
+      ]
+    },
+    {
+      "heading": "Versions, acknowledgement and policy changes",
+      "paragraphs": [
+        "Reading a page, creating an account or signing in does not record Terms acceptance. Accepting the current Terms is required to access protected system features. An authenticated user must deliberately acknowledge the exact applicable version. Acknowledgement does not represent institutional approval of this draft. The acceptance record contains the user identifier, version, content hash and snapshot, requirement identifier and server timestamp; it does not add IP, GPS or device fingerprints to that record.",
+        "A material revision assigned a new requirement identifier requires renewed acknowledgement if enforcement is activated. Editorial versions may retain the same approved requirement identifier. Prior snapshots are preserved in acceptance records. Approved retention, account-deletion handling, existing-user rollout, decline/support arrangements and any emergency process must be settled before activation.",
+        "Terms acknowledgement concerns use of the system. It is not blanket consent to personal-data processing; the independent Privacy Notice explains processing and outstanding governance questions."
+      ]
+    }
+  ],
+  "references": [
+    {
+      "label": "Republic Act No. 10173 (Data Privacy Act of 2012)",
+      "url": "https://privacy.gov.ph/Data-Privacy-Act/"
+    },
+    {
+      "label": "Implementing Rules and Regulations of RA 10173",
+      "url": "https://privacy.gov.ph/implementing-rules%20regulations-data-privacy-act-2012/"
+    }
+  ]
+}

@@ -7,39 +7,71 @@ use App\Models\Institution;
 use Illuminate\Http\Request;
 
 class AssignedIctInventoryController extends IctInventoryController
-{
+{ 
     public function create(Request $request)
     {
+        $request->validate(['institution_id' => ['nullable', 'integer', 'min:1']]);
         $user = $request->user();
         $selectedInstitution = null;
 
-        if ($request->filled('institution_id')) {
-            $selectedInstitution = Institution::with('barangay')
-                ->findOrFail($request->integer('institution_id'));
+        $requestedInstitutionId =
+            $request->integer('institution_id')
+            ?: (int) old('institution_id');
 
-            $this->authorizeAssignment($request, $selectedInstitution->id);
+        if ($requestedInstitutionId > 0) {
+            $selectedInstitution = Institution::with(['barangay', 'internetConnections', 'institutionAnalytics'])
+                ->whereIn('type', ['School', 'Barangay Hall'])
+                ->findOrFail(
+                    $requestedInstitutionId
+                );
+
+            $this->authorizeAssignment(
+                $request,
+                $selectedInstitution->id
+            );
         }
 
         $institutions = Institution::with('barangay')
+            ->whereIn('type', ['School', 'Barangay Hall'])
             ->when(
                 $user->isEditor(),
                 fn ($query) => $query->whereHas(
                     'assignedUsers',
-                    fn ($assigned) => $assigned->whereKey($user->id)
+                    fn ($assigned) =>
+                        $assigned->whereKey($user->id)
                 )
             )
             ->orderBy('name')
             ->get();
 
+        $sections = [];
+
+        foreach (self::COMPONENT_TYPES as $componentType) {
+            $components = $this->componentsForSection(
+                $componentType
+            );
+
+            $sections[$componentType] = [
+                'meta' => $this->sectionMeta($componentType),
+                'components' => $components,
+                'items' => $this->initialItemsForSection(
+                    $componentType,
+                    $components,
+                    $selectedInstitution
+                ),
+            ];
+        }
+
         return view('ict-inventory.create', [
             'institutions' => $institutions,
             'selectedInstitution' => $selectedInstitution,
-            'inventoryConfig' => config('ict_inventory'),
+            'sections' => $sections,
         ]);
     }
 
     public function store(Request $request)
     {
+        $request->validate(['institution_id' => ['required', 'integer', 'min:1']]);
         $this->authorizeAssignment(
             $request,
             $request->integer('institution_id')
@@ -50,6 +82,15 @@ class AssignedIctInventoryController extends IctInventoryController
 
     public function edit(IctInventory $ict_inventory)
     {
+        abort_unless(
+            in_array(
+                $ict_inventory->component_type,
+                self::COMPONENT_TYPES,
+                true
+            ),
+            404
+        );
+
         $request = request();
 
         $this->authorizeAssignment(
@@ -57,16 +98,21 @@ class AssignedIctInventoryController extends IctInventoryController
             (int) $ict_inventory->institution_id
         );
 
-        $ict_inventory->load('institution');
+        $ict_inventory->load([
+            'institution',
+            'component',
+        ]);
 
         $user = $request->user();
 
         $institutions = Institution::with('barangay')
+            ->whereIn('type', ['School', 'Barangay Hall'])
             ->when(
                 $user->isEditor(),
                 fn ($query) => $query->whereHas(
                     'assignedUsers',
-                    fn ($assigned) => $assigned->whereKey($user->id)
+                    fn ($assigned) =>
+                        $assigned->whereKey($user->id)
                 )
             )
             ->orderBy('name')
@@ -75,16 +121,35 @@ class AssignedIctInventoryController extends IctInventoryController
         return view('ict-inventory.edit', [
             'ictInventory' => $ict_inventory,
             'institutions' => $institutions,
-            'inventoryConfig' => config('ict_inventory'),
+            'componentType' => $ict_inventory->component_type,
+            'sectionMeta' => $this->sectionMeta(
+                $ict_inventory->component_type
+            ),
+            'components' => $this->componentsForSection(
+                $ict_inventory->component_type
+            ),
         ]);
     }
 
-    public function update(Request $request, IctInventory $ict_inventory)
-    {
+    public function update(
+        Request $request,
+        IctInventory $ict_inventory
+    ) {
+        abort_unless(
+            in_array(
+                $ict_inventory->component_type,
+                self::COMPONENT_TYPES,
+                true
+            ),
+            404
+        );
+
         $this->authorizeAssignment(
             $request,
             (int) $ict_inventory->institution_id
         );
+
+        $request->validate(['institution_id' => ['nullable', 'integer', 'min:1']]);
 
         if ($request->filled('institution_id')) {
             $this->authorizeAssignment(
@@ -93,15 +158,26 @@ class AssignedIctInventoryController extends IctInventoryController
             );
         }
 
-        return parent::update($request, $ict_inventory);
+        return parent::update(
+            $request,
+            $ict_inventory
+        );
     }
 
-    private function authorizeAssignment(Request $request, int $institutionId): void
-    {
+    private function authorizeAssignment(
+        Request $request,
+        int $institutionId
+    ): void {
         $user = $request->user();
 
-        if ($user->isEditor() && ! $user->canAccessInstitution($institutionId)) {
-            abort(403, 'You are not assigned to this institution.');
+        if (
+            $user->isEditor()
+            && !$user->canAccessInstitution($institutionId)
+        ) {
+            abort(
+                403,
+                'You are not assigned to this institution.'
+            );
         }
     }
 }

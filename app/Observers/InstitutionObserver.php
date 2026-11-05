@@ -2,29 +2,35 @@
 
 namespace App\Observers;
 
-use App\Models\AuditRecord;
 use App\Models\Institution;
 use Illuminate\Contracts\Events\ShouldHandleEventsAfterCommit;
-use Illuminate\Support\Facades\Auth;
 
 class InstitutionObserver implements ShouldHandleEventsAfterCommit
 {
-    public function updated(Institution $institution): void
-    {
+    private const ANALYTICS_RELEVANT_FIELDS = [
+        'name',
+        'type',
+        'barangay_id',
+        'has_internet_connection',
+        'bandwidth_allocation_mbps',
+        'download_speed_mbps',
+        'is_active',
+        'q10_number_of_connections',
+    ];
+
+    public function updated(
+        Institution $institution
+    ): void {
         if (
-            !$institution->wasChanged('last_audited_at')
-            || $institution->last_audited_at === null
-            || !Auth::check()
+            !$institution->wasChanged(
+                self::ANALYTICS_RELEVANT_FIELDS
+            )
         ) {
             return;
         }
 
-        AuditRecord::create([
-            'institution_id' => $institution->id,
-            'user_id' => Auth::id(),
-            'audit_date' => $institution->last_audited_at->toDateString(),
-            'validation_status' => 'completed',
-            'notes' => $institution->audit_notes,
-        ]);
+        IctInventoryObserver::invalidateForInstitution(
+            (int) $institution->id
+        );
     }
 }

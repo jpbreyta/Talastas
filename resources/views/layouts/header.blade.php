@@ -1,60 +1,32 @@
-<header class="bg-red-900 border-b border-red-800 sticky top-0 z-[5000] isolate">
-    <div class="w-full px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center h-16 gap-4 justify-between relative">
-            <div class="flex items-center gap-2.5 shrink-0">
-                <a href="{{ route('home') }}" class="flex items-center gap-2">
-                    <div class="w-8 h-8 bg-white rounded-lg flex items-center justify-center shrink-0 p-1">
-                        <img src="{{ asset('images/talastas-favicon.svg') }}" alt="TALASTAS Logo" width="32" height="32" decoding="async" class="w-full h-full object-contain">
-                    </div>
-                    <div class="hidden lg:block leading-none">
-                        <span class="text-base font-bold text-white block">TALASTAS</span>
-                        <span class="text-[11px] text-red-300 block mt-0.5">Technology And Location Analytics Spatial Tracking & Assessment System</span>
-                    </div>
-                </a>
-            </div>
-
-            <nav class="hidden md:flex items-center justify-center gap-0.5 absolute left-1/2 transform -translate-x-1/2" aria-label="Primary navigation">
-                <a href="{{ route('home') }}"
-                    class="flex items-center gap-1.5 px-2 py-2 rounded-md text-xs font-medium transition-colors
-                        {{ request()->routeIs('home') || request()->routeIs('map') ? 'bg-red-800 text-white' : 'text-red-200 hover:text-white hover:bg-red-800' }}">
-                    <i class="fa-solid fa-map-location-dot text-xs"></i>
-                    Map
-                </a>
-
-                <a href="{{ route('institutions.index') }}"
-                    class="flex items-center gap-1.5 px-2 py-2 rounded-md text-xs font-medium transition-colors
-                        {{ request()->routeIs('institutions.*') ? 'bg-red-800 text-white' : 'text-red-200 hover:text-white hover:bg-red-800' }}">
-                    <i class="fa-solid fa-building text-xs"></i>
-                    {{ auth()->user()->isEditor() ? 'My Institutions' : 'Institutions' }}
-                </a>
-
-                <a href="{{ route('ict-inventory.index') }}"
-                    class="flex items-center gap-1.5 px-2 py-2 rounded-md text-xs font-medium transition-colors
-                        {{ request()->routeIs('ict-inventory.*') ? 'bg-red-800 text-white' : 'text-red-200 hover:text-white hover:bg-red-800' }}">
-                    <i class="fa-solid fa-boxes-stacked text-xs"></i>
-                    {{ auth()->user()->isEditor() ? 'My Inventory' : 'Inventory' }}
-                </a>
-
-                <a href="{{ route('analytics') }}"
-                    class="flex items-center gap-1.5 px-2 py-2 rounded-md text-xs font-medium transition-colors
-                        {{ request()->routeIs('analytics') ? 'bg-red-800 text-white' : 'text-red-200 hover:text-white hover:bg-red-800' }}">
-                    <i class="fa-solid fa-chart-line text-xs"></i>
-                    Analytics
-                </a>
-
-                @if (auth()->user()->isAdmin())
-                    <a href="{{ route('admin.users.index') }}"
-                        class="flex items-center gap-1.5 px-2 py-2 rounded-md text-xs font-medium transition-colors
-                            {{ request()->routeIs('admin.users.*') ? 'bg-red-800 text-white' : 'text-red-200 hover:text-white hover:bg-red-800' }}">
-                        <i class="fa-solid fa-users-gear text-xs"></i>
-                        Users
-                    </a>
-                @endif
-            </nav>
-
-            <div class="shrink-0">
-                @include('partials.account-controls')
-            </div>
+@php($hasMapControls = request()->routeIs('home', 'map'))
+<header class="talastas-header bg-red-900 sticky top-0 z-[5000] isolate shrink-0">
+    <div class="{{ $hasMapControls ? 'map-header-row' : 'talastas-feature-header px-4 sm:px-6 lg:px-8' }}">
+        <div class="flex min-w-0 items-center gap-2 {{ $hasMapControls ? 'map-header-brand' : 'flex-1' }}">
+            <button type="button" class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white lg:hidden"
+                data-sidebar-toggle aria-controls="talastasSidebar" aria-expanded="false" aria-label="Open navigation">
+                <i class="fa-solid fa-bars" aria-hidden="true"></i>
+            </button>
+            <a href="{{ route('home') }}" class="talastas-header-branding flex items-center gap-1.5 text-white lg:hidden">
+                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white p-0.5">
+                    <img src="{{ asset('images/logo_ict_mapping.png') }}" alt="" width="28" height="28" class="h-full w-full object-contain">
+                </span>
+                <span class="talastas-brand">TALASTAS</span>
+            </a>
+            @if (! $hasMapControls && $__env->hasSection('page-title'))
+                <x-header-page-title class="hidden sm:flex sm:ml-3 lg:ml-0" />
+                @hasSection('page-status')<div class="header-analysis-status">@yield('page-status')</div>@endif
+            @endif
         </div>
+        @if ($hasMapControls)
+            @include('partials.map-header-controls')
+        @elseif ($__env->hasSection('page-tools'))
+            <div class="talastas-header-tools">@yield('page-tools')</div>
+        @endif
+        <div class="shrink-0 {{ $hasMapControls ? 'map-header-account' : '' }}">
+            @include('partials.account-controls')
+        </div>
+        @if (! $hasMapControls && $__env->hasSection('page-title'))
+            <x-header-page-title class="talastas-mobile-page-title flex pb-2 sm:hidden" />
+        @endif
     </div>
 </header>

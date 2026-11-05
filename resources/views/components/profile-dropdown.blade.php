@@ -1,3 +1,4 @@
+@props(['sidebar' => false])
 @php
     $user = auth()->user();
     $initials = collect(preg_split('/\s+/', trim($user->name)))
@@ -7,21 +8,19 @@
         ->implode('');
 @endphp
 
-<details class="relative">
-    <summary class="list-none cursor-pointer flex items-center gap-2 rounded-md px-3 py-2 transition-colors text-sm font-medium text-red-200 hover:text-white hover:bg-red-800">
-        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold text-white">
+<details class="relative {{ $sidebar ? 'talastas-sidebar-account' : '' }}">
+    <summary class="list-none cursor-pointer flex items-center gap-2 rounded-md px-3 py-2 transition-colors text-sm font-medium text-red-200 hover:text-white hover:bg-red-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+        <span class="inline-flex shrink-0 {{ $sidebar ? 'h-8 w-8 text-xs' : 'h-6 w-6 text-[10px]' }} items-center justify-center rounded-full bg-white/20 font-bold text-white">
             {{ $initials ?: 'U' }}
         </span>
-        <span class="hidden min-w-0 text-left md:block">
-            <span class="block max-w-40 truncate leading-tight">{{ $user->name }}</span>
-            <span class="block max-w-52 truncate text-[11px] leading-tight opacity-80">{{ $user->roleLabel() }}</span>
+        <span class="{{ $sidebar ? 'block flex-1' : 'hidden md:block' }} min-w-0 text-left">
+            <span class="block {{ $sidebar ? 'break-words text-xs text-white' : 'max-w-40 truncate' }} leading-tight">{{ $user->name }}</span>
+            <span class="block {{ $sidebar ? 'mt-0.5 text-[10px]' : 'max-w-52 truncate text-[11px]' }} leading-tight opacity-80">{{ $user->roleLabel() }}</span>
         </span>
-        <svg class="hidden h-4 w-4 md:block" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.51a.75.75 0 01-1.08 0l-4.25-4.51a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-        </svg>
+        <i class="fa-solid fa-chevron-down h-3 w-3 shrink-0 text-xs" aria-hidden="true"></i>
     </summary>
 
-    <div class="absolute right-0 z-[3000] mt-2 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+    <div class="{{ $sidebar ? 'talastas-sidebar-account-menu absolute bottom-full left-0 mb-2 overflow-y-auto' : 'absolute right-0 mt-2 w-72 overflow-hidden' }} z-[3000] rounded-xl border border-slate-200 bg-white shadow-xl">
         <div class="border-b border-slate-100 px-4 py-3">
             <p class="truncate text-sm font-semibold text-slate-900">{{ $user->name }}</p>
             <p class="truncate text-xs text-slate-500">{{ $user->email }}</p>
@@ -30,23 +29,14 @@
             </span>
         </div>
 
-        <a href="{{ route('profile.account') }}"
-            class="flex items-center gap-2 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">
-            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.118a7.5 7.5 0 0115 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.5-1.632z" />
-            </svg>
-            My profile
-        </a>
-
-        <form method="POST" action="{{ route('logout') }}" class="border-t border-slate-100">
+        <nav class="profile-menu-list" aria-label="Account menu">
+            <a href="{{ route('profile.account') }}" class="profile-menu-item"><i class="fa-regular fa-user" aria-hidden="true"></i><span>My profile</span></a>
+            <a href="{{ route('legal.review') }}" class="profile-menu-item"><i class="fa-solid fa-file-circle-check" aria-hidden="true"></i><span>My Terms acknowledgement</span></a>
+            @include('partials.legal-links', ['menu' => true])
+        </nav>
+        <form method="POST" action="{{ route('logout') }}" class="border-t border-slate-100 py-1">
             @csrf
-            <button type="submit"
-                class="flex w-full items-center gap-2 px-4 py-3 text-left text-sm font-medium text-red-700 hover:bg-red-50">
-                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6A2.25 2.25 0 005.25 5.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3-3H9.75m9 0l-3-3m3 3l-3 3" />
-                </svg>
-                Sign out
-            </button>
+            <button type="submit" class="profile-menu-item profile-menu-signout w-full text-left"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i><span>Sign out</span></button>
         </form>
     </div>
 </details>

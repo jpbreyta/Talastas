@@ -95,7 +95,7 @@ return [
             'charset' => env('DB_CHARSET', 'utf8'),
             'prefix' => '',
             'prefix_indexes' => true,
-            'search_path' => 'public',
+            'search_path' => 'public,extensions',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
             // Eloquent serializes dates without an offset; match the application's UTC clock.
             // This sets only this application's connection, not the server/role timezone.

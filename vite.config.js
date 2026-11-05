@@ -9,6 +9,7 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/js/gis.js',
+                'resources/js/institution-location.js',
             ],
             refresh: true,
         }),

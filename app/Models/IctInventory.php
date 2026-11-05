@@ -19,6 +19,10 @@ class IctInventory extends Model
     public const CATEGORY_COMPUTER = 'computer';
     public const CATEGORY_DESKTOP_COMPUTER = 'desktop_computer';
     public const CATEGORY_LAPTOP = 'laptop';
+    public const CATEGORY_TABLET = 'tablet';
+    public const CATEGORY_SMART_PHONE = 'smart_phone';
+    public const CATEGORY_WORKSTATION = 'workstation';
+    public const CATEGORY_PDA = 'pda';
     public const CATEGORY_SMART_TV = 'smart_tv';
     public const CATEGORY_PROJECTOR = 'projector';
     public const CATEGORY_PROJECTED_WHITEBOARD = 'projected_whiteboard';
@@ -31,6 +35,10 @@ class IctInventory extends Model
         self::CATEGORY_COMPUTER,
         self::CATEGORY_DESKTOP_COMPUTER,
         self::CATEGORY_LAPTOP,
+        self::CATEGORY_TABLET,
+        self::CATEGORY_SMART_PHONE,
+        self::CATEGORY_WORKSTATION,
+        self::CATEGORY_PDA,
     ];
 
     protected $table = 'ict_inventory';
@@ -39,31 +47,71 @@ class IctInventory extends Model
 
     protected $fillable = [
         'institution_id',
+        'component_id',
         'category',
+        'component_type',
+        'is_computing_device',
         'asset_name',
         'brand',
         'model',
+        'total_count',
+        'active_count',
+        'retired_count',
+        'functional_count',
+        'defective_count',
+        'defective_active_count',
+        'functional_count_recorded',
         'quantity',
         'condition',
         'acquisition_year',
         'status',
-        'location',
         'specifications',
         'needs_maintenance',
         'notes',
     ];
 
+    protected $appends = ['availability_status'];
+
     protected $casts = [
         'institution_id' => 'integer',
+        'component_id' => 'integer',
+        'is_computing_device' => 'boolean',
+        'total_count' => 'integer',
+        'active_count' => 'integer',
+        'retired_count' => 'integer',
+        'functional_count' => 'integer',
+        'functional_count_recorded' => 'boolean',
+        'defective_count' => 'integer',
+        'defective_active_count' => 'integer',
         'quantity' => 'integer',
         'acquisition_year' => 'integer',
         'specifications' => 'array',
         'needs_maintenance' => 'boolean',
     ];
 
+    /** Only explicitly encoded survey counts are presented as Functional. */
+    public function getFunctionalCountAttribute($value): ?int
+    {
+        return ($this->attributes['functional_count_recorded'] ?? false)
+            && $value !== null ? (int) $value : null;
+    }
+
+    public function getAvailabilityStatusAttribute(): string
+    {
+        return \App\Services\InventoryCounts::status(
+            collect(['total_count', ...\App\Services\InventoryCounts::AVAILABILITY_FIELDS])
+                ->mapWithKeys(fn ($field) => [$field => $this->{$field}])->all()
+        );
+    }
+
     public function institution(): BelongsTo
     {
         return $this->belongsTo(Institution::class, 'institution_id');
+    }
+
+    public function component(): BelongsTo
+    {
+        return $this->belongsTo(IctComponent::class, 'component_id');
     }
 
     /**
@@ -74,6 +122,6 @@ class IctInventory extends Model
      */
     public function scopeActive(Builder $query): Builder
     {
-        return $query->whereRaw('LOWER(status) = ?', [self::STATUS_ACTIVE]);
+        return $query->where('active_count', '>', 0);
     }
 }

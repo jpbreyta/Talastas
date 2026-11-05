@@ -21,13 +21,14 @@ class RBAC
 
         $user = auth()->user();
 
-        if ($role === 'admin' && $user->role !== 'admin') {
-            abort(403, 'Unauthorized: Admin access required');
-        }
-
-        if ($role === 'editor' && ! in_array($user->role, ['admin', 'editor'])) {
-            abort(403, 'Unauthorized: Editor access required');
-        }
+        $allowed = match ($role) {
+            'admin' => ['admin'],
+            'editor' => ['admin', 'editor'],
+            'viewer' => ['admin', 'editor', 'viewer'],
+            'planner' => ['admin', 'viewer'],
+            default => [],
+        };
+        abort_unless(in_array($user->role, $allowed, true), 403);
 
         return $next($request);
     }

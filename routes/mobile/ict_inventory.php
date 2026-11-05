@@ -16,9 +16,26 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/ict-inventory', function () {
     $inventory = IctInventory::query()
-        ->with('institution')
-        ->latest()
-        ->get();
+        ->when(request()->user()->isEditor(), fn ($q) => $q->whereHas('institution.assignedUsers', fn ($assigned) => $assigned->whereKey(request()->user()->id)))
+        ->whereIn(
+            'component_type',
+            IctInventoryController::COMPONENT_TYPES
+        )
+        ->with('institution:id,name,type,barangay_id')
+        ->get([
+            'asset_id',
+            'institution_id',
+            'component_id',
+            'category',
+            'component_type',
+            'asset_name',
+            'total_count',
+            'active_count',
+            'retired_count',
+            'functional_count',
+            'defective_count',
+            'functional_count_recorded',
+        ]);
 
     return response()->json([
         'success' => true,
@@ -29,6 +46,16 @@ Route::get('/ict-inventory', function () {
 Route::get('/ict-inventory/{ictInventory}', function (
     IctInventory $ictInventory
 ) {
+    abort_unless(request()->user()->canAccessInstitution($ictInventory->institution_id), 403);
+    abort_unless(
+        in_array(
+            $ictInventory->component_type,
+            IctInventoryController::COMPONENT_TYPES,
+            true
+        ),
+        404
+    );
+
     return response()->json([
         'success' => true,
         'data' => $ictInventory->load('institution'),
@@ -49,13 +76,6 @@ Route::middleware('rbac:admin')->group(function (): void {
     ])
         ->whereNumber('ictInventory')
         ->name('ict-inventory.update');
-
-    Route::patch('/ict-inventory/{ictInventory}', [
-        IctInventoryController::class,
-        'updateApi',
-    ])
-        ->whereNumber('ictInventory')
-        ->name('ict-inventory.patch');
 
     Route::delete('/ict-inventory/{ictInventory}', [
         IctInventoryController::class,

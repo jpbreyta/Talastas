@@ -11,6 +11,8 @@ class User extends Authenticatable
 {
     use HasApiTokens, Notifiable;
 
+    protected $attributes = ['is_active' => true, 'security_version' => 1, 'mfa_last_step' => -1];
+
     protected $fillable = [
         'name',
         'email',
@@ -21,12 +23,22 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'mfa_secret', 'mfa_recovery_codes', 'mfa_last_step', 'security_version', 'mfa_verified_at',
     ];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'security_version' => 'integer', 'is_active' => 'boolean', 'invitation_accepted_at' => 'datetime',
+        'mfa_secret' => 'encrypted', 'mfa_recovery_codes' => 'array', 'mfa_confirmed_at' => 'datetime',
+        'mfa_verified_at' => 'datetime',
+        'email_mfa_confirmed_at' => 'datetime',
     ];
+
+    public function setEmailAttribute(string $value): void
+    {
+        $this->attributes['email'] = strtolower(trim($value));
+    }
 
     public function institutions(): BelongsToMany
     {
@@ -88,6 +100,10 @@ class User extends Authenticatable
         $institutionId = $institution instanceof Institution
             ? $institution->getKey()
             : $institution;
+
+        if (! $this->isEditor()) {
+            return false;
+        }
 
         return $this->institutions()
             ->whereKey($institutionId)

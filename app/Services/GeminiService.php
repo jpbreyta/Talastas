@@ -37,7 +37,10 @@ class GeminiService
             $scores,
             $planningEvidence
         );
+
         $prompt = $this->buildPrompt($context);
+        $inputSummary = $this->inputSummary($context);
+        $attempts = [];
 
         $providers = array_values(array_unique(array_filter([
             strtolower((string) config(
@@ -50,31 +53,131 @@ class GeminiService
             )),
         ])));
 
+        Log::info('AI prescriptive analytics prepared.', [
+            'institution_id' => $institution->id,
+            'providers' => $providers,
+            'prompt_characters' => mb_strlen($prompt),
+            'input_summary' => $inputSummary,
+        ]);
+
         foreach ($providers as $provider) {
+            $model = $this->providerModel($provider);
+            $apiKeyConfigured =
+                $this->providerApiKey($provider) !== '';
+
+            if (!in_array($provider, ['gemini', 'groq'], true)) {
+                $attempts[] = [
+                    'provider' => $provider,
+                    'model' => $model,
+                    'status' => 'skipped',
+                    'message' =>
+                        'Unsupported AI provider configuration.',
+                ];
+
+                Log::warning('AI analytics provider skipped.', [
+                    'provider' => $provider,
+                    'institution_id' => $institution->id,
+                    'reason' => 'unsupported_provider',
+                ]);
+
+                continue;
+            }
+
+            if (!$apiKeyConfigured) {
+                $attempts[] = [
+                    'provider' => $provider,
+                    'model' => $model,
+                    'status' => 'skipped',
+                    'message' =>
+                        strtoupper($provider)
+                        . '_API_KEY is not configured.',
+                ];
+
+                Log::warning('AI analytics provider skipped.', [
+                    'provider' => $provider,
+                    'institution_id' => $institution->id,
+                    'model' => $model,
+                    'reason' => 'api_key_missing',
+                ]);
+
+                continue;
+            }
+
+            Log::info('AI analytics provider request starting.', [
+                'provider' => $provider,
+                'model' => $model,
+                'institution_id' => $institution->id,
+                'prompt_characters' => mb_strlen($prompt),
+            ]);
+
             try {
                 $result = match ($provider) {
                     'gemini' => $this->requestGemini($prompt),
                     'groq' => $this->requestGroq($prompt),
-                    default => null,
                 };
 
-                if ($result !== null) {
-                    return $this->formatResult(
-                        $result,
-                        $provider,
-                        $this->providerModel($provider)
+                if ($result === null) {
+                    throw new RuntimeException(
+                        'AI provider returned no structured result.'
                     );
                 }
+
+                $attempts[] = [
+                    'provider' => $provider,
+                    'model' => $model,
+                    'status' => 'success',
+                    'message' =>
+                        'Structured prescriptive analytics received.',
+                ];
+
+                Log::info('AI analytics provider request completed.', [
+                    'provider' => $provider,
+                    'model' => $model,
+                    'institution_id' => $institution->id,
+                ]);
+
+                return $this->formatResult(
+                    $result,
+                    $provider,
+                    $model,
+                    $attempts,
+                    $inputSummary
+                );
             } catch (Throwable $exception) {
+                $message = $this->safeAttemptMessage(
+                    $exception->getMessage()
+                );
+
+                $attempts[] = [
+                    'provider' => $provider,
+                    'model' => $model,
+                    'status' => 'failed',
+                    'message' => $message,
+                ];
+
                 Log::warning('AI analytics provider failed.', [
                     'provider' => $provider,
+                    'model' => $model,
                     'institution_id' => $institution->id,
-                    'error' => $exception->getMessage(),
+                    'error' => $message,
                 ]);
             }
         }
 
-        return $this->buildLocalFallback($institution, $context);
+        Log::warning(
+            'AI analytics providers unavailable; local prescriptive fallback used.',
+            [
+                'institution_id' => $institution->id,
+                'attempts' => $attempts,
+            ]
+        );
+
+        return $this->buildLocalFallback(
+            $institution,
+            $context,
+            $attempts,
+            $inputSummary
+        );
     }
 
     protected function requestGemini(string $prompt): ?array
@@ -87,7 +190,7 @@ class GeminiService
 
         $model = trim((string) config(
             'services.gemini.model',
-            'gemini-3.1-flash-lite'
+            'gemini-2.5-flash-lite'
         ));
 
         $baseUrl = rtrim((string) config(
@@ -99,6 +202,13 @@ class GeminiService
             ->post(
                 "{$baseUrl}/{$model}:generateContent?key={$apiKey}",
                 [
+                    'systemInstruction' => [
+                        'parts' => [
+                            [
+                                'text' => $this->systemPrompt(),
+                            ],
+                        ],
+                    ],
                     'contents' => [
                         [
                             'role' => 'user',
@@ -113,7 +223,7 @@ class GeminiService
                         'temperature' => 0.2,
                         'maxOutputTokens' => $this->maxOutputTokens(),
                         'responseMimeType' => 'application/json',
-                        'responseSchema' => $this->responseSchema(),
+                        'responseSchema' => $this->geminiResponseSchema(),
                     ],
                 ]
             );
@@ -154,36 +264,84 @@ class GeminiService
             'https://api.groq.com/openai/v1/chat/completions'
         );
 
-        $response = $this->httpClient()
-            ->withToken($apiKey)
-            ->post($url, [
-                'model' => $model,
-                'messages' => [
-                    [
-                        'role' => 'system',
-                        'content' =>
-                            'You are an ICT infrastructure policy analyst. '
-                            . 'Return only valid JSON that follows the supplied schema.',
-                    ],
-                    [
-                        'role' => 'user',
-                        'content' => $prompt,
-                    ],
+        $payload = [
+            'model' => $model,
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => $this->systemPrompt()
+                        . "\nReturn exactly one JSON object matching this schema; no Markdown or commentary:\n"
+                        . json_encode($this->responseSchema(), JSON_THROW_ON_ERROR),
                 ],
-                'temperature' => 0.2,
-                'max_completion_tokens' => $this->maxOutputTokens(),
-                'reasoning_effort' => 'low',
-                'response_format' => [
-                    'type' => 'json_schema',
-                    'json_schema' => [
-                        'name' => 'institution_ict_analysis',
-                        'strict' => true,
-                        'schema' => $this->responseSchema(),
-                    ],
+                [
+                    'role' => 'user',
+                    'content' => $prompt,
                 ],
-            ]);
+            ],
+            'temperature' => 0.2,
+            // Reasoning models share this budget between reasoning and the JSON answer.
+            'max_completion_tokens' => $this->groqCompletionTokens(),
+            'response_format' => in_array($model, ['openai/gpt-oss-20b', 'openai/gpt-oss-120b'], true) ? [
+                'type' => 'json_schema',
+                'json_schema' => [
+                    'name' => 'institution_ict_analysis',
+                    'strict' => true,
+                    'schema' => $this->responseSchema(),
+                ],
+            ] : ['type' => 'json_object'],
+        ];
 
-        $this->ensureSuccessfulResponse($response, 'groq');
+        if (in_array($model, ['openai/gpt-oss-20b', 'openai/gpt-oss-120b'], true)) {
+            $payload['reasoning_effort'] = 'low';
+        }
+
+        for ($attempt = 0; $attempt < 2; $attempt++) {
+            $response = $this->httpClient()->withToken($apiKey)->post($url, $payload);
+            $formatFailure = $response->status() === 400 && $response->json('error.code') === 'json_validate_failed';
+            if (! $formatFailure) {
+                // Authentication, quota, and other HTTP errors must not trigger a format retry.
+                $this->ensureSuccessfulResponse($response, 'groq');
+                try {
+                    return $this->decodeGroqResponse($response);
+                } catch (RuntimeException $exception) {
+                    if ($attempt === 1) {
+                        throw $exception;
+                    }
+                }
+            } elseif ($attempt === 1) {
+                $this->ensureSuccessfulResponse($response, 'groq');
+            }
+
+            Log::warning('Groq structured generation failed; retrying once in JSON object mode.', [
+                'model' => $model, 'status' => $response->status(),
+                'error_code' => $response->json('error.code'),
+                'finish_reason' => $response->json('choices.0.finish_reason'),
+                'max_completion_tokens' => $payload['max_completion_tokens'],
+                'request_id' => $response->json('request_id') ?? $response->header('x-request-id'),
+            ]);
+            // Change the failed strategy instead of repeating the same constrained generation.
+            // Local validation below still enforces every field, urgency, and priority limit.
+            $payload['response_format'] = ['type' => 'json_object'];
+            $payload['max_completion_tokens'] = min(8192, $payload['max_completion_tokens'] * 2);
+            $payload['temperature'] = 0;
+            $payload['messages'][0]['content'] .= "\nThe previous generation failed JSON validation."
+                . ' Include all required fields, use strings for narratives, and an array of at most three priorities.'
+                . ' Each priority must contain priority, rationale, and urgency. Use only the allowed urgency values.';
+        }
+
+        throw new RuntimeException('Groq could not generate valid analytics JSON.');
+    }
+
+    protected function groqCompletionTokens(): int
+    {
+        return max(1024, min(8192, (int) config('services.groq.max_completion_tokens', 2400)));
+    }
+
+    protected function decodeGroqResponse(Response $response): array
+    {
+        if ($response->json('choices.0.finish_reason') === 'length') {
+            throw new RuntimeException('Groq reached its completion token limit before finishing the analytics JSON.');
+        }
 
         $text = $response->json('choices.0.message.content');
 
@@ -191,6 +349,31 @@ class GeminiService
             throw new RuntimeException(
                 'Groq returned an invalid response structure.'
             );
+        }
+
+        $object = json_decode($text);
+        $decoded = json_decode($text, true);
+        if (! $object instanceof \stdClass || ! is_array($decoded)) {
+            throw new RuntimeException('Groq did not return a valid JSON object.');
+        }
+        if (! is_array($object->priorities ?? null)) {
+            throw new RuntimeException('Groq returned JSON that does not match the analytics schema.');
+        }
+        $validator = \Illuminate\Support\Facades\Validator::make(
+            $decoded,
+            [
+                'infrastructure_narrative' => 'required|string',
+                'policy_recommendation' => 'required|string',
+                'priorities' => 'present|array|max:3',
+                'priorities.*' => 'array:priority,rationale,urgency',
+                'priorities.*.priority' => 'required|string',
+                'priorities.*.rationale' => 'required|string',
+                'priorities.*.urgency' => 'required|in:immediate,short_term,medium_term',
+            ]
+        );
+        if ($validator->fails()
+            || array_diff(array_keys($decoded), $this->responseSchema()['required'])) {
+            throw new RuntimeException('Groq returned JSON that does not match the analytics schema.');
         }
 
         return $this->decodeStructuredResponse($text);
@@ -252,78 +435,89 @@ class GeminiService
                 'name' => $institution->name,
                 'type' => $institution->type,
                 'barangay' => $institution->barangay?->name,
-                'population' => $institution->getAnalysisPopulation(),
-                'student_population' => $institution->student_population,
-                'staff_population' => $institution->staff_population,
-                'isp_provider' => $institution->isp_provider,
-                'internet_speed_mbps' => $institution->internet_speed,
-                'has_computer_lab' => $institution->has_computer_lab,
-                'number_of_computers' => $institution->number_of_computers,
-                'has_projected_whiteboard' =>
-                    $institution->has_projected_whiteboard,
-                'has_smart_tv' => $institution->has_smart_tv,
-                'has_public_address_system' =>
-                    $institution->has_public_address_system,
-                'needs_maintenance' => $institution->needs_maintenance,
-                'requires_audit' => $institution->requires_audit,
-                'notes' => $institution->notes,
             ],
-
-            /*
-             * These scores are authoritative outputs from the deterministic /
-             * Python analytics layer. The generative AI only interprets them.
-             */
             'calculated_scores' => [
-                'gap_score' => $this->scoreValue(
+                'overall_ict_gap' => $this->scoreValue(
                     $scores,
                     'gap_score',
                     $analytics?->gap_score
                 ),
-
-                'risk_level' => Arr::get(
-                    $scores,
-                    'risk_level',
-                    $analytics?->risk_level
-                ),
-
-                'data_completeness_score' => $this->scoreValue(
-                    $scores,
-                    'data_completeness_score',
-                    $analytics?->data_completeness_score
-                        ?? $institution->data_completeness_score
-                ),
-
-                'infrastructure_deficit_score' => $this->scoreValue(
-                    $scores,
-                    'infrastructure_deficit_score',
-                    $analytics?->infrastructure_deficit_score
-                ),
-
-                'connectivity_divide_score' => $this->scoreValue(
-                    $scores,
-                    'connectivity_divide_score',
-                    $analytics?->connectivity_divide_score
-                ),
-
-                'technological_obsolescence_score' => $this->scoreValue(
-                    $scores,
-                    'technological_obsolescence_score',
-                    $analytics?->technological_obsolescence_score
-                ),
-
-                'asset_to_user_ratio' => $this->scoreValue(
-                    $scores,
-                    'asset_to_user_ratio',
-                    $analytics?->asset_to_user_ratio
-                ),
+                'assessment_status' =>
+                    $scores['risk_level']
+                    ?? $analytics?->risk_level
+                    ?? 'insufficient_data',
+                'infrastructure_deficit' =>
+                    $this->scoreValue(
+                        $scores,
+                        'infrastructure_deficit_score',
+                        $analytics?->infrastructure_deficit_score
+                    ),
+                'connectivity_divide' =>
+                    $this->scoreValue(
+                        $scores,
+                        'connectivity_divide_score',
+                        $analytics?->connectivity_divide_score
+                    ),
+                'technological_obsolescence_proxy' =>
+                    $this->scoreValue(
+                        $scores,
+                        'technological_obsolescence_score',
+                        $analytics?->technological_obsolescence_score
+                    ),
             ],
-
-            /*
-             * Fresh, quantity-aware evidence built from the same inventory
-             * snapshot used for scoring.
-             */
             'planning_evidence' => $planningEvidence,
         ];
+    }
+
+    protected function systemPrompt(): string
+    {
+        return <<<'PROMPT'
+You are the prescriptive analytics layer of TALASTAS, an ICT infrastructure
+decision-support system for public institutions in Lipa City.
+
+The numerical values supplied under calculated_scores are AUTHORITATIVE,
+DETERMINISTIC, and IMMUTABLE. They were computed before this AI request.
+
+NON-NEGOTIABLE RULES
+1. Never calculate, recalculate, average, normalize, estimate, replace, round,
+   correct, reinterpret, or override any numerical score.
+2. Never create a score when a supplied score is null or unavailable.
+3. Never infer a missing value as zero, absent, compliant, defective, or adequate.
+   A confirmed_zero inventory status is recorded evidence, not missing baseline
+   data. Zero-denominator inventory ratios are unavailable, not proof of a gap.
+   Do not assume every institution requires every component or operating system.
+4. Never invent thresholds, severity bands, minimum device ratios, target Mbps,
+   procurement quantities, budgets, brands, vendors, causes, laws, standards,
+   outage histories, or compliance claims.
+5. Treat Technological Obsolescence strictly as a RETIREMENT-BASED PROXY.
+   Never describe it as hardware age, depreciation, end-of-life, or remaining
+   useful life.
+6. Use only the supplied deterministic scores and field evidence.
+7. Recommendations must follow from observable evidence. Defective units require
+   verification/repair assessment before replacement is proposed. Bandwidth
+   shortfall requires measurement/service validation before capacity action.
+8. Urgency is operational planning guidance, not a research severity class.
+   Use "immediate" only when the evidence explicitly shows a service-stopping
+   condition such as no active applicable infrastructure or no Internet service.
+9. Return valid JSON only and follow the response schema exactly.
+
+BASELINE DEFINITIONS
+- Infrastructure Deficit:
+  Explicitly recorded Defective within Active / Active Applicable Units x 100. Active means deployed/in-service and may include defective units. General Defective and Functional are separate responses. Never infer missing Defective within Active.
+- Connectivity Divide:
+  For each connection: max(identified advertised download Mbps - measured download Mbps, 0)
+  / identified advertised download Mbps x 100. Average connection scores only if every
+  reported connection has usable data. Never infer Mbps from prices, ambiguous plan
+  names, allocation text, upload, latency, throughput or an external target.
+- Technological Obsolescence Proxy:
+  Retired Applicable Units / Total Applicable Units x 100.
+- Overall ICT Gap:
+  arithmetic mean of the three core component percentages, available only when
+  all three components are available.
+
+Your role is PRESCRIPTIVE only: explain the deterministic result, identify
+evidence-based priorities, and formulate practical policy recommendations.
+PROMPT;
     }
 
     protected function buildPrompt(array $context): string
@@ -337,70 +531,44 @@ class GeminiService
         );
 
         return <<<PROMPT
-You are an ICT decision-support analyst assisting LGU ICT personnel and city
-planners in Lipa City, Batangas, Philippines.
+TASK
 
-The numerical scores below are authoritative outputs of the application's
-deterministic/Python analytics process. Do not recalculate, change, or
-contradict them.
+Produce a concise, evidence-based prescriptive analysis for the supplied
+institution.
 
-Score meaning:
-- Deficit scores range from 0 to 100.
-- A higher deficit score means a more serious verified gap.
-- gap_score is the overall weighted ICT gap score.
-- If gap_score is null or risk_level is "insufficient_data", avoid definitive
-  investment recommendations and prioritize validation first.
-
-Produce concise planning guidance, not a generic essay.
-
-1. infrastructure_narrative
+infrastructure_narrative
 - Maximum 3 short sentences.
-- Start with the most important verified planning concern.
-- Use the strongest supplied numerical or recorded evidence.
-- Mention the highest relevant deficit score when available.
-- Explain what the evidence means for institutional ICT capacity.
+- State the strongest observed issue first.
+- Use exact supplied counts, percentages, Mbps values, or recorded yes/no facts.
+- Distinguish defective active infrastructure, Internet performance, and
+  retired inventory.
+- If Overall ICT Gap is unavailable, state that the required core evidence is
+  incomplete without assigning a replacement score.
 
-2. policy_recommendation
+policy_recommendation
 - Maximum 3 short sentences.
-- State what the LGU or institution should prioritize FIRST.
-- Prefer a practical sequence when supported by the record:
-  validate -> repair serviceable assets -> reassess remaining gap -> plan
-  phased expansion or replacement.
-- Do not invent exact budgets, procurement quantities, brands, suppliers,
-  agencies, standards, or implementation dates.
+- Give a practical action sequence based on the evidence.
+- Prefer: validate evidence -> inspect/repair -> verify Internet performance ->
+  reassess -> plan phased action.
+- Do not prescribe quantities or budgets not supplied by the data.
 
-3. priorities
-- Return no more than 3 actions, ordered from most important to least important.
-- "priority" must be a short action phrase.
-- "rationale" must explain WHY using at least one supplied number or explicit
-  recorded fact whenever available.
-- "urgency" must be one of: immediate, short_term, medium_term.
+priorities
+- Return at most 3 actions ordered by practical need.
+- Every rationale must cite at least one supplied fact.
+- urgency must be one of: immediate, short_term, medium_term.
 
-Decision rules:
-- Base every statement only on the supplied record and planning evidence.
-- Prefer planning_evidence when it differs from older institution summary data.
-- Do not invent usage statistics, outages, survey results, standards, or facts.
-- Distinguish active assets from inactive, retired, and disposed assets.
-- If repairable assets exist, recommend inspection/repair before suggesting
-  broad replacement.
-- For aging assets, recommend phased condition/replacement assessment rather
-  than assuming every old asset must be replaced.
-- A recorded internet speed alone does not prove poor actual performance.
-  When connectivity is a concern, recommend reviewing capacity against actual
-  simultaneous institutional use before specifying an upgrade.
-- If data completeness is below 80 or requires_audit is true, include a
-  validation action. Do not let a routine validation statement hide a clear,
-  high-priority verified deficit.
-- Treat missing values as unavailable data, not confirmed deficiencies.
-- Avoid vague phrases such as "improve ICT infrastructure", "modernize
-  equipment", or "upgrade connectivity" unless the same statement identifies
-  the evidence and a practical next action.
-- Keep the language formal, plain, and suitable for LGU planning discussions.
-- Return only JSON matching the required schema.
-
-Institution record and planning evidence:
+DATA
 {$contextJson}
 PROMPT;
+    }
+
+    protected function geminiResponseSchema(): array
+    {
+        $schema = $this->responseSchema();
+        // Gemini's responseSchema rejects this JSON Schema keyword; Groq's
+        // strict JSON schema still needs it, so retain the shared definition.
+        unset($schema['additionalProperties'], $schema['properties']['priorities']['items']['additionalProperties']);
+        return $schema;
     }
 
     protected function responseSchema(): array
@@ -573,7 +741,9 @@ PROMPT;
     protected function formatResult(
         array $result,
         string $provider,
-        string $model
+        string $model,
+        array $attempts = [],
+        array $inputSummary = []
     ): array {
         return [
             'infrastructure_narrative' =>
@@ -581,9 +751,12 @@ PROMPT;
             'policy_recommendation' =>
                 $result['policy_recommendation'],
             'recommendations_detail' => [
-                'method' => 'generative_ai',
+                'method' => 'generative_ai_prescriptive',
+                'ai_status' => 'generated',
                 'provider' => $provider,
                 'model' => $model,
+                'provider_attempts' => $attempts,
+                'input_summary' => $inputSummary,
                 'priorities' => $result['priorities'],
                 'generated_at' => now()->toIso8601String(),
             ],
@@ -592,600 +765,143 @@ PROMPT;
 
     protected function buildLocalFallback(
         Institution $institution,
-        array $context
+        array $context,
+        array $attempts = [],
+        array $inputSummary = []
     ): array {
         $scores = $context['calculated_scores'] ?? [];
         $evidence = $context['planning_evidence'] ?? [];
+        $inventory = $evidence['inventory_totals'] ?? [];
+        $connectivity = $evidence['connectivity'] ?? [];
 
-        $gapScore = $scores['gap_score'] ?? null;
-        $riskLevel = strtolower((string) (
-            $scores['risk_level'] ?? 'insufficient_data'
-        ));
-        $completeness =
-            $scores['data_completeness_score'] ?? null;
+        $parts = [];
 
-        $rankedDeficits =
-            $this->rankedDeficits($scores);
-
-        $primary =
-            $rankedDeficits[0] ?? null;
-
-        $narrativeParts = [];
-
-        if ($primary !== null) {
-            $narrativeParts[] =
-                $primary['label']
-                . ' is the highest available planning concern at '
-                . $this->numberText($primary['score'])
-                . '%.';
-
-            $primaryEvidence =
-                $this->evidenceForArea(
-                    $primary['key'],
-                    $evidence
-                );
-
-            if ($primaryEvidence !== '') {
-                $narrativeParts[] =
-                    $primaryEvidence;
-            }
-        } else {
-            $narrativeParts[] =
-                'The current record does not contain enough scored evidence '
-                . 'to identify a dominant ICT gap.';
+        if (is_numeric($scores['infrastructure_deficit'] ?? null)) {
+            $parts[] =
+                number_format((int) ($inventory['defective_active'] ?? 0))
+                . ' defective active applicable ICT unit(s) are recorded out of '
+                . number_format((int) ($inventory['active'] ?? 0))
+                . ' active unit(s).';
         }
 
-        if ($gapScore !== null) {
-            $narrativeParts[] =
-                'The overall ICT gap score is '
-                . $this->numberText($gapScore)
-                . '%.';
+        if (($connectivity['has_internet_connection'] ?? null) === false) {
+            $parts[] = 'The encoded ICT data explicitly records no Internet connection.';
+        } elseif (is_numeric($scores['connectivity_divide'] ?? null)) {
+            $parts[] =
+                'Mean advertised-download shortfall is '
+                . $this->numberText($scores['connectivity_divide'])
+                . '% across '.(int) ($connectivity['valid_connection_count'] ?? 0).' recorded connection(s).';
+        } elseif (isset($connectivity['reason_codes'])) {
+            $parts[] = 'Connectivity could not be assessed. '.implode(' ', array_map(
+                [InternetConnectivityAssessment::class, 'reasonLabel'], $connectivity['reason_codes']
+            ));
         }
 
-        $narrative =
-            implode(
-                ' ',
-                array_slice($narrativeParts, 0, 3)
-            );
+        if (is_numeric($scores['technological_obsolescence_proxy'] ?? null)) {
+            $parts[] =
+                number_format((int) ($inventory['retired'] ?? 0))
+                . ' of '
+                . number_format((int) ($inventory['total'] ?? 0))
+                . ' applicable ICT unit(s) are recorded as retired.';
+        }
 
-        $needsValidation =
-            $riskLevel === 'insufficient_data'
-            || $gapScore === null
-            || (
-                is_numeric($completeness)
-                && (float) $completeness < 80
-            )
-            || $institution->requires_audit;
+        if ($parts === []) {
+            $parts[] =
+                'The current ICT data record is incomplete for a full ICT gap interpretation.';
+        }
+
+        if (($evidence['inventory_status'] ?? null) === 'confirmed_zero') {
+            $parts[] = 'Applicable inventory counts are confirmed as zero. Inventory ratios have no denominator and are unavailable; these counts are not missing baseline data.';
+        }
 
         $priorities = [];
 
-        /*
-         * If scoring is not reliable enough for a definitive result,
-         * validation is the first action.
-         */
-        if (
-            $riskLevel === 'insufficient_data'
-            || $gapScore === null
-        ) {
-            $priorities[] =
-                $this->validationPriority(
-                    $completeness,
-                    (bool) $institution->requires_audit
-                );
-        }
-
-        foreach ($rankedDeficits as $dimension) {
-            if (count($priorities) >= 3) {
-                break;
-            }
-
-            if (
-                !is_numeric($dimension['score'])
-                || (float) $dimension['score'] <= 0
-            ) {
-                continue;
-            }
-
+        if (($scores['assessment_status'] ?? 'insufficient_data') === 'insufficient_data'
+            && (($evidence['inventory_status'] ?? null) !== 'confirmed_zero'
+                || !is_numeric($scores['connectivity_divide'] ?? null))) {
             $priorities[] = [
-                'priority' =>
-                    $this->priorityActionForArea(
-                        $dimension['key'],
-                        $evidence
-                    ),
-
+                'priority' => 'Complete missing required ICT data',
                 'rationale' =>
-                    $this->evidenceForArea(
-                        $dimension['key'],
-                        $evidence
-                    )
-                    ?: (
-                        $dimension['label']
-                        . ' has a calculated deficit score of '
-                        . $this->numberText(
-                            $dimension['score']
-                        )
-                        . '%.'
-                    ),
-
-                'urgency' =>
-                    $this->urgencyFromScore(
-                        (float) $dimension['score']
-                    ),
+                    'A complete three-dimension composite gap score cannot yet be produced from the available record.',
+                'urgency' => 'short_term',
             ];
         }
 
-        if (
-            $needsValidation
-            && count($priorities) < 3
-            && !collect($priorities)->contains(
-                fn (array $item): bool =>
-                    $item['priority']
-                    === 'Validate the institution ICT record'
-            )
-        ) {
-            $priorities[] =
-                $this->validationPriority(
-                    $completeness,
-                    (bool) $institution->requires_audit
-                );
+        if ((int) ($inventory['defective'] ?? 0) > 0) {
+            $priorities[] = [
+                'priority' => 'Validate and assess recorded defective ICT components',
+                'rationale' =>
+                    number_format((int) $inventory['defective'])
+                    . ' applicable unit(s) are recorded as generally defective; confirm their service status.',
+                'urgency' => 'short_term',
+            ];
         }
 
-        if ($priorities === []) {
+        if (($connectivity['has_internet_connection'] ?? null) === false) {
             $priorities[] = [
-                'priority' =>
-                    'Maintain and periodically validate ICT capacity',
-
+                'priority' => 'Validate the absence of institutional Internet service',
                 'rationale' =>
-                    'No material scored deficiency is confirmed by the available record.',
+                    'The encoded ICT data explicitly records no Internet connection.',
+                'urgency' => 'immediate',
+            ];
+        } elseif (
+            is_numeric($scores['connectivity_divide'] ?? null)
+            && (float) $scores['connectivity_divide'] > 0
+        ) {
+            $priorities[] = [
+                'priority' => 'Verify Internet performance against the recorded bandwidth allocation',
+                'rationale' =>
+                    'The field-data-derived connectivity gap is '
+                    . $this->numberText($scores['connectivity_divide'])
+                    . '%.',
+                'urgency' => 'short_term',
+            ];
+        }
 
+        if ((int) ($inventory['retired'] ?? 0) > 0) {
+            $priorities[] = [
+                'priority' => 'Review retired ICT stock for replacement planning and disposition',
+                'rationale' =>
+                    number_format((int) $inventory['retired'])
+                    . ' applicable unit(s) are recorded as retired.',
                 'urgency' => 'medium_term',
             ];
         }
 
-        $recommendation =
-            $primary !== null
-                ? $this->recommendationForArea(
-                    $primary['key'],
-                    $evidence,
-                    $needsValidation
-                )
-                : (
-                    'Complete the missing ICT profile and field validation '
-                    . 'before making major resource-allocation decisions.'
-                );
+        if ($priorities === []) {
+            $priorities[] = [
+                'priority' => 'Continue periodic field-data-based validation',
+                'rationale' =>
+                    'No defective active units, recorded bandwidth shortfall, or retired applicable units are confirmed by the available record.',
+                'urgency' => 'medium_term',
+            ];
+        }
+
+        $priorities = array_slice($priorities, 0, 3);
 
         return [
             'infrastructure_narrative' =>
-                Str::limit(
-                    $narrative,
-                    900,
-                    ''
-                ),
-
+                Str::limit(implode(' ', array_slice($parts, 0, 3)), 1200, ''),
             'policy_recommendation' =>
                 Str::limit(
-                    $recommendation,
+                    collect($priorities)->pluck('priority')->implode('. ') . '.',
                     900,
                     ''
                 ),
-
             'recommendations_detail' => [
-                'method' => 'local_fallback',
+                'method' => 'local_field_data_prescriptive_fallback',
+                'ai_status' => 'fallback',
                 'provider' => 'local',
                 'model' => null,
-                'priorities' =>
-                    array_slice(
-                        $priorities,
-                        0,
-                        3
-                    ),
-                'generated_at' =>
-                    now()->toIso8601String(),
+                'provider_attempts' => $attempts,
+                'input_summary' => $inputSummary,
+                'priorities' => $priorities,
+                'generated_at' => now()->toIso8601String(),
             ],
         ];
     }
 
-    protected function rankedDeficits(
-        array $scores
-    ): array {
-        $dimensions = [
-            [
-                'key' => 'infrastructure',
-                'label' => 'Infrastructure deficit',
-                'score' =>
-                    $scores[
-                        'infrastructure_deficit_score'
-                    ] ?? null,
-            ],
-            [
-                'key' => 'connectivity',
-                'label' => 'Connectivity divide',
-                'score' =>
-                    $scores[
-                        'connectivity_divide_score'
-                    ] ?? null,
-            ],
-            [
-                'key' => 'obsolescence',
-                'label' => 'Technological obsolescence',
-                'score' =>
-                    $scores[
-                        'technological_obsolescence_score'
-                    ] ?? null,
-            ],
-        ];
 
-        $dimensions =
-            array_values(
-                array_filter(
-                    $dimensions,
-                    fn (array $item): bool =>
-                        is_numeric($item['score'])
-                )
-            );
-
-        usort(
-            $dimensions,
-            fn (array $a, array $b): int =>
-                (float) $b['score']
-                <=> (float) $a['score']
-        );
-
-        return $dimensions;
-    }
-
-    protected function evidenceForArea(
-        string $area,
-        array $evidence
-    ): string {
-        return match ($area) {
-            'infrastructure' =>
-                $this->infrastructureEvidence(
-                    $evidence
-                ),
-
-            'connectivity' =>
-                $this->connectivityEvidence(
-                    $evidence
-                ),
-
-            'obsolescence' =>
-                $this->obsolescenceEvidence(
-                    $evidence
-                ),
-
-            default => '',
-        };
-    }
-
-    protected function infrastructureEvidence(
-        array $evidence
-    ): string {
-        $population =
-            $evidence['population'] ?? null;
-
-        $populationLabel =
-            $evidence['population_label']
-            ?? 'users';
-
-        $computers =
-            $evidence['active_computers']
-            ?? null;
-
-        $usersPerComputer =
-            $evidence['users_per_computer']
-            ?? null;
-
-        if (
-            is_numeric($population)
-            && (int) $population > 0
-            && is_numeric($computers)
-        ) {
-            if ((int) $computers <= 0) {
-                return
-                    'No active computers are recorded for '
-                    . number_format(
-                        (int) $population
-                    )
-                    . " {$populationLabel}.";
-            }
-
-            $text =
-                number_format(
-                    (int) $computers
-                )
-                . ' active computer(s) serve '
-                . number_format(
-                    (int) $population
-                )
-                . " {$populationLabel}";
-
-            if (is_numeric($usersPerComputer)) {
-                $text .=
-                    ', or about '
-                    . $this->numberText(
-                        $usersPerComputer
-                    )
-                    . ' users per computer';
-            }
-
-            return $text . '.';
-        }
-
-        if (is_numeric($computers)) {
-            return
-                number_format(
-                    (int) $computers
-                )
-                . ' active computer(s) are recorded.';
-        }
-
-        return '';
-    }
-
-    protected function connectivityEvidence(
-        array $evidence
-    ): string {
-        $speed =
-            $evidence['internet_speed_mbps']
-            ?? null;
-
-        $provider =
-            trim(
-                (string) (
-                    $evidence['isp_provider']
-                    ?? ''
-                )
-            );
-
-        if (!is_numeric($speed)) {
-            return
-                'Internet speed is not recorded and should be validated.';
-        }
-
-        $text =
-            'Recorded internet speed is '
-            . $this->numberText($speed)
-            . ' Mbps';
-
-        if ($provider !== '') {
-            $text .=
-                " through {$provider}";
-        }
-
-        return $text . '.';
-    }
-
-    protected function obsolescenceEvidence(
-        array $evidence
-    ): string {
-        $total =
-            $evidence['total_ict_assets']
-            ?? null;
-
-        if (!is_numeric($total)) {
-            return '';
-        }
-
-        $parts = [];
-
-        $old =
-            $evidence['old_equipment_count']
-            ?? null;
-
-        $repair =
-            $evidence['needs_repair_count']
-            ?? null;
-
-        $poor =
-            $evidence['poor_condition_count']
-            ?? null;
-
-        $retired =
-            $evidence['retired_or_disposed_count']
-            ?? null;
-
-        $averageAge =
-            $evidence['average_equipment_age_years']
-            ?? null;
-
-        if (is_numeric($old)) {
-            $parts[] =
-                number_format((int) $old)
-                . ' of '
-                . number_format((int) $total)
-                . ' assets are at least five years old';
-        }
-
-        if (
-            is_numeric($repair)
-            && (int) $repair > 0
-        ) {
-            $parts[] =
-                number_format((int) $repair)
-                . ' need repair or maintenance';
-        }
-
-        if (
-            is_numeric($poor)
-            && (int) $poor > 0
-        ) {
-            $parts[] =
-                number_format((int) $poor)
-                . ' are in poor or needs-repair condition';
-        }
-
-        if (
-            is_numeric($retired)
-            && (int) $retired > 0
-        ) {
-            $parts[] =
-                number_format((int) $retired)
-                . ' are retired or disposed';
-        }
-
-        if (is_numeric($averageAge)) {
-            $parts[] =
-                'average recorded equipment age is '
-                . $this->numberText($averageAge)
-                . ' years';
-        }
-
-        return $parts === []
-            ? (
-                number_format((int) $total)
-                . ' ICT assets are recorded.'
-            )
-            : ucfirst(
-                implode('; ', $parts)
-            ) . '.';
-    }
-
-    protected function priorityActionForArea(
-        string $area,
-        array $evidence
-    ): string {
-        return match ($area) {
-            'infrastructure' =>
-                (int) (
-                    $evidence[
-                        'needs_repair_count'
-                    ] ?? 0
-                ) > 0
-                    ? 'Restore usable computer capacity and assess remaining needs'
-                    : 'Assess and address computer access capacity',
-
-            'connectivity' =>
-                'Validate and address institutional connectivity capacity',
-
-            'obsolescence' =>
-                (int) (
-                    $evidence[
-                        'needs_repair_count'
-                    ] ?? 0
-                ) > 0
-                    ? 'Inspect repairable assets and plan phased replacement'
-                    : 'Plan phased assessment of aging ICT assets',
-
-            default =>
-                'Review the identified ICT gap',
-        };
-    }
-
-    protected function recommendationForArea(
-        string $area,
-        array $evidence,
-        bool $needsValidation
-    ): string {
-        $validationSuffix =
-            $needsValidation
-                ? (
-                    ' Confirm incomplete or audit-pending information '
-                    . 'before approving major resource commitments.'
-                )
-                : '';
-
-        return match ($area) {
-            'infrastructure' =>
-                (
-                    (int) (
-                        $evidence[
-                            'needs_repair_count'
-                        ] ?? 0
-                    ) > 0
-                        ? (
-                            'Prioritize restoring usable ICT capacity first by '
-                            . 'inspecting and repairing serviceable assets, then '
-                            . 'reassess the remaining computer-access gap before '
-                            . 'planning additional capacity.'
-                        )
-                        : (
-                            'Prioritize the verified computer-access gap and '
-                            . 'assess the remaining capacity needed to support '
-                            . 'the recorded service population.'
-                        )
-                ) . $validationSuffix,
-
-            'connectivity' =>
-                (
-                    'Prioritize validation of actual simultaneous-use '
-                    . 'connectivity demand against the recorded bandwidth, '
-                    . 'then plan capacity improvement only if that review '
-                    . 'confirms the calculated connectivity gap.'
-                ) . $validationSuffix,
-
-            'obsolescence' =>
-                (
-                    'Prioritize condition assessment of the oldest and '
-                    . 'poor-condition asset groups, repair serviceable units '
-                    . 'first, and use the results to plan phased replacement '
-                    . 'rather than replacing all older equipment at once.'
-                ) . $validationSuffix,
-
-            default =>
-                (
-                    'Use the verified highest-scoring deficit as the first '
-                    . 'planning priority.'
-                ) . $validationSuffix,
-        };
-    }
-
-    protected function validationPriority(
-        mixed $completeness,
-        bool $requiresAudit
-    ): array {
-        $facts = [];
-
-        if (is_numeric($completeness)) {
-            $facts[] =
-                'data completeness is '
-                . $this->numberText(
-                    $completeness
-                )
-                . '%';
-        }
-
-        if ($requiresAudit) {
-            $facts[] =
-                'the institution is marked as requiring audit';
-        }
-
-        return [
-            'priority' =>
-                'Validate the institution ICT record',
-
-            'rationale' =>
-                $facts !== []
-                    ? ucfirst(
-                        implode(
-                            ' and ',
-                            $facts
-                        )
-                    ) . '.'
-                    : (
-                        'The current record requires validation '
-                        . 'before major resource decisions.'
-                    ),
-
-            'urgency' =>
-                'short_term',
-        ];
-    }
-
-    protected function urgencyFromScore(
-        float $score
-    ): string {
-        return match (true) {
-            $score >= 80 =>
-                'immediate',
-
-            $score >= 50 =>
-                'short_term',
-
-            default =>
-                'medium_term',
-        };
-    }
 
     protected function numberText(
         mixed $value
@@ -1224,12 +940,96 @@ PROMPT;
         return is_numeric($value) ? round((float) $value, 2) : null;
     }
 
+    protected function providerApiKey(string $provider): string
+    {
+        return match ($provider) {
+            'gemini' => trim((string) config(
+                'services.gemini.api_key'
+            )),
+            'groq' => trim((string) config(
+                'services.groq.api_key'
+            )),
+            default => '',
+        };
+    }
+
+    protected function inputSummary(array $context): array
+    {
+        $evidence =
+            $context['planning_evidence'] ?? [];
+
+        return [
+            'institution' =>
+                $context['institution'] ?? [],
+            'calculated_scores' =>
+                $context['calculated_scores'] ?? [],
+            'inventory_totals' =>
+                $evidence['inventory_totals'] ?? [],
+            'availability_status' => $evidence['availability_status'] ?? null,
+            'availability_recorded_row_counts' => $evidence['availability_recorded_row_counts'] ?? [],
+            'connectivity' =>
+                $evidence['connectivity'] ?? [],
+            'top_defective_components' =>
+                $this->compactComponentEvidence(
+                    $evidence['top_defective_components']
+                    ?? []
+                ),
+            'top_retired_components' =>
+                $this->compactComponentEvidence(
+                    $evidence['top_retired_components']
+                    ?? []
+                ),
+        ];
+    }
+
+    protected function compactComponentEvidence(
+        mixed $items
+    ): array {
+        if (!is_array($items)) {
+            return [];
+        }
+
+        return collect($items)
+            ->filter(fn ($item) => is_array($item))
+            ->take(5)
+            ->map(fn (array $item): array => [
+                'label' =>
+                    (string) ($item['label'] ?? ''),
+                'total_count' =>
+                    (int) ($item['total_count'] ?? 0),
+                'active_count' =>
+                    isset($item['active_count']) ? (int) $item['active_count'] : null,
+                'retired_count' =>
+                    isset($item['retired_count']) ? (int) $item['retired_count'] : null,
+                'functional_count' => isset($item['functional_count']) ? (int) $item['functional_count'] : null,
+                'defective_count' =>
+                    isset($item['defective_count']) ? (int) $item['defective_count'] : null,
+            ])
+            ->values()
+            ->all();
+    }
+
+    protected function safeAttemptMessage(string $message): string
+    {
+        $message = preg_replace(
+            '/key=[^&\s]+/i',
+            'key=[redacted]',
+            $message
+        ) ?? $message;
+
+        return Str::limit(
+            strip_tags($message),
+            500,
+            ''
+        );
+    }
+
     protected function providerModel(string $provider): string
     {
         return match ($provider) {
             'gemini' => (string) config(
                 'services.gemini.model',
-                'gemini-3.1-flash-lite'
+                'gemini-2.5-flash-lite'
             ),
             'groq' => (string) config(
                 'services.groq.model',

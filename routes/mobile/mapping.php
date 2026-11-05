@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\IctMappingController;
+use App\Http\Controllers\PortalMappingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,11 +14,11 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::get('/map/institutions', [
-    IctMappingController::class,
+    PortalMappingController::class,
     'getInstitutionsGeoJSON',
 ])->name('map.institutions');
 
 Route::get('/barangays/geojson', [
-    IctMappingController::class,
+    PortalMappingController::class,
     'getBarangaysGeoJSON',
 ])->name('barangays.geojson');

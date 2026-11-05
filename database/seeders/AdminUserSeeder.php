@@ -4,17 +4,35 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        User::create([
-            'name' => 'LGU Administrator',
-            'email' => 'admin@lipacity.gov.ph',
-            'password' => Hash::make('LGU@2025!'),
-            'role' => 'admin',
-        ]);
+        $adminEmail = trim((string) config('seeding.admin.email'));
+        $adminPassword = (string) config('seeding.admin.password');
+
+        if ($adminPassword === '') {
+            $this->command?->warn(
+                'Admin user was not seeded because ADMIN_SEED_PASSWORD is not configured.'
+            );
+
+            return;
+        }
+
+        if (! filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+            $this->command?->warn('Admin user was not seeded because ADMIN_SEED_EMAIL is not configured with a valid email address.');
+
+            return;
+        }
+
+        User::updateOrCreate(
+            ['email' => $adminEmail],
+            [
+                'name' => 'LGU Administrator',
+                'password' => $adminPassword,
+                'role' => 'admin',
+            ]
+        );
     }
 }

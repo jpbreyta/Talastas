@@ -4,67 +4,68 @@ namespace App\Http\Controllers;
 
 use App\Models\Institution;
 use App\Models\User;
+use App\Services\AccountAccess;
+use App\Services\InvitationService;
+use App\Services\SecurityAudit;
+use App\Services\SecurityMail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class UserManagementController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
+        $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'log_search' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $search = trim((string) $request->query('search', ''));
         $users = User::query()
             ->with('institutions:id,name,type')
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($query) use ($search): void {
+                    $query->where('name', 'like', '%'.$search.'%')
+                        ->orWhere('email', 'like', '%'.$search.'%');
+                });
+            })
             ->orderByRaw("CASE role WHEN 'admin' THEN 1 WHEN 'editor' THEN 2 ELSE 3 END")
             ->orderBy('name')
-            ->paginate(20);
+            ->paginate(20)->withQueryString();
 
         $institutions = Institution::query()
             ->where('is_active', true)
+            ->whereIn('type', ['School', 'Barangay Hall'])
+            ->with('barangay:id,name')
             ->orderBy('name')
-            ->get(['id', 'name', 'type']);
+            ->get(['id', 'name', 'type', 'barangay_id']);
 
-        return view('admin.users.index', compact('users', 'institutions'));
+        return view('admin.users.index', array_merge(
+            compact('users', 'institutions'),
+            app(UserActivityController::class)->activityData(trim((string) $request->query('log_search', '')))
+        ));
+    }
+
+    public function create(): RedirectResponse
+    {
+        return redirect()->route('admin.invitations.index');
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'role' => ['required', Rule::in(['admin', 'editor', 'viewer'])],
-            'password' => [
-                'required',
-                'confirmed',
-                Password::min(12)->mixedCase()->numbers(),
-            ],
-            'institution_ids' => ['nullable', 'array'],
-            'institution_ids.*' => ['integer', Rule::exists('institutions', 'id')],
-        ]);
-
-        DB::transaction(function () use ($validated): void {
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'role' => $validated['role'],
-                'password' => $validated['password'],
-            ]);
-
-            $this->syncAssignments(
-                $user,
-                $validated['role'],
-                $validated['institution_ids'] ?? []
-            );
-        });
-
-        return back()->with('success', 'User account created successfully.');
+        return redirect()->route('admin.invitations.index')->withErrors(['user' => 'Create an invitation. Administrators cannot set passwords for other users.']);
     }
 
     public function update(Request $request, User $user): RedirectResponse
     {
+        $request->merge(['email' => strtolower(trim((string) $request->input('email')))]);
         $validated = $request->validate([
+            'current_password' => ['required', 'current_password'],
             'name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
@@ -72,36 +73,32 @@ class UserManagementController extends Controller
                 'max:255',
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
-            'role' => ['required', Rule::in(['admin', 'editor', 'viewer'])],
-            'password' => [
-                'nullable',
-                'confirmed',
-                Password::min(12)->mixedCase()->numbers(),
-            ],
+            'role' => ['required', 'string', Rule::in(['admin', 'editor', 'viewer'])],
+            'password' => ['prohibited'], 'password_confirmation' => ['prohibited'],
+            'barangay_ids' => ['nullable', 'array'],
+            'barangay_ids.*' => ['integer', Rule::exists('barangays', 'id')],
             'institution_ids' => ['nullable', 'array'],
             'institution_ids.*' => ['integer', Rule::exists('institutions', 'id')],
         ]);
 
-        if (
-            $user->isAdmin()
-            && $validated['role'] !== 'admin'
-            && $this->isLastAdministrator($user)
-        ) {
-            return back()
-                ->withErrors(['role' => 'The last administrator cannot be demoted.'])
-                ->withInput();
+        if (User::whereRaw('LOWER(TRIM(email)) = ?', [$validated['email']])->whereKeyNot($user->id)->exists()) {
+            throw ValidationException::withMessages(['email' => 'This email already belongs to an account.']);
         }
-
+        abort_if($request->user()->is($user), 422, 'Use your profile to manage your own account.');
+        $validated['institution_ids'] = app(InvitationService::class)->resolveScope(
+            $validated['role'], $validated['institution_ids'] ?? [], $validated['barangay_ids'] ?? []
+        );
         DB::transaction(function () use ($validated, $user): void {
+            AccountAccess::lockAdministrators();
+            $user = User::lockForUpdate()->findOrFail($user->id);
+            if ($validated['role'] !== 'admin' && $this->isLastAdministrator($user)) {
+                throw ValidationException::withMessages(['role' => 'The last administrator cannot be demoted.']);
+            }
             $user->fill([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'role' => $validated['role'],
             ]);
-
-            if (! empty($validated['password'])) {
-                $user->password = $validated['password'];
-            }
 
             $user->save();
 
@@ -111,8 +108,12 @@ class UserManagementController extends Controller
                 $validated['institution_ids'] ?? []
             );
 
-            if (! empty($validated['password'])) {
-                $user->tokens()->delete();
+            AccountAccess::invalidate($user);
+            SecurityAudit::record('account.role_scope_updated', $user->id);
+            if (SecurityMail::available()) {
+                SecurityMail::queue('role_changed', (string) $user->id, $user->security_version);
+            } else {
+                SecurityAudit::record('notification.unavailable', $user->id, 'failed');
             }
         });
 
@@ -127,13 +128,11 @@ class UserManagementController extends Controller
             ]);
         }
 
-        if ($user->isAdmin() && $this->isLastAdministrator($user)) {
-            return back()->withErrors([
-                'user' => 'The last administrator account cannot be deleted.',
-            ]);
-        }
-
         DB::transaction(function () use ($user): void {
+            AccountAccess::lockAdministrators();
+            if ($this->isLastAdministrator($user)) {
+                throw ValidationException::withMessages(['user' => 'The last administrator account cannot be deleted.']);
+            }
             $user->tokens()->delete();
             $user->institutions()->detach();
             $user->delete();
@@ -144,8 +143,11 @@ class UserManagementController extends Controller
 
     private function syncAssignments(User $user, string $role, array $institutionIds): void
     {
+        DB::afterCommit(fn () => Cache::forget('map.institutions.geojson.v4.baseline.editor:'.$user->id));
+
         if ($role !== 'editor') {
             $user->institutions()->sync([]);
+
             return;
         }
 
@@ -160,7 +162,9 @@ class UserManagementController extends Controller
 
     private function isLastAdministrator(User $user): bool
     {
-        return $user->isAdmin()
-            && User::query()->where('role', 'admin')->count() <= 1;
+        // Serialize removals of administrator privileges within the write transaction.
+        $administrators = User::query()->where('role', 'admin')->where('is_active', true)->orderBy('id')->lockForUpdate()->get(['id']);
+
+        return $administrators->contains('id', $user->id) && $administrators->count() <= 1;
     }
 }

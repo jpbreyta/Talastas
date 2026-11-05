@@ -1,4 +1,7 @@
 @import 'tailwindcss';
+@import './notifications.css';
+@import './page-header.css';
+@import './dashboard.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -6,11 +9,493 @@
 @source '../**/*.js';
 
 @theme {
+    --color-red-900: #74151b;
+    --color-red-800: #5c1016;
+    --color-red-600: #c9232b;
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
 
+/* TALASTAS: readable information (alam), familiar hierarchy (kabisado),
+   and precise labels (tukoy). These tokens are shared by every screen. */
+:root {
+    --talastas-sidebar-width: 14rem;
+    --talastas-text-title: clamp(1.25rem, 1.1rem + 0.5vw, 1.5rem);
+    --talastas-text-section: 1rem;
+    --talastas-text-card: 0.875rem;
+    --talastas-text-body: 0.875rem;
+    --talastas-text-label: 0.75rem;
+    --talastas-leading-body: 1.5;
+    --talastas-leading-heading: 1.3;
+}
+
+@layer base {
+    html {
+        font-family: var(--font-sans);
+    }
+
+    body {
+        font-family: var(--font-sans);
+        font-size: var(--talastas-text-body);
+        font-weight: 400;
+        line-height: var(--talastas-leading-body);
+    }
+}
+
+/* Unlayered semantic rules normalize existing page utilities without requiring
+   repeated Blade classes. Login keeps its current heading sizes and layout. */
+:where(button, input, select, textarea) {
+    font-family: inherit;
+    font-size: var(--talastas-text-body);
+    line-height: var(--talastas-leading-body);
+}
+
+:where(button, input[type='submit'], input[type='button']) {
+    font-weight: 600;
+}
+
+:where(label) {
+    font-family: inherit;
+    font-size: var(--talastas-text-label);
+    font-weight: 600;
+    line-height: var(--talastas-leading-body);
+}
+
+.talastas-app :where(h1, h2, h3, h4) {
+    font-family: inherit;
+    font-weight: 600;
+    line-height: var(--talastas-leading-heading);
+}
+
+.talastas-app :where(h1) {
+    font-size: var(--talastas-text-title);
+    letter-spacing: -0.02em;
+}
+
+.talastas-app :where(h2) {
+    font-size: var(--talastas-text-section);
+}
+
+.talastas-app :where(h3, h4) {
+    font-size: var(--talastas-text-card);
+}
+
+.talastas-app :where(nav a) {
+    font-size: var(--talastas-text-label);
+    font-weight: 500;
+    line-height: var(--talastas-leading-body);
+}
+
+.talastas-app :where(th) {
+    font-size: var(--talastas-text-label);
+    font-weight: 600;
+    line-height: var(--talastas-leading-body);
+}
+
+.talastas-app :where(td) {
+    font-size: var(--talastas-text-body);
+    line-height: var(--talastas-leading-body);
+}
+
+:where([role='dialog'], [data-notification-list], #institutionToastContainer, #toast-container) {
+    font-family: var(--font-sans);
+    font-size: var(--talastas-text-body);
+    line-height: var(--talastas-leading-body);
+}
+
+.talastas-brand {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.talastas-header-branding .talastas-brand {
+    font-size: 1.125rem;
+}
+
+/* A single navigation drawer, with reserved desktop space in layouts.app. */
+.talastas-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 5100;
+    display: flex;
+    width: var(--talastas-sidebar-width);
+    max-width: calc(100vw - 2rem);
+    flex-direction: column;
+    background: var(--color-red-900);
+    /* Retain the content width formerly occupied by the decorative divider. */
+    padding-right: 1px;
+    visibility: hidden;
+    transform: translateX(-100%);
+}
+
+.talastas-sidebar[data-open] {
+    visibility: visible;
+    transform: translateX(0);
+}
+
+.talastas-sidebar-account-menu {
+    width: min(18rem, calc(100vw - 2rem));
+    max-height: calc(100vh - 7rem);
+    max-height: calc(100dvh - 7rem);
+}
+
+.talastas-sidebar-backdrop:not([hidden]) {
+    position: fixed;
+    inset: 0;
+    z-index: 5050;
+    background: rgb(15 23 42 / 55%);
+}
+
+.talastas-app .talastas-sidebar-link {
+    display: flex;
+    align-items: center;
+    height: 46px;
+    gap: 0.5rem;
+    padding: 0 0.75rem;
+    border-radius: 0.5rem;
+    color: rgb(255 255 255 / 78%);
+    font-size: var(--talastas-text-body);
+    font-weight: 500;
+    line-height: var(--talastas-leading-body);
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+.talastas-sidebar-link > i {
+    width: 20px;
+    flex: 0 0 20px;
+    text-align: center;
+    font-size: 18px;
+    line-height: 1;
+    opacity: 0.85;
+}
+
+.talastas-app .talastas-sidebar-link:not([aria-current='page']):hover {
+    background-color: rgb(255 255 255 / 8%);
+    color: white;
+}
+
+.talastas-app .talastas-sidebar-link[aria-current='page'] {
+    background-color: white;
+    color: var(--color-red-900);
+    font-weight: 600;
+}
+
+.talastas-sidebar-link[aria-current='page'] > i {
+    opacity: 1;
+}
+
+.talastas-sidebar-link:focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
+.talastas-header details > div {
+    max-width: calc(100vw - 6rem);
+}
+
+@media (min-width: 1024px) {
+    :root {
+        --talastas-sidebar-width: 200px;
+    }
+
+    .talastas-shell {
+        padding-left: var(--talastas-sidebar-width);
+    }
+
+    .talastas-sidebar {
+        visibility: visible;
+        transform: none;
+        /* Existing page modals stay above desktop navigation. */
+        z-index: 2000;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .talastas-sidebar-link {
+        transition: none;
+    }
+}
+
+/* Page-specific controls share the application header without duplicate IDs. */
+.map-header-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: 3.75rem auto;
+    align-items: center;
+    column-gap: 0.75rem;
+    padding-inline: 1rem;
+}
+
+.map-header-account {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.map-header-controls {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    padding-block: 0.625rem;
+    /* Preserve the second-row height without a decorative separator. */
+    padding-top: 0.625rem;
+}
+
+.map-header-metric {
+    order: 1;
+    display: flex;
+    flex: 1 1 12rem;
+    min-width: 0;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.map-header-metric label,
+.map-header-barangay label {
+    flex-shrink: 0;
+    color: var(--color-red-100);
+}
+
+.map-header-metric select,
+.map-header-barangay select {
+    width: 12rem;
+    min-width: 0;
+    max-width: 100%;
+    height: 2rem;
+    border: 1px solid var(--color-red-100);
+    border-radius: 0.375rem;
+    background: white;
+    padding: 0.25rem 0.5rem;
+    color: var(--color-slate-800);
+    font-size: var(--talastas-text-label);
+}
+
+.map-header-overlays {
+    order: 3;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.map-header-barangay {
+    order: 2;
+    display: flex;
+    flex: 1 1 14rem;
+    min-width: 0;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.map-header-barangay select {
+    width: 10rem;
+    flex: 1 1 auto;
+}
+
+.map-header-barangay button {
+    flex-shrink: 0;
+}
+
+.map-header-controls .map-header-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    height: 2rem;
+    padding: 0.25rem 0.5rem;
+    border: 1px solid rgb(255 255 255 / 25%);
+    border-radius: 0.375rem;
+    background: rgb(255 255 255 / 6%);
+    color: var(--color-red-100);
+    font-size: var(--talastas-text-label);
+    white-space: nowrap;
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+.map-header-controls .map-header-button:hover {
+    background: rgb(255 255 255 / 14%);
+    color: white;
+}
+
+.map-header-controls .map-header-button[aria-pressed='true'] {
+    border-color: white;
+    background: white;
+    color: var(--color-red-900);
+}
+
+.map-header-controls .map-header-clear {
+    border-color: transparent;
+    background: transparent;
+}
+
+.map-header-controls :is(button, select):focus-visible {
+    outline: 2px solid white;
+    outline-offset: 2px;
+}
+
+@media (min-width: 640px) {
+    .map-header-row {
+        padding-inline: 1.5rem;
+    }
+    .map-header-metric,
+    .map-header-barangay {
+        flex: 0 1 auto;
+    }
+}
+
+/* Keep the existing map control breakpoint and compact second row. */
+@media (min-width: 1440px) {
+    .map-header-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-rows: 3.75rem;
+    }
+    .map-header-brand {
+        display: none;
+    }
+    .map-header-controls {
+        grid-column: 1;
+        grid-row: 1;
+        flex-wrap: nowrap;
+        justify-content: center;
+        padding-block: 0;
+    }
+    .map-header-account {
+        grid-column: 2;
+    }
+    .map-header-overlays {
+        flex-wrap: nowrap;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .map-header-controls .map-header-button {
+        transition: none;
+    }
+}
+
 /* Custom map dashboard styles */
+.map-information-button {
+    position: absolute;
+    right: 1rem;
+    bottom: 2rem;
+    z-index: 1200;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid var(--color-slate-300);
+    border-radius: 50%;
+    background: white;
+    color: var(--color-red-900);
+    font-size: 1.25rem;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 15%);
+    cursor: pointer;
+}
+
+.map-information-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1600;
+    overflow: hidden;
+    visibility: hidden;
+    pointer-events: none;
+    transition: visibility 250ms;
+}
+
+.map-information-overlay[data-open='true'] {
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.map-information-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: rgb(15 23 42 / 35%);
+    opacity: 0;
+    transition: opacity 250ms ease;
+}
+
+.map-information-panel {
+    position: absolute;
+    inset-block: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    width: min(24rem, 100%);
+    background: white;
+    box-shadow: -4px 0 16px rgb(0 0 0 / 15%);
+    transform: translateX(100%);
+    transition: transform 250ms ease;
+}
+
+.map-information-overlay[data-open='true'] .map-information-backdrop {
+    opacity: 1;
+}
+
+.map-information-overlay[data-open='true'] .map-information-panel {
+    transform: translateX(0);
+}
+
+.map-information-heading {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--color-slate-200);
+}
+
+.map-information-heading h2 {
+    font-weight: 600;
+    color: var(--color-slate-900);
+}
+
+.map-information-heading button {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.375rem;
+    color: var(--color-slate-600);
+    cursor: pointer;
+}
+
+.map-information-button:hover,
+.map-information-heading button:hover {
+    background: var(--color-slate-100);
+}
+
+.map-information-button:focus-visible,
+.map-information-heading button:focus-visible {
+    outline: 2px solid var(--color-red-900);
+    outline-offset: 2px;
+}
+
+.map-information-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 1rem 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .map-information-overlay,
+    .map-information-backdrop,
+    .map-information-panel {
+        transition: none;
+    }
+}
+
 .leaflet-container {
     font-family: inherit;
 }
@@ -66,4 +551,104 @@
     .map-container {
         height: 400px;
     }
+}
+
+
+/* TALASTAS metric information popover */
+.metric-info-popover {
+    position: fixed;
+    z-index: 9999;
+    width: min(20rem, calc(100vw - 1.5rem));
+    border: 1px solid rgb(226 232 240);
+    border-radius: 0.75rem;
+    background: #fff;
+    padding: 0.875rem;
+    color: rgb(51 65 85);
+    box-shadow:
+        0 10px 15px -3px rgb(15 23 42 / 0.12),
+        0 4px 6px -4px rgb(15 23 42 / 0.12);
+}
+
+.metric-info-popover[hidden] {
+    display: none;
+}
+
+.metric-info-popover__title {
+    margin: 0;
+    color: rgb(15 23 42);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.25rem;
+}
+
+.metric-info-popover__description,
+.metric-info-popover__formula {
+    margin: 0.375rem 0 0;
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+}
+
+.metric-info-popover__formula {
+    margin-top: 0.625rem;
+    color: rgb(51 65 85);
+}
+
+.metric-info-popover__formula strong {
+    color: rgb(15 23 42);
+}
+
+.profile-menu-list { display: grid; padding-block: .35rem; }
+.profile-menu-item { display: flex; align-items: center; gap: .75rem; min-height: 46px; padding: .75rem 1rem; color: #334155; font-size: .875rem; font-weight: 500; line-height: 1.4; text-decoration: none; }
+.profile-menu-item:hover, .profile-menu-item:focus-visible { background: #f8fafc; color: #800000; text-decoration: none; }
+.profile-menu-item:focus-visible { outline: 2px solid #800000; outline-offset: -3px; }
+.profile-menu-item > i { width: 1.25rem; flex-shrink: 0; text-align: center; }
+.profile-menu-signout { color: #b91c1c; }
+.profile-menu-signout:hover { background: #fef2f2; }
+.talastas-sidebar-account-menu { width: min(20rem, calc(100vw - 2rem)); overscroll-behavior: contain; }
+
+/* Keep the current directory visible while its replacement is loading. */
+[data-institution-results] {
+    position: relative;
+    isolation: isolate;
+}
+[data-institution-results][aria-busy="true"] {
+    overflow: hidden;
+}
+[data-institution-results][aria-busy="true"]::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto;
+    height: 3px;
+    z-index: 3;
+    background: linear-gradient(90deg, transparent, #c9232b, transparent);
+    background-size: 50% 100%;
+    background-repeat: no-repeat;
+    animation: institution-loading-bar 1.3s ease-in-out infinite;
+    pointer-events: none;
+}
+[data-institution-results][aria-busy="true"]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: linear-gradient(105deg, transparent 25%, rgb(255 255 255 / 75%) 50%, transparent 75%);
+    background-size: 200% 100%;
+    animation: institution-loading-shimmer 1.5s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes institution-loading-bar {
+    from { background-position: -100% 0; }
+    to { background-position: 200% 0; }
+}
+@keyframes institution-loading-shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    [data-institution-results][aria-busy="true"]::before,
+    [data-institution-results][aria-busy="true"]::after {
+        animation: none;
+        background-position: center;
+    }
+    [data-institution-list-status] .fa-spin { animation: none; }
 }

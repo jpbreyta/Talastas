@@ -19,17 +19,24 @@ class InstitutionAnalytics extends Model
         'infrastructure_deficit_score',
         'connectivity_divide_score',
         'technological_obsolescence_score',
-
-        'data_completeness_score',
-        'asset_to_user_ratio',
         'risk_level',
 
         'infrastructure_narrative',
         'policy_recommendation',
         'recommendations_detail',
+        'ai_priorities',
 
         'analysis_date',
+
+        'processing_token',
+        'processing_status',
+        'processing_stage',
+        'processing_started_at',
+        'processing_completed_at',
+        'processing_error',
     ];
+
+    protected $hidden = ['processing_error'];
 
     protected $casts = [
         'institution_id' => 'integer',
@@ -38,12 +45,15 @@ class InstitutionAnalytics extends Model
         'infrastructure_deficit_score' => 'float',
         'connectivity_divide_score' => 'float',
         'technological_obsolescence_score' => 'float',
-        'data_completeness_score' => 'float',
-        'asset_to_user_ratio' => 'float',
 
         'recommendations_detail' => 'array',
+        'ai_priorities' => 'array',
         'analysis_date' => 'datetime',
+
+        'processing_started_at' => 'datetime',
+        'processing_completed_at' => 'datetime',
     ];
+
 
     public function institution(): BelongsTo
     {

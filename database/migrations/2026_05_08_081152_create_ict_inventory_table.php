@@ -29,7 +29,6 @@ return new class extends Migration
             $table->string('condition', 50);
             $table->unsignedSmallInteger('acquisition_year')->nullable();
             $table->string('status', 50);
-            $table->string('location', 150)->nullable();
 
             // Category-specific technical details.
             // Examples: processor/RAM/storage for computers, Wi-Fi standard for

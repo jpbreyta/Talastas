@@ -18,6 +18,9 @@ Route::get('/analytics', [
     'getAnalytics',
 ])->name('analytics.index');
 
+Route::get('/analytics/report.pdf', [AnalyticsController::class, 'exportPdf'])
+    ->middleware('rbac:planner')->name('analytics.report');
+
 Route::middleware('rbac:admin')->group(function (): void {
     Route::get('/analytics/export', [
         AnalyticsController::class,
@@ -29,10 +32,18 @@ Route::middleware('rbac:admin')->group(function (): void {
         'analyzeInstitution',
     ])
         ->whereNumber('institution')
+        ->middleware('throttle:10,1')
         ->name('analytics.analyze');
 
     Route::post('/analytics/analyze-all', [
         AnalyticsController::class,
         'analyzeAll',
-    ])->name('analytics.analyze-all');
+    ])
+        ->middleware('throttle:5,1')
+        ->name('analytics.analyze-all');
+
+    Route::get('/analytics/python-health', [
+        AnalyticsController::class,
+        'pythonHealth',
+    ])->name('analytics.python-health');
 });

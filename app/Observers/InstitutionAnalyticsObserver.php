@@ -10,6 +10,20 @@ class InstitutionAnalyticsObserver
 {
     public function saved(InstitutionAnalytics $analytics): void
     {
+        $completedNow =
+            $analytics->processing_status === 'completed'
+            && (
+                $analytics->wasChanged('processing_status')
+                || $analytics->wasChanged('analysis_date')
+            );
+
+        if (
+            !$completedNow
+            || $analytics->analysis_date === null
+        ) {
+            return;
+        }
+
         $institution = $analytics->institution()->first();
 
         if (! $institution) {
@@ -29,7 +43,7 @@ class InstitutionAnalyticsObserver
             institutionName: $institution->name,
             institutionId: $institution->id,
             analysisId: $analytics->getKey(),
-            actionUrl: '/analytics',
+            actionUrl: "/institutions/{$institution->id}",
         );
     }
 }

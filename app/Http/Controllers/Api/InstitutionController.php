@@ -19,9 +19,10 @@ class InstitutionController extends Controller
      *
      * The API key is removed from every record before the response is sent.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $institutions = Institution::query()
+            ->when($request->user()->isEditor(), fn ($q) => $q->whereHas('assignedUsers', fn ($assigned) => $assigned->whereKey($request->user()->id)))
             ->with('barangay')
             ->latest()
             ->get()
@@ -39,8 +40,9 @@ class InstitutionController extends Controller
      * Related barangay, inventory, and analytics records are loaded while the
      * server-side API key remains hidden from the mobile application.
      */
-    public function show(Institution $institution): JsonResponse
+    public function show(Request $request, Institution $institution): JsonResponse
     {
+        abort_unless($request->user()->canAccessInstitution($institution), 403);
         $institution->load([
             'barangay',
             'ictInventory',
@@ -68,7 +70,7 @@ class InstitutionController extends Controller
 
         $request->merge([
             'is_active' => $request->has('is_active')
-                ? $request->boolean('is_active')
+                ? $request->input('is_active')
                 : true,
         ]);
 
@@ -83,8 +85,6 @@ class InstitutionController extends Controller
             $request
         );
 
-        $this->validatePopulationRequirements($validated);
-
         if ($this->coordinatesAreMissing($validated)) {
             $validated = $this->addGeocodedCoordinates($validated);
         } else {
@@ -98,11 +98,6 @@ class InstitutionController extends Controller
         if (config('services.rdbma.api_key')) {
             $validated['api_key'] = config('services.rdbma.api_key');
         }
-
-        $validated = array_merge(
-            $validated,
-            $this->inventorySummaryDefaults()
-        );
 
         $institution = DB::transaction(
             fn () => Institution::create($validated)
@@ -121,10 +116,8 @@ class InstitutionController extends Controller
     /**
      * Validate and update an existing institution from the Flutter application.
      *
-     * Partial updates are supported. The final institution type and population
-     * values are checked together to prevent incomplete or inconsistent data.
-     * Coordinates are searched again when the name or barangay changes without
-     * new coordinates being supplied.
+     * Partial updates are supported. Coordinates are searched again when the
+     * name or barangay changes without new coordinates being supplied.
      */
     public function update(
         Request $request,
@@ -151,13 +144,9 @@ class InstitutionController extends Controller
                 'barangay_id',
                 'latitude',
                 'longitude',
-                'student_population',
-                'staff_population',
             ]),
             $validated
         );
-
-        $this->validatePopulationRequirements($finalData);
 
         if ($this->shouldRefreshCoordinates($request, $finalData)) {
             $geocodedData = $this->addGeocodedCoordinates($finalData);
@@ -178,6 +167,11 @@ class InstitutionController extends Controller
 
         if (config('services.rdbma.api_key')) {
             $validated['api_key'] = config('services.rdbma.api_key');
+        }
+
+        if (array_key_exists('download_speed_mbps', $validated)) {
+            $validated['internet_speed'] =
+                $validated['download_speed_mbps'];
         }
 
         DB::transaction(function () use ($institution, $validated): void {
@@ -223,6 +217,8 @@ class InstitutionController extends Controller
             return;
         }
 
+        $request->validate(['barangay' => ['required', 'string', 'max:255']]);
+
         $barangayName = trim((string) $request->input('barangay'));
 
         $barangay = Barangay::query()
@@ -248,9 +244,8 @@ class InstitutionController extends Controller
     /**
      * Return the fields accepted by the institution API.
      *
-     * Audit ownership, audit dates, calculated completeness scores, and API
-     * keys are intentionally excluded because they must be controlled by the
-     * Laravel server or a dedicated audit endpoint.
+     * Only institution identity, map coordinates, active status, and the
+     * connectivity inputs used by the finalized ICT Gap baseline are accepted.
      */
     protected function validationRules(
         Request $request,
@@ -260,24 +255,14 @@ class InstitutionController extends Controller
 
         return [
             'name' => $prefix . 'required|string|max:255',
-            'barangay_id' => $prefix . 'required|exists:barangays,id',
-            'type' => $prefix . 'required|in:School,Barangay Hall,Local Government Office',
+            'barangay_id' => $prefix . 'required|integer|exists:barangays,id',
+            'type' => $prefix . 'required|in:School,Barangay Hall',
             'latitude' => $prefix . 'nullable|numeric|between:-90,90',
             'longitude' => $prefix . 'nullable|numeric|between:-180,180',
-            'student_population' => $prefix . 'nullable|integer|min:0',
-            'staff_population' => $prefix . 'nullable|integer|min:0',
-            'isp_provider' => $prefix . 'nullable|string|max:255',
-            'internet_speed' => $prefix . 'nullable|numeric|min:0',
+            'has_internet_connection' => $prefix . 'nullable|boolean',
+            'bandwidth_allocation_mbps' => $prefix . 'nullable|numeric|min:0|max:1000000',
+            'download_speed_mbps' => $prefix . 'nullable|numeric|min:0|max:1000000',
 
-            'number_of_computers' => 'prohibited',
-            'has_computer_lab' => 'prohibited',
-            'has_projected_whiteboard' => 'prohibited',
-            'has_smart_tv' => 'prohibited',
-            'has_public_address_system' => 'prohibited',
-
-            'needs_maintenance' => $prefix . 'nullable|boolean',
-            'notes' => $prefix . 'nullable|string',
-            'is_pilot_site' => $prefix . 'nullable|boolean',
             'is_active' => $prefix . 'nullable|boolean',
         ];
     }
@@ -303,39 +288,6 @@ class InstitutionController extends Controller
     }
 
     /**
-     * Check the final population values required by the institution type.
-     *
-     * Schools require a student population. Barangay halls and local government
-     * offices require a staff population.
-     */
-    protected function validatePopulationRequirements(array $data): void
-    {
-        $type = $data['type'] ?? null;
-
-        if (
-            $type === 'School'
-            && !isset($data['student_population'])
-        ) {
-            throw ValidationException::withMessages([
-                'student_population' => [
-                    'The student population is required for a school.',
-                ],
-            ]);
-        }
-
-        if (
-            in_array($type, ['Barangay Hall', 'Local Government Office'], true)
-            && !isset($data['staff_population'])
-        ) {
-            throw ValidationException::withMessages([
-                'staff_population' => [
-                    'The staff population is required for this institution type.',
-                ],
-            ]);
-        }
-    }
-
-    /**
      * Convert checkbox-like API values into real boolean values.
      *
      * During partial updates, only boolean fields included in the request are
@@ -352,6 +304,17 @@ class InstitutionController extends Controller
             }
         }
 
+        foreach ([
+            'has_internet_connection',
+        ] as $field) {
+            if ($request->has($field)) {
+                $validated[$field] =
+                    in_array($request->input($field), [null, ''], true)
+                        ? null
+                        : $request->boolean($field);
+            }
+        }
+
         return $validated;
     }
 
@@ -361,23 +324,7 @@ class InstitutionController extends Controller
     protected function booleanFields(): array
     {
         return [
-            'needs_maintenance',
-            'is_pilot_site',
             'is_active',
-        ];
-    }
-
-    /**
-     * Return inventory-controlled defaults for a new institution.
-     */
-    protected function inventorySummaryDefaults(): array
-    {
-        return [
-            'number_of_computers' => 0,
-            'has_computer_lab' => false,
-            'has_projected_whiteboard' => false,
-            'has_smart_tv' => false,
-            'has_public_address_system' => false,
         ];
     }
 
@@ -508,7 +455,7 @@ class InstitutionController extends Controller
             $response = Http::withHeaders([
                 'User-Agent' => config(
                     'services.nominatim.user_agent',
-                    'LipaGisMapping/1.0 (jpreytapogi@gmail.com)'
+                    'LipaGisMapping/1.0'
                 ),
             ])
                 ->timeout(10)
@@ -588,8 +535,8 @@ class InstitutionController extends Controller
                 $address = $item['address'] ?? [];
 
                 $results[] = [
-                    'lat' => round($latitude, 7),
-                    'lng' => round($longitude, 7),
+                    'lat' => $latitude,
+                    'lng' => $longitude,
                     'display_name' => $result['display_name']
                         ?? $item['display_name']
                         ?? '',

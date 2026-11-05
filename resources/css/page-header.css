@@ -1,0 +1,195 @@
+/* Shared authenticated-page headings; widths follow each page's content. */
+.talastas-app .talastas-filter-toolbar {
+    padding-block: 3px;
+}
+.talastas-app .talastas-filter-toolbar label {
+    margin-bottom: 2px;
+    line-height: 14px;
+}
+.talastas-app .talastas-filter-controls :is(select, button, a) {
+    height: 40px;
+    padding-block: 8px;
+    font-size: 0.875rem;
+    line-height: 20px;
+}
+.talastas-app .talastas-filter-controls :is(button, a) {
+    align-items: center;
+    justify-content: center;
+}
+.talastas-feature-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 0.75rem;
+}
+.talastas-feature-header > :first-child,
+.talastas-feature-header > .shrink-0 { min-height: 60px; display: flex; align-items: center; }
+.talastas-feature-header > .shrink-0 { grid-column: 2; grid-row: 1; }
+.talastas-mobile-page-title { grid-column: 1 / -1; grid-row: 2; }
+.talastas-header-tools {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    min-width: 0;
+    gap: 0.5rem;
+    padding-bottom: 0.75rem;
+}
+.talastas-header-tools > .relative { flex: 1 1 12rem; max-width: 16rem; min-width: 0; }
+.talastas-header-tools input[type="search"] { width: 100%; min-width: 0; height: 36px; font-size: 0.875rem; }
+.talastas-header-tools :is(button, a) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 36px;
+    border-radius: 0.5rem;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid rgb(255 255 255 / 25%);
+    background: rgb(255 255 255 / 10%);
+    color: white;
+    font-size: 0.875rem;
+    font-weight: 600;
+    box-shadow: none;
+}
+.talastas-header-tools :is(button, a):hover { background: rgb(255 255 255 / 18%); }
+.talastas-header-tools :is(button, a):focus-visible { outline: 2px solid white; outline-offset: 2px; }
+@media (min-width: 1280px) {
+    .talastas-feature-header { grid-template-columns: minmax(0, 1fr) auto auto; min-height: 60px; }
+    .talastas-feature-header > .shrink-0 { grid-column: 3; }
+    .talastas-header-tools { grid-column: 2; grid-row: 1; flex-wrap: nowrap; padding-bottom: 0; }
+    .talastas-header-tools > .relative { width: 16rem; }
+}
+.talastas-app .talastas-header-page-title {
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    line-height: 1.5rem;
+    letter-spacing: normal;
+}
+.talastas-header-page-title > i {
+    flex: 0 0 20px;
+    width: 20px;
+    font-size: 18px;
+    line-height: 1;
+    text-align: center;
+}
+@media (max-width: 639px) {
+    .talastas-app .talastas-header-page-title {
+        font-size: 1rem;
+        line-height: 1.25rem;
+    }
+}
+.talastas-page-header {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    color: var(--color-slate-900);
+}
+.talastas-page-header-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+}
+.talastas-page-header-context {
+    padding-block: 0.75rem;
+}
+.talastas-page-header-context .talastas-page-header-inner {
+    justify-content: flex-end;
+}
+.talastas-page-header-context .talastas-page-header-actions {
+    max-width: 100%;
+}
+.talastas-page-header.talastas-page-toolbar {
+    min-height: 58px;
+    padding-block: 0.5rem;
+}
+.talastas-page-toolbar .talastas-page-header-inner {
+    min-height: 40px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+.talastas-page-toolbar .talastas-page-header-actions {
+    margin-left: auto;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+.talastas-app .talastas-page-header-title {
+    font-size: var(--talastas-text-title);
+    font-weight: 600;
+    line-height: var(--talastas-leading-heading);
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
+}
+.talastas-page-header-subtitle {
+    margin-top: 0.25rem;
+    font-size: var(--talastas-text-body);
+    font-weight: 400;
+    line-height: var(--talastas-leading-body);
+    color: var(--color-slate-600);
+}
+.talastas-page-header-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    max-width: 100%;
+}
+.talastas-page-header-actions :where(button, a, input, select) {
+    min-height: 40px;
+    max-width: 100%;
+    border-radius: 0.5rem;
+    font-size: var(--talastas-text-body);
+    line-height: var(--talastas-leading-body);
+}
+.talastas-page-header-actions :where(button, a) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+.talastas-page-header-actions .page-header-primary {
+    background: var(--color-red-700);
+    border-color: var(--color-red-700);
+    color: white;
+    box-shadow: none;
+}
+.talastas-page-header-actions .page-header-primary:hover {
+    background: var(--color-red-800);
+}
+.talastas-page-header-back {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--color-slate-300);
+    border-radius: 0.5rem;
+    color: var(--color-slate-600);
+    background: white;
+}
+.talastas-page-header-back:hover { background: var(--color-slate-50); }
+.talastas-page-header-dialog .talastas-page-header-inner {
+    flex-direction: row;
+    align-items: flex-start;
+}
+.talastas-page-header-dialog .talastas-page-header-actions { flex-shrink: 0; }
+.talastas-page-header-dialog .talastas-page-header-actions button { width: 40px; }
+.talastas-page-header :where(a, button, input, select):focus-visible {
+    outline: 2px solid var(--color-red-700);
+    outline-offset: 2px;
+}
+@media (min-width: 1280px) {
+    .talastas-page-header-inner { flex-direction: row; align-items: center; justify-content: space-between; }
+    .talastas-page-header-actions { flex-shrink: 0; max-width: 65%; }
+}
+
+.map-header-controls select.map-header-centered-select { text-align: center; text-align-last: center; }

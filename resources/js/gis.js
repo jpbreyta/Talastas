@@ -1,3 +1,5 @@
+import { installLipaNavigation } from './lipa-map-navigation';
+import './map-dashboard';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -6,6 +8,7 @@ import 'leaflet/dist/leaflet.css';
 // marker icon assets, Leaflet Search, Geoman, and the full Turf bundle on the
 // initial Home/Map request.
 window.L = L;
+window.installLipaNavigation = (map, data) => installLipaNavigation(map, L, data);
 
 let heatPluginPromise = null;
 

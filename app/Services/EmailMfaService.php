@@ -25,28 +25,45 @@ class EmailMfaService
                 && $locked->security_version === (int) $user->security_version, 403);
             $context = $this->context();
             $row = EmailVerificationCode::where('user_id', $locked->id)->where('context_hash', $context)->lockForUpdate()->first();
-            if (! $resend && $row && $row->security_version === $locked->security_version && ! $row->consumed_at
-                && $row->expires_at->isFuture()) {
+            if (
+                ! $resend && $row && $row->security_version === $locked->security_version && ! $row->consumed_at
+                && $row->expires_at->isFuture()
+            ) {
                 return $row;
             }
-            if (RateLimiter::tooManyAttempts('email-mfa-send:'.$locked->id, 5)
-                || RateLimiter::tooManyAttempts('email-mfa-cooldown:'.$locked->id, 1)) {
+            if (
+                RateLimiter::tooManyAttempts('email-mfa-send:' . $locked->id, 5)
+                || RateLimiter::tooManyAttempts('email-mfa-cooldown:' . $locked->id, 1)
+            ) {
                 throw ValidationException::withMessages(['code' => 'Please wait before requesting another email code. You can request up to five codes per hour.']);
             }
-            RateLimiter::hit('email-mfa-send:'.$locked->id, 3600);
-            RateLimiter::hit('email-mfa-cooldown:'.$locked->id, 60);
+            RateLimiter::hit('email-mfa-send:' . $locked->id, 3600);
+            RateLimiter::hit('email-mfa-cooldown:' . $locked->id, 60);
             $row ??= new EmailVerificationCode(['id' => (string) Str::uuid(), 'user_id' => $locked->id, 'context_hash' => $context]);
             $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-            $row->fill(['security_version' => $locked->security_version, 'attempts' => 0,
-                'requested_at' => now(), 'expires_at' => now()->addMinutes(self::LIFETIME_MINUTES), 'consumed_at' => null]);
+            $row->fill([
+                'security_version' => $locked->security_version,
+                'attempts' => 0,
+                'requested_at' => now(),
+                'expires_at' => now()->addMinutes(self::LIFETIME_MINUTES),
+                'consumed_at' => null
+            ]);
             $row->code_hash = $this->digest($row, $locked, $code);
             $row->save();
             try {
                 SecurityMail::send($locked->email, 'verification', ['code' => $code]);
             } catch (\Throwable $exception) {
-                // Provider errors may contain credentials or message bodies; never expose them.
-                Log::warning('Verification email delivery failed.', ['user_id' => $locked->id]);
-                throw ValidationException::withMessages(['mail' => 'We could not send your email code. Please try again in a minute or contact your System Admin.']);
+                Log::warning('Verification email delivery failed.', [
+                    'user_id' => $locked->id,
+                    'exception_class' => get_class($exception),
+                    'previous_exception_class' => $exception->getPrevious()
+                        ? get_class($exception->getPrevious())
+                        : null,
+                ]);
+
+                throw ValidationException::withMessages([
+                    'mail' => 'We could not send your email code. Please try again in a minute or contact your System Admin.',
+                ]);
             }
             SecurityAudit::record('mfa.email_sent', $locked->id, 'transport_accepted');
 
@@ -58,7 +75,7 @@ class EmailMfaService
     {
         return DB::transaction(function () use ($user, $code, $challengeId) {
             $locked = User::lockForUpdate()->findOrFail($user->id);
-            $limit = 'mfa-factor:'.$locked->id;
+            $limit = 'mfa-factor:' . $locked->id;
             if (RateLimiter::tooManyAttempts($limit, 5)) {
                 SecurityAudit::record('mfa.throttled', $locked->id, 'denied');
 
@@ -69,9 +86,11 @@ class EmailMfaService
                 $query->whereKey($challengeId);
             }
             $row = $query->lockForUpdate()->first();
-            if (! $locked->is_active || ! $locked->isAdmin() || $locked->security_version !== (int) $user->security_version
+            if (
+                ! $locked->is_active || ! $locked->isAdmin() || $locked->security_version !== (int) $user->security_version
                 || ! $row || $row->security_version !== $locked->security_version || $row->consumed_at
-                || ! $row->expires_at->isFuture() || $row->attempts >= 5 || ! $row->code_hash) {
+                || ! $row->expires_at->isFuture() || $row->attempts >= 5 || ! $row->code_hash
+            ) {
                 RateLimiter::hit($limit, 60);
                 SecurityAudit::record('mfa.failed', $locked->id, 'denied');
 
@@ -115,14 +134,14 @@ class EmailMfaService
     private function context(): string
     {
         $request = request();
-        $value = $request->hasSession() ? 'web:'.$request->session()->getId()
-            : 'api:'.$request->ip().':'.$request->userAgent();
+        $value = $request->hasSession() ? 'web:' . $request->session()->getId()
+            : 'api:' . $request->ip() . ':' . $request->userAgent();
 
-        return hash_hmac('sha256', 'email-mfa:'.$value, (string) config('app.key'));
+        return hash_hmac('sha256', 'email-mfa:' . $value, (string) config('app.key'));
     }
 
     private function digest(EmailVerificationCode $row, User $user, string $code): string
     {
-        return hash_hmac('sha256', $row->id.':'.$user->id.':'.$user->email.':'.$row->security_version.':'.$row->context_hash.':'.$code, (string) config('app.key'));
+        return hash_hmac('sha256', $row->id . ':' . $user->id . ':' . $user->email . ':' . $row->security_version . ':' . $row->context_hash . ':' . $code, (string) config('app.key'));
     }
 }

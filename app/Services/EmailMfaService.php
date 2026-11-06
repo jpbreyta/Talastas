@@ -53,12 +53,33 @@ class EmailMfaService
             try {
                 SecurityMail::send($locked->email, 'verification', ['code' => $code]);
             } catch (\Throwable $exception) {
+                $safeMessage = $exception->getMessage();
+
+                // Redact sensitive values before writing diagnostic logs.
+                foreach ([
+                    config('mail.mailers.smtp.username'),
+                    config('mail.mailers.smtp.password'),
+                    config('mail.from.address'),
+                    $locked->email,
+                ] as $sensitive) {
+                    if (is_string($sensitive) && $sensitive !== '') {
+                        $safeMessage = str_replace($sensitive, '[redacted]', $safeMessage);
+                    }
+                }
+
+                $safeMessage = preg_replace(
+                    '/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i',
+                    '[redacted-email]',
+                    $safeMessage
+                ) ?? 'Unable to capture SMTP error.';
+
+                $safeMessage = preg_replace('/\b\d{6}\b/', '[redacted-code]', $safeMessage);
+                $safeMessage = Str::limit($safeMessage, 300);
+
                 Log::warning('Verification email delivery failed.', [
                     'user_id' => $locked->id,
                     'exception_class' => get_class($exception),
-                    'previous_exception_class' => $exception->getPrevious()
-                        ? get_class($exception->getPrevious())
-                        : null,
+                    'smtp_error' => $safeMessage,
                 ]);
 
                 throw ValidationException::withMessages([

@@ -9,6 +9,7 @@ use App\Models\UserInvitation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class SecurityMail
@@ -59,8 +60,8 @@ class SecurityMail
 
         try {
             $mailable = new AccountSecurityMail($kind, $data);
+            $subject = $mailable->subjectLine();
             $html = $mailable->render();
-            $subject = $mailable->subject ?? 'TALASTAS account security';
             $fromAddress = config('mail.from.address');
             $fromName = config('mail.from.name', 'TALASTAS');
 
@@ -116,8 +117,34 @@ class SecurityMail
 
         if ($exception !== null) {
             $context['exception_class'] = get_class($exception);
+            $context['exception_message'] = self::sanitizeExceptionMessage($exception->getMessage());
         }
 
         Log::warning('Resend email delivery failed.', $context);
+    }
+
+    private static function sanitizeExceptionMessage(string $message): string
+    {
+        $sensitive = [
+            config('services.resend.key'),
+            config('mail.from.address'),
+        ];
+
+        foreach ($sensitive as $value) {
+            if (is_string($value) && $value !== '') {
+                $message = str_replace($value, '[redacted]', $message);
+            }
+        }
+
+        $message = preg_replace(
+            '/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i',
+            '[redacted-email]',
+            $message
+        ) ?? $message;
+
+        $message = preg_replace('/\b\d{6}\b/', '[redacted-code]', $message);
+        $message = Str::limit($message, 300);
+
+        return $message;
     }
 }

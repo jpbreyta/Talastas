@@ -61,7 +61,13 @@ class SecurityMail
         try {
             $mailable = new AccountSecurityMail($kind, $data);
             $subject = $mailable->subjectLine();
-            $html = $mailable->render();
+
+            $html = view('emails.account-security', [
+                'title' => $subject,
+                'kind' => $mailable->kind,
+                'details' => $mailable->details,
+            ])->render();
+
             $fromAddress = config('mail.from.address');
             $fromName = config('mail.from.name', 'TALASTAS');
 

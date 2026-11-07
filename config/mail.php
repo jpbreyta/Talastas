@@ -64,6 +64,8 @@ return [
 
         'resend' => [
             'transport' => 'resend',
+            'key' => config('services.resend.key'),
+            'endpoint' => config('services.resend.endpoint', 'https://api.resend.com/emails'),
         ],
 
         'sendmail' => [

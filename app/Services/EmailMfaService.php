@@ -57,8 +57,7 @@ class EmailMfaService
 
                 // Redact sensitive values before writing diagnostic logs.
                 foreach ([
-                    config('mail.mailers.smtp.username'),
-                    config('mail.mailers.smtp.password'),
+                    config('services.resend.key'),
                     config('mail.from.address'),
                     $locked->email,
                 ] as $sensitive) {
@@ -71,7 +70,7 @@ class EmailMfaService
                     '/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i',
                     '[redacted-email]',
                     $safeMessage
-                ) ?? 'Unable to capture SMTP error.';
+                ) ?? 'Unable to capture provider error.';
 
                 $safeMessage = preg_replace('/\b\d{6}\b/', '[redacted-code]', $safeMessage);
                 $safeMessage = Str::limit($safeMessage, 300);
@@ -79,7 +78,7 @@ class EmailMfaService
                 Log::warning('Verification email delivery failed.', [
                     'user_id' => $locked->id,
                     'exception_class' => get_class($exception),
-                    'smtp_error' => $safeMessage,
+                    'provider_error' => $safeMessage,
                 ]);
 
                 throw ValidationException::withMessages([

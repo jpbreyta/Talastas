@@ -201,4 +201,18 @@ return [
         ),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Resend Email API
+    |--------------------------------------------------------------------------
+    |
+    | Resend is used for all outbound account-security email delivery.
+    | SMTP credentials are no longer used.
+    |
+    */
+    'resend' => [
+        'key' => env('RESEND_API_KEY'),
+        'endpoint' => env('RESEND_API_ENDPOINT', 'https://api.resend.com/emails'),
+    ],
+
 ];

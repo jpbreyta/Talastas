@@ -7,23 +7,25 @@ use App\Mail\AccountSecurityMail;
 use App\Models\AccountRecovery;
 use App\Models\UserInvitation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class SecurityMail
 {
+    public const RESEND_ENDPOINT = 'https://api.resend.com/emails';
+
     public static function available(): bool
     {
         if (app()->environment('testing')) {
             return true;
         }
 
-        return config('account-security.mail_enabled') && config('mail.default') === 'smtp'
-         && filled(config('mail.mailers.smtp.host')) && filled(config('mail.mailers.smtp.username'))
-         && filled(config('mail.mailers.smtp.password')) && filter_var(config('mail.from.address'), FILTER_VALIDATE_EMAIL)
-         && (app()->environment('local') || str_starts_with((string) config('app.url'), 'https://'))
-         && ! in_array(config('queue.default'), ['sync', 'null'], true);
+        return config('account-security.mail_enabled')
+            && filled(config('services.resend.key'))
+            && filter_var(config('mail.from.address'), FILTER_VALIDATE_EMAIL)
+            && (app()->environment('local') || str_starts_with((string) config('app.url'), 'https://'))
+            && ! in_array(config('queue.default'), ['sync', 'null'], true);
     }
 
     public static function requireConfigured(): void
@@ -54,6 +56,68 @@ class SecurityMail
     public static function send(string $email, string $kind, array $data = []): void
     {
         self::requireConfigured();
-        Mail::to($email)->send(new AccountSecurityMail($kind, $data));
+
+        try {
+            $mailable = new AccountSecurityMail($kind, $data);
+            $html = $mailable->render();
+            $subject = $mailable->subject ?? 'TALASTAS account security';
+            $fromAddress = config('mail.from.address');
+            $fromName = config('mail.from.name', 'TALASTAS');
+
+            $payload = [
+                'from' => $fromName.' <'.$fromAddress.'>',
+                'to' => [$email],
+                'subject' => $subject,
+                'html' => $html,
+            ];
+
+            $replyTo = config('account-security.reply_to');
+            if (filter_var($replyTo, FILTER_VALIDATE_EMAIL)) {
+                $payload['reply_to'] = $replyTo;
+            }
+
+            $response = Http::timeout(30, 10)
+                ->withHeaders([
+                    'Authorization' => 'Bearer '.config('services.resend.key'),
+                    'Content-Type' => 'application/json',
+                ])
+                ->post(self::RESEND_ENDPOINT, $payload);
+
+            if ($response->failed()) {
+                self::logProviderError($kind, $response, null);
+                throw new \RuntimeException('Email transport rejected the message.');
+            }
+
+            // A 2xx response means Resend accepted the message for transport.
+            // It is not proof of inbox delivery.
+        } catch (\Illuminate\Http\Client\ConnectionException $exception) {
+            self::logProviderError($kind, null, $exception);
+            throw new \RuntimeException('Email transport is temporarily unavailable. Please try again later.');
+        } catch (\Illuminate\Http\Client\RequestException $exception) {
+            self::logProviderError($kind, $exception->response, $exception);
+            throw new \RuntimeException('Email transport rejected the message.');
+        } catch (\Throwable $exception) {
+            self::logProviderError($kind, null, $exception);
+            throw new \RuntimeException('Email could not be sent. Check sender configuration.');
+        }
+    }
+
+    private static function logProviderError(string $kind, $response, ?\Throwable $exception): void
+    {
+        $context = ['email_type' => $kind];
+
+        if ($response !== null) {
+            $context['http_status'] = $response->status();
+            $json = $response->json();
+            if (is_array($json) && isset($json['error'])) {
+                $context['error_category'] = is_array($json['error']) ? ($json['error']['message'] ?? 'unknown') : $json['error'];
+            }
+        }
+
+        if ($exception !== null) {
+            $context['exception_class'] = get_class($exception);
+        }
+
+        Log::warning('Resend email delivery failed.', $context);
     }
 }

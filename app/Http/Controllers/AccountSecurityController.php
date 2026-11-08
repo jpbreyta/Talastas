@@ -178,12 +178,12 @@ class AccountSecurityController extends Controller
         return redirect(app(\App\Services\AuthenticationDestination::class)->pull($request));
     }
 
-    public function revokeDevice(Request $request, string $device, MfaService $mfa, MfaDeviceTrust $trust)
+    public function revokeDevice(Request $request, string $device, MfaDeviceTrust $trust)
     {
         abort_unless($request->user()->isAdmin(), 403);
         abort_unless(Str::isUuid($device), 404);
         MfaTrustedDevice::where('user_id', $request->user()->id)->whereKey($device)->firstOrFail();
-        $this->confirmDeviceRevocation($request, $mfa);
+        $request->validate(['current_password' => ['required', 'current_password'], 'confirmed' => ['required', 'accepted']]);
         $trust->revoke($request->user(), $device);
         if ($device === $request->session()->get('mfa_device_id')) {
             $request->session()->forget(['mfa_version', 'mfa_device_id', 'mfa_fresh_at']);
@@ -193,10 +193,10 @@ class AccountSecurityController extends Controller
         return redirect()->route('security.mfa')->with('status', 'Browser access revoked. That browser must verify an email code again.');
     }
 
-    public function revokeDevices(Request $request, MfaService $mfa, MfaDeviceTrust $trust)
+    public function revokeDevices(Request $request, MfaDeviceTrust $trust)
     {
         abort_unless($request->user()->isAdmin(), 403);
-        $this->confirmDeviceRevocation($request, $mfa);
+        $request->validate(['current_password' => ['required', 'current_password'], 'confirmed' => ['required', 'accepted']]);
         $trust->revokeAll($request->user());
         $request->session()->forget(['mfa_version', 'mfa_device_id', 'mfa_fresh_at']);
         $trust->forgetCookie();
@@ -204,21 +204,14 @@ class AccountSecurityController extends Controller
         return redirect()->route('security.mfa')->with('status', 'All browser access revoked. Verify your email code before continuing.');
     }
 
-    public function revokeUserDevices(Request $request, User $user, MfaService $mfa, MfaDeviceTrust $trust)
+    public function revokeUserDevices(Request $request, User $user, MfaDeviceTrust $trust)
     {
         abort_unless($request->user()->isAdmin(), 403);
         abort_if($request->user()->is($user), 422, 'Manage your own browsers from your email verification settings.');
-        $this->confirmDeviceRevocation($request, $mfa);
+        $request->validate(['current_password' => ['required', 'current_password'], 'confirmed' => ['required', 'accepted']]);
         $trust->revokeAll($user);
 
         return back()->with('success', 'Browser access revoked. The account holder must verify an email code again.');
     }
 
-    private function confirmDeviceRevocation(Request $request, MfaService $mfa): void
-    {
-        $data = $request->validate(['current_password' => ['required', 'current_password'], 'confirmed' => ['required', 'accepted'], 'code' => ['required', 'digits:6']]);
-        if (! $mfa->verify($request->user(), $data['code'])) {
-            throw ValidationException::withMessages(['code' => 'Enter a new six-digit email code to revoke browser access.']);
-        }
-    }
 }

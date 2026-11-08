@@ -156,7 +156,7 @@
                                 <div class="mb-3 mt-2 border-t border-slate-100"></div>
                                 <ul class="space-y-2.5 text-[0.8125rem] leading-[1.5] text-slate-600">
                                     <li>Infrastructure Deficit uses defective active applicable units divided by active applicable units.</li>
-                                    <li>Connectivity Divide measures the shortfall between recorded bandwidth allocation and measured download speed.</li>
+                                    <li>Connectivity Divide treats the numeric acquired speed in Plan as Mbps and averages download and upload shortfalls against it.</li>
                                     <li>Technological Obsolescence is a retirement-based proxy using retired applicable units divided by total applicable units.</li>
                                     <li>Overall ICT Gap is the equal arithmetic mean of the three core component percentages when all are available.</li>
                                     <li>Use the <strong>Color by</strong> selector to choose which calculated metric controls institution colors and the optional heatmap.</li>

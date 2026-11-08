@@ -21,7 +21,11 @@ class AuthenticationDestination
                 'profile.account', 'admin.users.index', 'admin.invitations.index',
             ]);
             if (! in_array($path, $allowed, true)) {
-                $path = $request->routeIs('profile.*') ? route('profile.account', [], false) : route('admin.users.index', [], false);
+                $path = match (true) {
+                    $request->routeIs('profile.*') => route('profile.account', [], false),
+                    $request->routeIs('admin.invitations.*') => route('admin.invitations.index', [], false),
+                    default => route('admin.users.index', [], false),
+                };
             }
         }
         if ($path && ! str_starts_with($path, '/security/') && ! str_starts_with($path, '/legal/') && $path !== '/login') {

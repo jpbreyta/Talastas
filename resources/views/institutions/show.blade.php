@@ -307,8 +307,8 @@
                             'value' => $analytics?->connectivity_divide_score,
                             'icon' => 'fa-wifi',
                             'icon_class' => 'bg-emerald-50 text-emerald-600',
-                            'formula' => 'Mean of [max(Advertised Download Mbps - Measured Download Mbps, 0) / Advertised Download Mbps] x 100 across all reported connections',
-                            'description' => 'Available only when every reported connection has an identifiable advertised download speed and a recorded download measurement.',
+                            'formula' => 'Mean across connections of the average download and upload shortfall: [max(Acquired Mbps - Measured Mbps, 0) / Acquired Mbps] x 100',
+                            'description' => 'Available only when every reported connection has an identifiable acquired Mbps and recorded download and upload measurements.',
                         ],
                         [
                             'key' => 'technological_obsolescence_score',

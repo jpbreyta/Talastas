@@ -30,7 +30,7 @@
                 placeholder="Not recorded" class="form-input mt-1.5 w-full">
         </label>
     </div>
-    <p class="mb-4 text-xs text-gray-500">No service requires zero connections. Record a verified advertised download in Mbps; plan prices are not speeds. Blank measurements stay unknown. Remove saved connections explicitly; omitted records are retained.</p>
+    <p class="mb-4 text-xs text-gray-500">No service requires zero connections. Enter the acquired speed as a number in the Plan field; the system treats it as Mbps (for example, 100). Measured download and upload speeds must also be recorded in Mbps. Blank measurements stay unknown. Remove saved connections explicitly; omitted records are retained.</p>
     <div id="removedInternetConnections">
         @foreach(old('q10.removed_connection_numbers', []) as $removedNumber)
             <input type="hidden" name="q10[removed_connection_numbers][]" value="{{ $removedNumber }}">

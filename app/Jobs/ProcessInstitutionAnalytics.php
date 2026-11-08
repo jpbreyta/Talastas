@@ -215,7 +215,7 @@ class ProcessInstitutionAnalytics implements ShouldQueue
                     'infrastructure_deficit' =>
                         'Explicitly recorded Defective within Active / Active applicable units x 100. Active means deployed/in-service, including defective units; unknown values are not inferred.',
                     'connectivity_divide' =>
-                        'For each connection: max(identified advertised download Mbps - measured download Mbps, 0) / identified advertised download Mbps x 100. Mean of connection scores only when every reported connection is usable; explicit no Internet service = 100%. Prices and ambiguous plans are never converted to Mbps.',
+                        'Treat the numeric acquired speed recorded in Plan as Mbps. For each connection, calculate download and upload shortfall as max(acquired Mbps - measured Mbps, 0) / acquired Mbps x 100, then average the two. Connectivity Divide is the mean of connection scores only when every reported connection has an acquired speed and both measured speeds; explicit no Internet service = 100%.',
                     'technological_obsolescence_proxy' =>
                         'Retired applicable units / Total applicable units x 100.',
                     'overall_ict_gap' =>

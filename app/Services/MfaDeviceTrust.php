@@ -17,7 +17,8 @@ class MfaDeviceTrust
 
     public const MAX_AGE_DAYS = 30;
 
-    public const FRESH_SECONDS = 600;
+    /** A successfully verified email OTP authorizes protected actions for 24 hours. */
+    public const FRESH_SECONDS = 86400;
 
     public function inactivityDays(): int
     {

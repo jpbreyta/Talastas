@@ -113,7 +113,24 @@ class IctGapBaselineCalculator
 
     public function fromPythonResult(array $result, array $payload): array
     {
-        // Persist the locally verified deterministic calculation; report its actual provenance.
-        return $this->calculate($payload);
+        $local = $this->calculate($payload);
+        foreach (['gap_score', 'infrastructure_deficit_score', 'connectivity_divide_score', 'technological_obsolescence_score'] as $field) {
+            $pythonScore = $result[$field] ?? null;
+            if ($pythonScore !== $local[$field]) {
+                throw new \UnexpectedValueException('Python analytics result does not match the verified local calculation for '.$field.'.');
+            }
+        }
+        foreach (['risk_level', 'assessment_status', 'processing_status', 'missing_inputs', 'invalid_inputs', 'unavailable_reasons', 'inventory_inputs'] as $field) {
+            if (($result[$field] ?? null) != $local[$field]) {
+                throw new \UnexpectedValueException('Python analytics result does not match the verified local calculation for '.$field.'.');
+            }
+        }
+
+        return array_replace($local, collect($result)->only([
+            'gap_score', 'risk_level', 'infrastructure_deficit_score',
+            'connectivity_divide_score', 'technological_obsolescence_score',
+            'processing_status', 'assessment_status', 'missing_inputs',
+            'invalid_inputs', 'unavailable_reasons', 'inventory_inputs',
+        ])->all());
     }
 }

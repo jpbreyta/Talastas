@@ -26,7 +26,8 @@ $db->table('ict_inventory')->insert(['asset_id'=>1,'institution_id'=>1,'componen
 $db->table('institution_internet_connections')->insert(['id'=>1,'institution_id'=>1,'connection_number'=>1,'plan'=>'100 Mbps','advertised_download_mbps'=>100,'download_speed_mbps'=>60]);
 $db->table('institution_analytics')->insert(['id'=>1,'institution_id'=>1,'processing_token'=>'run-1','processing_status'=>'queued']);
 class FixtureAnalyticsJob extends App\Jobs\ProcessInstitutionAnalytics {
- protected function requestPythonAnalysis(array $payload,App\Models\Institution $institution): ?array {return null;}
+ public ?array $pythonResult=null;
+ protected function requestPythonAnalysis(array $payload,App\Models\Institution $institution): ?array {return $this->pythonResult;}
  public function payload(App\Models\Institution $institution): array {return $this->buildPythonPayload($institution);}
 }
 class FixtureAi extends App\Services\GeminiService {
@@ -46,9 +47,15 @@ $job=new FixtureAnalyticsJob(1,'run-1');$ai=new FixtureAi;$ai->throw=true;$job->
 $row=App\Models\InstitutionAnalytics::first();
 integrationCheck($row->gap_score===24.17 && $row->processing_status==='completed','AI outage preserves deterministic publication');
 integrationCheck(data_get($row->recommendations_detail,'ai_status')==='unavailable','AI status persisted');
-integrationCheck(data_get($row->recommendations_detail,'score_source')==='laravel_deterministic','Actual score provenance');
+integrationCheck(data_get($row->recommendations_detail,'score_source')==='laravel_fallback' && data_get($row->recommendations_detail,'python_service_used')===false,'Actual fallback provenance');
 $ai=new FixtureAi;$job->handle($ai,$calculator);
 integrationCheck(App\Models\InstitutionAnalytics::first()->gap_score===24.17,'AI cannot override scores');
+$job->pythonResult=array_replace($calculator->calculate($job->payload(App\Models\Institution::first())),['institution_id'=>1]);
+$job->handle($ai,$calculator);
+$row=App\Models\InstitutionAnalytics::first();
+integrationCheck($row->gap_score===24.17 && data_get($row->recommendations_detail,'score_source')==='python'
+ && data_get($row->recommendations_detail,'python_service_used')===true,'Python result is used and provenance persisted');
+$job->pythonResult=null;
 $db->table('institution_analytics')->update(['processing_token'=>'newer','processing_status'=>'queued']);
 $job->handle($ai,$calculator);
 integrationCheck(App\Models\InstitutionAnalytics::first()->processing_status==='queued','Stale token cannot overwrite newer run');

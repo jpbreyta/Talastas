@@ -29,7 +29,11 @@ verify($c->calculate(array_replace($p,$change))['connectivity_divide_score'] ===
 verify($c->calculate(array_replace($p,['has_internet_connection'=>false]))['connectivity_divide_score'] === 100.0, 'Explicit no Internet');
 verify($c->calculate(array_replace($p,['total_applicable_inventory_count'=>0,'retired_applicable_inventory_count'=>0]))['technological_obsolescence_score'] === null, 'Zero denominator');
 verify($c->calculate(array_replace($p,['retired_applicable_inventory_count'=>11]))['technological_obsolescence_score'] === null, 'Invalid subset');
-verify($c->fromPythonResult(['gap_score'=>0],$p) === $c->calculate($p), 'External scores cannot override');
+$local = $c->calculate($p);
+$python = $local;
+verify($c->fromPythonResult($python,$p) === $local, 'Validated Python result is accepted');
+try { $c->fromPythonResult(array_replace($python,['gap_score'=>0]),$p); throw new RuntimeException('Mismatched Python score accepted'); }
+catch (UnexpectedValueException $expected) { verify(true, 'Mismatched Python score rejected'); }
 verify(App\Services\InventoryCounts::sum(collect([['x'=>0],['x'=>null]]),'x') === null, 'Incomplete sum');
 verify(App\Services\InventoryCounts::sum(collect([['x'=>0]]),'x') === 0, 'Confirmed zero sum');
 verify(App\Services\InventoryCounts::quantity('1.5') === null, 'Reject fractional count');

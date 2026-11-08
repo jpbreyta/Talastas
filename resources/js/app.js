@@ -973,7 +973,7 @@ function installInstitutionAnalyticsRealtime() {
         if (busy) {
             button.innerHTML = [
                 '<span class="global-loading-spinner"></span>',
-                '<span>Analyzing?</span>',
+                '<span>Analyzing</span>',
             ].join('');
             return;
         }
@@ -1070,7 +1070,7 @@ function installInstitutionAnalyticsRealtime() {
 
         switch (state.status) {
             case 'queued':
-                showProcessing('Waiting to start?');
+                showProcessing('Waiting to start');
 
                 if (!queueWarningTimer) {
                     queueWarningTimer = window.setTimeout(() => {
@@ -1094,18 +1094,18 @@ function installInstitutionAnalyticsRealtime() {
 
                 const stageLabels = {
                     loading_data:
-                        'Reading institution and inventory data?',
+                        'Reading institution and inventory data',
                     python_scoring:
-                        'Calculating ICT indicators?',
+                        'Calculating ICT indicators',
                     ai_prescriptive:
-                        'Preparing recommendations?',
+                        'Preparing recommendations',
                     saving_results:
-                        'Saving the report?',
+                        'Saving the report',
                 };
 
                 showProcessing(
                     stageLabels[state.stage]
-                    || 'Processing the latest data?'
+                    || 'Processing the latest data'
                 );
                 break;
             }
@@ -1237,7 +1237,7 @@ function installInstitutionAnalyticsRealtime() {
         currentAnalyticsStage = 'queued';
         setRunButtonBusy(true);
         showProcessing(
-            'Starting analytics?',
+            'Starting analytics',
             'queued'
         );
 
@@ -1296,7 +1296,7 @@ function installInstitutionAnalyticsRealtime() {
             activeReport.dataset.analyticsStage || 'queued';
         setRunButtonBusy(true);
         showProcessing(
-            'Reconnecting to the active run?',
+            'Reconnecting to the active run',
             currentAnalyticsStage
         );
 

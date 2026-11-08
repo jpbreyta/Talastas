@@ -27,16 +27,15 @@
     <fieldset id="edit-assignments-{{ $user->id }}" data-editor-assignments @if ($editingRole !== 'editor') hidden disabled @endif>
         <legend class="text-sm font-medium">Barangay and institution assignments</legend>
         <p class="mt-2 text-xs font-medium text-gray-700">An Editor must have at least one active school or barangay hall assigned.</p>
-        <p class="mt-2 text-xs text-gray-500">Select a barangay to add all its current active public schools and barangay halls, or select individual institutions below. Saved assignments appear as checked institutions. Newly added institutions must be assigned separately.</p>
         <div class="mt-2 max-h-48 space-y-3 overflow-y-auto rounded-lg border border-gray-200 p-4" aria-label="Barangay assignments">
             @foreach ($institutions->pluck('barangay')->filter()->unique('id')->sortBy('name') as $barangay)
-                <label class="flex items-start gap-2 text-sm text-gray-700"><input type="checkbox" name="barangay_ids[]" value="{{ $barangay->id }}" @checked(in_array($barangay->id, ($restoreEdit ? (array) old('barangay_ids', []) : []))) class="users-checkbox"><span>{{ $barangay->name }}</span></label>
+                <label class="flex items-start gap-2 text-sm text-gray-700"><input type="checkbox" name="barangay_ids[]" value="{{ $barangay->id }}" @checked(in_array($barangay->id, ($restoreEdit ? (array) old('barangay_ids', []) : []))) class="users-checkbox" data-barangay-filter><span>{{ $barangay->name }}</span></label>
             @endforeach
         </div>
         <p class="mt-3 text-sm font-medium">Individual institutions</p>
-        <div class="mt-2 max-h-60 space-y-3 overflow-y-auto rounded-lg border border-gray-200 p-4">
+        <div class="mt-2 max-h-60 space-y-3 overflow-y-auto rounded-lg border border-gray-200 p-4" data-institution-options>
             @forelse ($institutions as $institution)
-                <label class="flex items-start gap-2 text-sm text-gray-700"><input type="checkbox" name="institution_ids[]" value="{{ $institution->id }}" @checked(in_array($institution->id, $editingAssignments)) class="users-checkbox"><span>{{ $institution->name }} @if ($institution->barangay) <span class="text-gray-500">({{ $institution->barangay->name }})</span> @endif</span></label>
+                <label class="flex items-start gap-2 text-sm text-gray-700" data-institution-row data-barangay-id="{{ $institution->barangay_id }}"><input type="checkbox" name="institution_ids[]" value="{{ $institution->id }}" @checked(in_array($institution->id, $editingAssignments)) class="users-checkbox"><span>{{ $institution->name }} @if ($institution->barangay) <span class="text-gray-500">({{ $institution->barangay->name }})</span> @endif</span></label>
             @empty
                 <p class="text-sm text-gray-500">No institutions available.</p>
             @endforelse

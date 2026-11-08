@@ -10,8 +10,16 @@ document.addEventListener('DOMContentLoaded', () => {
             assignments.hidden = role.value !== 'editor';
             assignments.disabled = role.value !== 'editor';
         };
+        const updateInstitutionFilter = () => {
+            const selectedBarangays = new Set(Array.from(assignments.querySelectorAll('[data-barangay-filter]:checked'), input => input.value));
+            assignments.querySelectorAll('[data-institution-row]').forEach(row => {
+                row.hidden = selectedBarangays.size > 0 && !selectedBarangays.has(row.dataset.barangayId);
+            });
+        };
         role.addEventListener('change', update);
+        assignments.querySelectorAll('[data-barangay-filter]').forEach(input => input.addEventListener('change', updateInstitutionFilter));
         update();
+        updateInstitutionFilter();
     });
     let editorTrigger = null;
     let previousOverflow = '';

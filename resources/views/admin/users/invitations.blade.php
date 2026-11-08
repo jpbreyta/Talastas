@@ -29,16 +29,15 @@
                 </label>
                 <fieldset id="inviteAssignments" data-editor-assignments @if (old('role', 'viewer') !== 'editor') hidden disabled @endif>
                     <legend class="text-sm font-medium">Barangay and institution assignments</legend>
-                    <p class="mt-2 text-xs text-gray-500">Select a barangay to add all its current active public schools and barangay halls, or select individual institutions below. Saved assignments appear as checked institutions. Newly added institutions must be assigned separately.</p>
                     <div class="mt-2 max-h-48 space-y-3 overflow-y-auto rounded-lg border border-gray-200 p-4" aria-label="Barangay assignments">
                         @foreach ($institutions->pluck('barangay')->filter()->unique('id')->sortBy('name') as $barangay)
-                            <label class="flex items-start gap-2 text-sm text-gray-700"><input type="checkbox" name="barangay_ids[]" value="{{ $barangay->id }}" @checked(in_array($barangay->id, (array) old('barangay_ids', []))) class="users-checkbox"><span>{{ $barangay->name }}</span></label>
+                            <label class="flex items-start gap-2 text-sm text-gray-700"><input type="checkbox" name="barangay_ids[]" value="{{ $barangay->id }}" @checked(in_array($barangay->id, (array) old('barangay_ids', []))) class="users-checkbox" data-barangay-filter><span>{{ $barangay->name }}</span></label>
                         @endforeach
                     </div>
                     <p class="mt-3 text-sm font-medium">Individual institutions</p>
-                    <div class="mt-2 max-h-60 space-y-3 overflow-y-auto rounded-lg border border-gray-200 p-4">
+                    <div class="mt-2 max-h-60 space-y-3 overflow-y-auto rounded-lg border border-gray-200 p-4" data-institution-options>
                         @forelse ($institutions as $institution)
-                            <label class="flex items-start gap-2 text-sm text-gray-700"><input type="checkbox" name="institution_ids[]" value="{{ $institution->id }}" @checked(in_array($institution->id, (array) old('institution_ids', []))) class="users-checkbox"><span>{{ $institution->name }} @if ($institution->barangay) <span class="text-gray-500">({{ $institution->barangay->name }})</span> @endif</span></label>
+                            <label class="flex items-start gap-2 text-sm text-gray-700" data-institution-row data-barangay-id="{{ $institution->barangay_id }}"><input type="checkbox" name="institution_ids[]" value="{{ $institution->id }}" @checked(in_array($institution->id, (array) old('institution_ids', []))) class="users-checkbox"><span>{{ $institution->name }} @if ($institution->barangay) <span class="text-gray-500">({{ $institution->barangay->name }})</span> @endif</span></label>
                         @empty
                             <p class="text-sm text-gray-500">No institutions available.</p>
                         @endforelse
@@ -70,28 +69,33 @@
                     @if ($invite->institutions->isNotEmpty())
                         <div class="space-y-1 text-sm text-gray-600">@foreach ($invite->institutions as $institution)<p>{{ $institution->name }}</p>@endforeach</div>
                     @endif
-                    <details class="users-accordion text-sm text-gray-600" @if (in_array($invite->delivery_status, ['failed', 'unavailable'])) open @endif>
-                        <summary>Email: {{ str_replace('_', ' ', $invite->delivery_status) }}</summary>
-                        <p class="mt-2 text-xs leading-5">Transport acceptance does not confirm inbox delivery.</p>
-                    </details>
+                    <p class="text-sm text-gray-600"><span class="font-medium">Email:</span> {{ str_replace('_', ' ', $invite->delivery_status) }} <span class="text-xs">(Transport acceptance does not confirm inbox delivery.)</span></p>
                     @if (in_array($invite->status, ['pending', 'expired']))
-                        <details class="users-accordion border-t border-gray-100 pt-4">
-                            <summary class="text-sm font-medium text-red-900">Resend or revoke</summary>
-                            <form method="POST" action="{{ route('admin.invitations.resend', $invite->id) }}" class="mt-4 space-y-4">
-                                @csrf
-                                <label class="block text-sm font-medium">Your current password<input name="current_password" type="password" required autocomplete="current-password" class="users-control mt-2"></label>
-                                <label class="flex items-start gap-2 text-sm text-gray-600"><input name="confirmed" type="checkbox" value="1" required class="users-checkbox"><span>I confirm this action; existing links and setup sessions will stop working.</span></label>
-                                <div class="flex flex-wrap gap-3"><button type="submit" class="users-button">Resend invitation</button><button type="submit" formaction="{{ route('admin.invitations.revoke', $invite->id) }}" class="users-button users-button-secondary">Revoke invitation</button></div>
-                            </form>
-                        </details>
+                        <div class="border-t border-gray-100 pt-4">
+                            <h4 class="text-sm font-medium text-red-900">Resend or revoke</h4>
+                            <div class="mt-3 grid gap-4 xl:grid-cols-2">
+                                <form method="POST" action="{{ route('admin.invitations.resend', $invite->id) }}" class="space-y-3">
+                                    @csrf
+                                    <label class="block text-sm font-medium">Your current password<input name="current_password" type="password" required autocomplete="current-password" class="users-control mt-2"></label>
+                                    <label class="flex items-start gap-2 text-sm text-gray-600"><input name="confirmed" type="checkbox" value="1" required class="users-checkbox"><span>I confirm sending a replacement link; older links will stop working.</span></label>
+                                    <button type="submit" class="users-button">Resend invitation</button>
+                                </form>
+                                <form method="POST" action="{{ route('admin.invitations.revoke', $invite->id) }}" class="space-y-3">
+                                    @csrf
+                                    <label class="block text-sm font-medium">Your current password<input name="current_password" type="password" required autocomplete="current-password" class="users-control mt-2"></label>
+                                    <label class="flex items-start gap-2 text-sm text-gray-600"><input name="confirmed" type="checkbox" value="1" required class="users-checkbox"><span>I confirm revoking this invitation and invalidating its link.</span></label>
+                                    <button type="submit" class="users-button users-button-secondary">Revoke invitation</button>
+                                </form>
+                            </div>
+                        </div>
                     @endif
                 </article>
             @empty
                 <p class="users-card p-6 text-sm text-gray-500">No invitations yet.</p>
             @endforelse
             {{ $invitations->links() }}
-            <details class="users-accordion users-card p-5 sm:p-6">
-                <summary class="font-semibold">Recent security events</summary>
+            <section class="users-accordion users-card p-5 sm:p-6" aria-labelledby="securityEventsHeading">
+                <h3 id="securityEventsHeading" class="font-semibold">Recent security events</h3>
                 <div class="mt-4 max-h-80 space-y-3 overflow-y-auto">
                     @forelse ($events as $event)
                         <p class="break-words text-xs leading-5 text-gray-600">{{ $event->occurred_at }} UTC | {{ $event->event }} | {{ $event->outcome }} | Actor #{{ $event->actor_id ?? 'system/guest' }} | Target #{{ $event->target_id ?? '-' }}</p>
@@ -99,7 +103,7 @@
                         <p class="text-sm text-gray-500">No security events recorded.</p>
                     @endforelse
                 </div>
-            </details>
+            </section>
         </section>
     </div>
 </div>

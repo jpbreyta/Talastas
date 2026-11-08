@@ -9,7 +9,7 @@
 <section class="mb-5 overflow-hidden rounded-xl border border-gray-200 bg-white" data-connectivity-infrastructure aria-label="Internet Connectivity Inventory">
     <h3 class="sr-only">Internet Connectivity Inventory</h3>
     <div class="overflow-x-auto">
-        <table class="inventory-quantity-table w-full min-w-[760px] text-sm">
+        <table class="inventory-quantity-table w-full min-w-[800px] text-sm">
             <thead>
                 <tr class="border-b border-gray-200 bg-gray-50">
                     <th scope="col" class="min-w-[220px] px-3 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-600">Component</th>

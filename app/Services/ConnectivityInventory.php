@@ -13,7 +13,7 @@ class ConnectivityInventory
         'public_access_network' => ['item_number' => '4.1.3', 'name' => 'Public Access Network'],
     ];
 
-    public const FIELDS = ['total_count', 'active_count', 'retired_count', 'functional_count', 'defective_count'];
+    public const FIELDS = ['total_count', 'active_count', 'retired_count', 'functional_count', 'defective_count', 'defective_active_count'];
 
     /** Present questionnaire rows without creating inventory or filling unknown counts. */
     public function rows(iterable $items): Collection

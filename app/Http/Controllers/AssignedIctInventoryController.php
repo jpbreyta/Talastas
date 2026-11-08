@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\IctInventory;
 use App\Models\Institution;
+use App\Models\InstitutionInternetConnection;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
 
 class AssignedIctInventoryController extends IctInventoryController
@@ -24,6 +26,8 @@ class AssignedIctInventoryController extends IctInventoryController
                 ->findOrFail(
                     $requestedInstitutionId
                 );
+
+            $this->restoreLegacyInternetConnectionForManagement($selectedInstitution);
 
             $this->authorizeAssignment(
                 $request,
@@ -67,6 +71,42 @@ class AssignedIctInventoryController extends IctInventoryController
             'selectedInstitution' => $selectedInstitution,
             'sections' => $sections,
         ]);
+    }
+
+    private function restoreLegacyInternetConnectionForManagement(Institution $institution): void
+    {
+        if ($institution->internetConnections->isNotEmpty()
+            || $institution->has_internet_connection === false
+            || $institution->q10_number_of_connections === 0) {
+            return;
+        }
+
+        $legacyValues = [
+            'isp' => $institution->isp_provider,
+            'plan' => $institution->isp_connection_plan,
+            'advertised_download_mbps' => $institution->bandwidth_allocation_mbps,
+            'download_speed_mbps' => $institution->download_speed_mbps ?? $institution->internet_speed,
+            'upload_speed_mbps' => $institution->upload_speed_mbps,
+            'latency_ms' => $institution->latency_ms,
+            'throughput_mbps' => $institution->throughput_mbps,
+        ];
+
+        $hasLegacyValues = collect($legacyValues)->contains(
+            fn ($value) => $value !== null && $value !== ''
+        );
+
+        if (!$hasLegacyValues) {
+            return;
+        }
+
+        $connection = new InstitutionInternetConnection([
+            ...$legacyValues,
+            'connection_number' => 1,
+        ]);
+
+        $institution->setRelation('internetConnections', new EloquentCollection([$connection]));
+        $institution->has_internet_connection ??= true;
+        $institution->q10_number_of_connections ??= 1;
     }
 
     public function store(Request $request)

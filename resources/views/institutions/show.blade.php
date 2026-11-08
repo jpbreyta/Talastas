@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('page-title', 'Institution Details')
 @section('page-icon', 'fa-building')
@@ -512,7 +512,7 @@
                     role="status" aria-live="polite" aria-atomic="true">
                     <div class="flex items-start gap-3">
                         <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-red-700">
-                            <i class="fa-solid fa-circle-notch fa-spin motion-reduce:animate-none" aria-hidden="true"></i>
+                            <x-global-loading message="Analyzing institution data?" size="sm" color="red-600" />
                         </span>
                         <div class="min-w-0 flex-1">
                             <p class="text-sm font-semibold text-gray-900">Analyzing institution data?</p>
@@ -852,7 +852,7 @@
                                 </span>
 
                                 <span class="text-2xl font-bold tabular-nums {{ $inventoryMetric['value_class'] }}">
-                                    {{ $inventoryMetric['value'] === null ? '—' : number_format($inventoryMetric['value']) }}
+                                    {{ $inventoryMetric['value'] === null ? 'â€”' : number_format($inventoryMetric['value']) }}
                                 </span>
                             </div>
 
@@ -943,7 +943,7 @@
                                             <td class="px-3 py-3 text-center tabular-nums">
                                                 <span
                                                     class="inline-flex min-w-8 items-center justify-center rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
-                                                    {{ $inventoryCount === null ? '—' : number_format((int) $inventoryCount) }}
+                                                    {{ $inventoryCount === null ? 'â€”' : number_format((int) $inventoryCount) }}
                                                 </span>
                                             </td>
                                         @endforeach
@@ -1139,7 +1139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         {
             maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
+            attribution: 'Â© OpenStreetMap contributors'
         }
     ).addTo(map);
 
@@ -1270,7 +1270,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         fetchButton.disabled = true;
         fetchButton.innerHTML = `
-            <i class="fa-solid fa-spinner fa-spin"></i>
+            <span class="global-loading-icon"><i class="fa-solid"></i></span>
             <span>Fetching Boundary</span>
         `;
 
@@ -1345,3 +1345,5 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 @endsection
+
+

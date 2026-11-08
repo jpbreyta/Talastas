@@ -111,19 +111,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 credentials: 'same-origin',
             });
 
+            const payload = await response.json().catch(() => ({}));
             if (!response.ok) {
-                throw new Error('Institution could not be deleted.');
+                throw new Error(payload.message || (response.status === 419
+                    ? 'Your session expired. Refresh the page and try again.'
+                    : 'Institution could not be deleted.'));
             }
 
-            window.location.assign(
-                '{{ route('institutions.index') }}'
-            );
+            const message = payload.message || 'Institution deleted successfully.';
+            try {
+                sessionStorage.setItem('institutionToast', JSON.stringify({ type: 'deleted', message }));
+                window.location.assign('{{ route('institutions.index') }}');
+            } catch {
+                window.TalastasToast?.notify('deleted', message);
+                confirmButton.disabled = false;
+                confirmButton.textContent = 'Delete Institution';
+            }
         } catch (error) {
-            alert(
-                error instanceof Error
-                    ? error.message
-                    : 'Institution could not be deleted.'
-            );
+            window.TalastasToast?.notify('error', error instanceof Error
+                ? error.message : 'Institution could not be deleted.');
 
             confirmButton.disabled = false;
             confirmButton.textContent = 'Delete Institution';

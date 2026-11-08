@@ -1,4 +1,4 @@
-@php
+﻿@php
     $unreadCount = auth()->user()
         ->unreadNotifications()
         ->count();
@@ -59,7 +59,7 @@
             aria-live="polite"
         >
             <div class="flex items-center gap-2 text-xs text-slate-500">
-                <i class="fa-solid fa-circle-notch fa-spin text-red-700" aria-hidden="true"></i>
+                <x-global-loading message="Updating notifications..." size="sm" color="red-700" />
                 <span>Updating notifications...</span>
             </div>
         </div>
@@ -117,3 +117,4 @@
         </a>
     </div>
 </details>
+

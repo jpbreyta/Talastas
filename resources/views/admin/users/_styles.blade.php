@@ -12,6 +12,8 @@
     .users-module .users-button { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; gap: .5rem; border: 1px solid var(--users-maroon); border-radius: .625rem; padding: .625rem 1rem; background: var(--users-maroon); color: #fff; font-size: .875rem; font-weight: 600; }
     .users-module .users-button:hover { background: #5e1017; }
     .users-module .users-button:disabled { opacity: .5; cursor: not-allowed; }
+    .users-module .users-button.users-button-danger { border-color: #b91c1c; background: #b91c1c; color: #fff; }
+    .users-module .users-button.users-button-danger:hover { border-color: #991b1b; background: #991b1b; }
     .users-module .users-button-secondary { border-color: #d1d5db; background: #fff; color: #4b5563; }
     .users-module .users-button-secondary:hover { background: #f9fafb; }
     .users-module .users-table-scroll { position: relative; overflow-x: auto; }

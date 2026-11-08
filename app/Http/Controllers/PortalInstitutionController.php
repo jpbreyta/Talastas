@@ -30,13 +30,11 @@ class PortalInstitutionController extends Controller
             );
         }
 
-        $barangayIds = (clone $visibleInstitutions)
-            ->whereNotNull('barangay_id')
-            ->distinct()
-            ->pluck('barangay_id');
-
         $barangays = Barangay::query()
-            ->whereIn('id', $barangayIds)
+            ->whereIn('id', (clone $visibleInstitutions)
+                ->whereNotNull('barangay_id')
+                ->select('barangay_id')
+                ->distinct())
             ->orderBy('name')
             ->get(['id', 'name']);
 

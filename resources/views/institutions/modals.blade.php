@@ -723,7 +723,7 @@
             let institutionSubmitting = false;
             form?.addEventListener('submit', async event => {
                 event.preventDefault();
-                if (!gps.canSubmit()) { event.preventDefault(); return; }
+                if (!gps?.canSubmit()) { event.preventDefault(); return; }
                 if (institutionSubmitting) {
                     event.preventDefault();
                     return;
@@ -794,7 +794,13 @@
                 }
             });
 
-            function openModal(event) {
+            async function openModal(event) {
+                try {
+                    await ensureGps();
+                } catch (error) {
+                    notify('error', error.message || 'Location tools could not be loaded. Please try again.');
+                    return;
+                }
                 if (modal.classList.contains('hidden')) {
                     previousBodyOverflow = document.body.style.overflow;
                     previousRootOverflow = document.documentElement.style.overflow;
@@ -1676,13 +1682,31 @@
                 }
             }
 
-            const gps = window.mountInstitutionGps(form, async (lat, lng, isCurrent) => {
-                manualCoordinatePanel?.classList.remove('hidden');
-                manualLatitude.value = lat;
-                manualLongitude.value = lng;
-                setMapLocation(lat, lng);
-                return await applyManualCoordinates(true, isCurrent);
-            }, () => mapPicker);
+            let gps = null;
+            let gpsInitialization = null;
+            async function ensureGps() {
+                if (gps) return gps;
+                if (!gpsInitialization) {
+                    gpsInitialization = (async () => {
+                        await window.loadInstitutionLocation?.();
+                        if (!window.mountInstitutionGps) throw new Error('Location tools are unavailable.');
+                        gps = window.mountInstitutionGps(form, async (lat, lng, isCurrent) => {
+                            manualCoordinatePanel?.classList.remove('hidden');
+                            manualLatitude.value = lat;
+                            manualLongitude.value = lng;
+                            setMapLocation(lat, lng);
+                            return await applyManualCoordinates(true, isCurrent);
+                        }, () => mapPicker);
+                    })();
+                }
+                try {
+                    await gpsInitialization;
+                    return gps;
+                } catch (error) {
+                    gpsInitialization = null;
+                    throw error;
+                }
+            }
 
             async function applyManualCoordinates(fromGps = false, isCurrent = () => true) {
                 if (fromGps !== true) gps.source('manual');
@@ -2129,7 +2153,7 @@
             }
 
             function resetDetectedLocation(resetMapLocation = true) {
-                gps.reset();
+                gps?.reset();
                 barangayId.value = '';
                 latitudeInput.value = '';
                 longitudeInput.value = '';

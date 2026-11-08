@@ -22,8 +22,7 @@
     @if (request()->routeIs('home') || request()->routeIs('map'))
         @vite('resources/js/gis.js')
     @elseif (
-        request()->routeIs('institutions.index')
-        || request()->routeIs('institutions.create')
+        request()->routeIs('institutions.create')
         || request()->routeIs('institutions.edit')
         || request()->routeIs('institutions.show')
     )

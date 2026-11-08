@@ -511,11 +511,8 @@
                     class="{{ $analyticsProcessing ? '' : 'hidden' }} border-b border-red-100 bg-red-50/50 px-5 py-4"
                     role="status" aria-live="polite" aria-atomic="true">
                     <div class="flex items-start gap-3">
-                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-red-700">
-                            <x-global-loading message="Analyzing institution data?" size="sm" color="red-600" />
-                        </span>
                         <div class="min-w-0 flex-1">
-                            <p class="text-sm font-semibold text-gray-900">Analyzing institution data?</p>
+                            <p class="text-sm font-semibold text-gray-900">Analyzing institution data</p>
                             <p data-analytics-processing-label class="mt-0.5 text-xs leading-5 text-gray-600">
                                 Please wait while TALASTAS processes the latest data.
                             </p>

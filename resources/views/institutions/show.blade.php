@@ -852,7 +852,7 @@
                                 </span>
 
                                 <span class="text-2xl font-bold tabular-nums {{ $inventoryMetric['value_class'] }}">
-                                    {{ $inventoryMetric['value'] === null ? 'â€”' : number_format($inventoryMetric['value']) }}
+                                    {{ $inventoryMetric['value'] === null ? '—' : number_format($inventoryMetric['value']) }}
                                 </span>
                             </div>
 
@@ -943,7 +943,7 @@
                                             <td class="px-3 py-3 text-center tabular-nums">
                                                 <span
                                                     class="inline-flex min-w-8 items-center justify-center rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
-                                                    {{ $inventoryCount === null ? 'â€”' : number_format((int) $inventoryCount) }}
+                                                    {{ $inventoryCount === null ? '—' : number_format((int) $inventoryCount) }}
                                                 </span>
                                             </td>
                                         @endforeach

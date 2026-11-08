@@ -27,6 +27,7 @@
                         <option value="admin" @selected(old('role') === 'admin')>System Administrator (MFA required)</option>
                     </select>
                 </label>
+                @php($selectedBarangayIds = array_map('strval', (array) old('barangay_ids', [])))
                 <fieldset id="inviteAssignments" data-editor-assignments @if (old('role', 'viewer') !== 'editor') hidden disabled @endif>
                     <legend class="text-sm font-medium">Barangay and institution assignments</legend>
                     <div class="mt-2 max-h-48 space-y-3 overflow-y-auto rounded-lg border border-gray-200 p-4" aria-label="Barangay assignments">
@@ -37,10 +38,14 @@
                     <p class="mt-3 text-sm font-medium">Individual institutions</p>
                     <div class="mt-2 max-h-60 space-y-3 overflow-y-auto rounded-lg border border-gray-200 p-4" data-institution-options>
                         @forelse ($institutions as $institution)
-                            <label class="flex items-start gap-2 text-sm text-gray-700" data-institution-row data-barangay-id="{{ $institution->barangay_id }}"><input type="checkbox" name="institution_ids[]" value="{{ $institution->id }}" @checked(in_array($institution->id, (array) old('institution_ids', []))) class="users-checkbox"><span>{{ $institution->name }} @if ($institution->barangay) <span class="text-gray-500">({{ $institution->barangay->name }})</span> @endif</span></label>
+                            <label class="flex items-start gap-2 text-sm text-gray-700" data-institution-row data-barangay-id="{{ $institution->barangay_id }}" @if (!in_array((string) $institution->barangay_id, $selectedBarangayIds, true)) hidden @endif><input type="checkbox" name="institution_ids[]" value="{{ $institution->id }}" @checked(in_array($institution->id, (array) old('institution_ids', []))) class="users-checkbox"><span>{{ $institution->name }} @if ($institution->barangay) <span class="text-gray-500">({{ $institution->barangay->name }})</span> @endif</span></label>
                         @empty
                             <p class="text-sm text-gray-500">No institutions available.</p>
                         @endforelse
+                        @if ($institutions->isNotEmpty())
+                            <p class="text-sm text-gray-500" data-institutions-select-barangay @if ($selectedBarangayIds !== []) hidden @endif>Select a barangay to view its institutions.</p>
+                            <p class="text-sm text-gray-500" data-institutions-no-match @if ($selectedBarangayIds === [] || $institutions->contains(fn ($item) => in_array((string) $item->barangay_id, $selectedBarangayIds, true))) hidden @endif>No institutions are available in the selected barangay.</p>
+                        @endif
                     </div>
                 </fieldset>
                 <div class="space-y-4 border-t border-gray-200 pt-5">
@@ -73,20 +78,22 @@
                     @if (in_array($invite->status, ['pending', 'expired']))
                         <div class="border-t border-gray-100 pt-4">
                             <h4 class="text-sm font-medium text-red-900">Resend or revoke</h4>
-                            <div class="mt-3 grid gap-4 xl:grid-cols-2">
-                                <form method="POST" action="{{ route('admin.invitations.resend', $invite->id) }}" class="space-y-3">
-                                    @csrf
-                                    <label class="block text-sm font-medium">Your current password<input name="current_password" type="password" required autocomplete="current-password" class="users-control mt-2"></label>
-                                    <label class="flex items-start gap-2 text-sm text-gray-600"><input name="confirmed" type="checkbox" value="1" required class="users-checkbox"><span>I confirm sending a replacement link; older links will stop working.</span></label>
-                                    <button type="submit" class="users-button">Resend invitation</button>
-                                </form>
-                                <form method="POST" action="{{ route('admin.invitations.revoke', $invite->id) }}" class="space-y-3">
-                                    @csrf
-                                    <label class="block text-sm font-medium">Your current password<input name="current_password" type="password" required autocomplete="current-password" class="users-control mt-2"></label>
-                                    <label class="flex items-start gap-2 text-sm text-gray-600"><input name="confirmed" type="checkbox" value="1" required class="users-checkbox"><span>I confirm revoking this invitation and invalidating its link.</span></label>
-                                    <button type="submit" class="users-button users-button-secondary">Revoke invitation</button>
-                                </form>
-                            </div>
+                            <form method="POST" action="{{ route('admin.invitations.resend', $invite->id) }}" class="mt-3 max-w-xl space-y-4" data-invitation-action-form data-resend-url="{{ route('admin.invitations.resend', $invite->id) }}" data-revoke-url="{{ route('admin.invitations.revoke', $invite->id) }}">
+                                @csrf
+                                <fieldset class="space-y-2">
+                                    <legend class="text-sm font-medium">Choose an action</legend>
+                                    <label class="flex items-start gap-2 text-sm text-gray-700"><input type="radio" name="invitation_action" value="resend" required class="mt-1 accent-red-900" data-invitation-action><span>Resend invitation</span></label>
+                                    <label class="flex items-start gap-2 text-sm text-gray-700"><input type="radio" name="invitation_action" value="revoke" required class="mt-1 accent-red-900" data-invitation-action><span>Revoke invitation</span></label>
+                                </fieldset>
+                                <label class="flex items-start gap-2 text-sm text-gray-600" data-invitation-confirmation="resend" hidden><input type="checkbox" name="confirmed" value="1" class="users-checkbox" data-action-confirmation disabled><span>I confirm sending a replacement link; older links will stop working.</span></label>
+                                <label class="flex items-start gap-2 text-sm text-gray-600" data-invitation-confirmation="revoke" hidden><input type="checkbox" name="confirmed" value="1" class="users-checkbox" data-action-confirmation disabled><span>I confirm revoking this invitation and invalidating its link.</span></label>
+                                <label class="block text-sm font-medium" for="invitation-password-{{ $invite->id }}">Your current password
+                                    <input id="invitation-password-{{ $invite->id }}" name="current_password" type="password" required autocomplete="current-password" disabled aria-disabled="true" class="users-control mt-2 cursor-not-allowed bg-gray-100 text-gray-400" data-invitation-password>
+                                </label>
+                                <button type="submit" class="users-button cursor-not-allowed opacity-50" disabled aria-disabled="true" data-invitation-submit data-resend-class="users-button" data-revoke-class="users-button users-button-danger">
+                                    <span data-invitation-submit-label>Select an action</span>
+                                </button>
+                            </form>
                         </div>
                     @endif
                 </article>
@@ -94,7 +101,7 @@
                 <p class="users-card p-6 text-sm text-gray-500">No invitations yet.</p>
             @endforelse
             {{ $invitations->links() }}
-            <section class="users-accordion users-card p-5 sm:p-6" aria-labelledby="securityEventsHeading">
+            <section class="users-card p-5 sm:p-6" aria-labelledby="securityEventsHeading">
                 <h3 id="securityEventsHeading" class="font-semibold">Recent security events</h3>
                 <div class="mt-4 max-h-80 space-y-3 overflow-y-auto">
                     @forelse ($events as $event)

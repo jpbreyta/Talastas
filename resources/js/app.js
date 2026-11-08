@@ -5,6 +5,9 @@ import { installInstitutionActions } from './institution-actions';
 import { installNotifications } from './notifications';
 import { installNotificationPage } from './notification-page';
 
+// Institution list modal maps are loaded only if a manager opens the modal.
+window.loadInstitutionLocation ??= () => import('./institution-location');
+
 installNotifications();
 
 // Keep the global bundle intentionally small. GIS libraries are loaded only on

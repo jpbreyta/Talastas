@@ -118,12 +118,74 @@ export function installInventoryList() {
 
     function setExpanded(group, expanded) {
         group.querySelector('[data-accordion-trigger]')?.setAttribute('aria-expanded', String(expanded));
-        group.querySelector('[data-accordion-panel]')?.classList.toggle('hidden', !expanded);
+        const panel = group.querySelector('[data-accordion-panel]');
+        panel?.classList.toggle('hidden', !expanded);
         group.querySelector('[data-chevron]')?.classList.toggle('rotate-90', expanded);
+        if (expanded && panel && panel.dataset.loaded !== 'true' && panel.dataset.loading !== 'true') {
+            void loadInstitutionDetails(panel);
+        }
+    }
+
+    async function loadInstitutionDetails(panel) {
+        const container = panel.querySelector('[data-inventory-details-container]');
+        if (!container || panel.dataset.loading === 'true' || panel.dataset.loaded === 'true') return;
+        panel.dataset.loading = 'true';
+        const status = container.querySelector('[data-inventory-details-status]');
+        if (status) status.textContent = 'Loading inventory details…';
+
+        try {
+            const response = await fetch(panel.dataset.inventoryDetailsUrl, {
+                credentials: 'same-origin',
+                headers: { Accept: 'text/html', 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            if (response.redirected) throw new Error('Please sign in again to view inventory details.');
+            if (!response.ok) {
+                const messages = {
+                    401: 'Please sign in again to view inventory details.',
+                    403: 'You cannot access this institution’s inventory.',
+                    404: 'This institution or its inventory details are unavailable.',
+                    419: 'Your session expired. Refresh this page and try again.',
+                };
+                throw new Error(messages[response.status] || 'Inventory details could not be loaded.');
+            }
+            if (!(response.headers.get('content-type') || '').includes('text/html')) {
+                throw new Error('An unexpected response was received.');
+            }
+            const html = await response.text();
+            const template = document.createElement('template');
+            template.innerHTML = html;
+            if (!template.content.querySelector('[data-inventory-institution-details]')) {
+                throw new Error('An unexpected response was received.');
+            }
+            if (!panel.isConnected) return;
+            container.replaceChildren(template.content);
+            panel.dataset.loaded = 'true';
+        } catch (error) {
+            if (!panel.isConnected) return;
+            container.innerHTML = '';
+            const message = document.createElement('p');
+            message.className = 'text-sm text-red-700';
+            message.setAttribute('role', 'alert');
+            message.textContent = error.message || 'Inventory details could not be loaded.';
+            const retry = document.createElement('button');
+            retry.type = 'button';
+            retry.dataset.inventoryDetailsRetry = '';
+            retry.className = 'mt-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50';
+            retry.textContent = 'Try again';
+            container.append(message, retry);
+        } finally {
+            delete panel.dataset.loading;
+        }
     }
 
     // Delegation keeps inventory accordions working after fragment replacements.
     function toggleAccordion(event) {
+        const retry = event.target.closest('[data-inventory-details-retry]');
+        if (retry && event.type === 'click') {
+            const panel = retry.closest('[data-accordion-panel]');
+            if (panel) void loadInstitutionDetails(panel);
+            return;
+        }
         const trigger = event.target.closest('[data-accordion-trigger]');
         if (!trigger || event.target.closest('[data-stop-accordion]')) return;
         if (event.type === 'keydown') {

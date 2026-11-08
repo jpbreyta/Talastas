@@ -2,6 +2,7 @@
     $restoreEdit = (string) old('_editing_user') === (string) $user->id;
     $editingRole = $restoreEdit ? old('role', $user->role) : $user->role;
     $editingAssignments = $restoreEdit ? (array) old('institution_ids', []) : $user->institutions->pluck('id')->all();
+    $selectedBarangayIds = array_map('strval', $restoreEdit ? (array) old('barangay_ids', []) : []);
 @endphp
 <form method="POST" action="{{ route('admin.users.update', $user) }}" class="space-y-5 p-6" data-role-form @if ($restoreEdit && $errors->any()) data-reopen-user-editor @endif>
     @csrf
@@ -35,10 +36,14 @@
         <p class="mt-3 text-sm font-medium">Individual institutions</p>
         <div class="mt-2 max-h-60 space-y-3 overflow-y-auto rounded-lg border border-gray-200 p-4" data-institution-options>
             @forelse ($institutions as $institution)
-                <label class="flex items-start gap-2 text-sm text-gray-700" data-institution-row data-barangay-id="{{ $institution->barangay_id }}"><input type="checkbox" name="institution_ids[]" value="{{ $institution->id }}" @checked(in_array($institution->id, $editingAssignments)) class="users-checkbox"><span>{{ $institution->name }} @if ($institution->barangay) <span class="text-gray-500">({{ $institution->barangay->name }})</span> @endif</span></label>
+                <label class="flex items-start gap-2 text-sm text-gray-700" data-institution-row data-barangay-id="{{ $institution->barangay_id }}" @if (!in_array((string) $institution->barangay_id, $selectedBarangayIds, true)) hidden @endif><input type="checkbox" name="institution_ids[]" value="{{ $institution->id }}" @checked(in_array($institution->id, $editingAssignments)) class="users-checkbox"><span>{{ $institution->name }} @if ($institution->barangay) <span class="text-gray-500">({{ $institution->barangay->name }})</span> @endif</span></label>
             @empty
                 <p class="text-sm text-gray-500">No institutions available.</p>
             @endforelse
+            @if ($institutions->isNotEmpty())
+                <p class="text-sm text-gray-500" data-institutions-select-barangay @if ($selectedBarangayIds !== []) hidden @endif>Select a barangay to view its institutions.</p>
+                <p class="text-sm text-gray-500" data-institutions-no-match @if ($selectedBarangayIds === [] || $institutions->contains(fn ($item) => in_array((string) $item->barangay_id, $selectedBarangayIds, true))) hidden @endif>No institutions are available in the selected barangay.</p>
+            @endif
         </div>
     </fieldset>
     <div class="space-y-4 border-t border-gray-200 pt-5">

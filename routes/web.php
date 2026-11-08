@@ -193,6 +193,10 @@ Route::middleware(['auth:web', 'auth.session', 'account.secure', 'terms.accepted
     Route::get('/ict-inventory', [PortalIctInventoryController::class, 'index'])
         ->name('ict-inventory.index');
 
+    Route::get('/ict-inventory/institutions/{institution}/details', [PortalIctInventoryController::class, 'institutionDetails'])
+        ->whereNumber('institution')
+        ->name('ict-inventory.institution-details');
+
     Route::get('/ict-inventory/{ict_inventory}', [PortalIctInventoryController::class, 'show'])
         ->whereNumber('ict_inventory')
         ->name('ict-inventory.show');

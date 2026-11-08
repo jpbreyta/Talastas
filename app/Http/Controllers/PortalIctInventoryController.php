@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\IctInventory;
 use App\Models\Institution;
-use App\Services\InventoryCounts;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -50,63 +49,7 @@ class PortalIctInventoryController extends Controller
                     : $query->whereHas('ictInventory', $inventory);
             })
             ->select(['id', 'name', 'type', 'barangay_id'])
-            ->with([
-                'barangay:id,name',
-                'ictInventory' => function ($query): void {
-                    $query
-                        ->whereIn(
-                            'component_type',
-                            IctInventoryController::COMPONENT_TYPES
-                        )
-                        ->with('component')
-                        ->select([
-                            'asset_id',
-                            'institution_id',
-                            'component_id',
-                            'category',
-                            'component_type',
-                            'asset_name',
-                            'total_count',
-                            'active_count',
-                            'retired_count',
-                            'functional_count',
-                            'defective_count',
-                            'defective_active_count',
-                            'functional_count_recorded',
-                        ])
-                        ->latest('asset_id');
-                },
-            ])
-            ->withSum(
-                [
-                    'ictInventory as total_assets_count' =>
-                        fn ($query) => $query->whereIn(
-                            'component_type',
-                            IctInventoryController::COMPONENT_TYPES
-                        ),
-                ],
-                'total_count'
-            )
-            ->withSum(
-                [
-                    'ictInventory as active_assets_count' =>
-                        fn ($query) => $query->whereIn(
-                            'component_type',
-                            IctInventoryController::COMPONENT_TYPES
-                        ),
-                ],
-                'active_count'
-            )
-            ->withSum(
-                [
-                    'ictInventory as attention_assets_count' =>
-                        fn ($query) => $query->whereIn(
-                            'component_type',
-                            IctInventoryController::COMPONENT_TYPES
-                        ),
-                ],
-                'defective_count'
-            )
+            ->with('barangay:id,name')
             ->orderBy('name');
 
         $user = $request->user();
@@ -120,24 +63,31 @@ class PortalIctInventoryController extends Controller
 
         $institutions = $query->paginate(20)->withQueryString();
 
-        $institutions->getCollection()->transform(
-            function (Institution $institution): Institution {
-                $institution->setAttribute(
-                    'total_assets_count',
-                    (int) ($institution->total_assets_count ?? 0)
-                );
-                $institution->setAttribute(
-                    'active_assets_count',
-                    InventoryCounts::sum($institution->ictInventory, 'active_count')
-                );
-                $institution->setAttribute(
-                    'attention_assets_count',
-                    InventoryCounts::sum($institution->ictInventory, 'defective_count')
-                );
+        $institutionIds = $institutions->getCollection()->modelKeys();
+        $summaries = collect();
 
-                return $institution;
-            }
-        );
+        if ($institutionIds !== []) {
+            $summaries = IctInventory::query()
+                ->whereIn('institution_id', $institutionIds)
+                ->whereIn('component_type', IctInventoryController::COMPONENT_TYPES)
+                ->selectRaw('COALESCE(SUM(total_count), 0) AS total_assets_count')
+                ->selectRaw('CASE WHEN COUNT(*) > 0 AND COUNT(active_count) = COUNT(*) AND MIN(active_count) >= 0 THEN SUM(active_count) ELSE NULL END AS active_assets_count')
+                ->selectRaw('CASE WHEN COUNT(*) > 0 AND COUNT(retired_count) = COUNT(*) AND MIN(retired_count) >= 0 THEN SUM(retired_count) ELSE NULL END AS retired_assets_count')
+                ->selectRaw('CASE WHEN COUNT(*) > 0 AND COUNT(defective_count) = COUNT(*) AND MIN(defective_count) >= 0 THEN SUM(defective_count) ELSE NULL END AS attention_assets_count')
+                ->selectRaw('CASE WHEN COUNT(*) > 0 AND COUNT(CASE WHEN functional_count_recorded = true AND functional_count IS NOT NULL THEN 1 END) = COUNT(*) THEN SUM(functional_count) ELSE NULL END AS functional_assets_count')
+                ->groupBy('institution_id')
+                ->get()
+                ->keyBy('institution_id');
+        }
+
+        $institutions->getCollection()->each(function (Institution $institution) use ($summaries): void {
+            $summary = $summaries->get($institution->id);
+            $institution->setAttribute('total_assets_count', (int) ($summary->total_assets_count ?? 0));
+            $institution->setAttribute('active_assets_count', $summary?->active_assets_count);
+            $institution->setAttribute('retired_assets_count', $summary?->retired_assets_count);
+            $institution->setAttribute('functional_assets_count', $summary?->functional_assets_count);
+            $institution->setAttribute('attention_assets_count', $summary?->attention_assets_count);
+        });
 
         return view($request->header('X-Talastas-Fragment') === 'inventory'
             ? 'ict-inventory._table-results' : 'ict-inventory.index', [
@@ -173,5 +123,38 @@ class PortalIctInventoryController extends Controller
         return view('ict-inventory.show', [
             'ictInventory' => $ict_inventory,
         ]);
+    }
+
+    public function institutionDetails(Request $request, Institution $institution)
+    {
+        abort_unless(
+            in_array($institution->type, ['School', 'Barangay Hall'], true),
+            404
+        );
+
+        $user = $request->user();
+        if ($user->isEditor() && !$user->canAccessInstitution((int) $institution->id)) {
+            abort(403, 'You are not assigned to this institution.');
+        }
+
+        $inventory = $institution->ictInventory()
+            ->whereIn('component_type', IctInventoryController::COMPONENT_TYPES)
+            ->select([
+                'asset_id',
+                'institution_id',
+                'component_type',
+                'asset_name',
+                'total_count',
+                'active_count',
+                'retired_count',
+                'functional_count',
+                'functional_count_recorded',
+                'defective_count',
+                'defective_active_count',
+            ])
+            ->latest('asset_id')
+            ->get();
+
+        return view('ict-inventory._institution-details', compact('inventory'));
     }
 }

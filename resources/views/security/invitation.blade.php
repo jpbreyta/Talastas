@@ -13,6 +13,14 @@
     </div>
 </div>
 @elseif($invite)
+@php($invitationAccountMismatch = auth()->check() && strtolower(trim(auth()->user()->email)) !== $invite->email)
+@if($invitationAccountMismatch)
+<div role="alert" class="space-y-2 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+    <p class="font-semibold">This invitation belongs to a different email address</p>
+    <p>You are signed in as {{ auth()->user()->email }}, but this invitation was sent to {{ $invite->email }}. For your account’s security, it cannot be accepted while signed in as another user.</p>
+    <p>Use the Sign out button below, then reopen the latest invitation email. If the invited address already has a TALASTAS account, sign in with that account before reopening the invitation.</p>
+</div>
+@else
 <p class="text-sm text-gray-600">You were invited as <strong>{{ ['admin' => 'System Administrator', 'editor' => 'Barangay Focal Person / ICT Coordinator', 'viewer' => 'LGU City Planner'][$invite->role] ?? $invite->role }}</strong>. Confirm the address that received the invitation. This invitation expires {{ $invite->expires_at->timezone('Asia/Manila')->format('M j, Y H:i T') }}. Expired link? Ask the System Admin who invited you to resend it. Always use the latest email link.</p>
 <ol class="list-decimal space-y-2 pl-5 text-sm text-gray-600"><li>Confirm your invited email and choose a password for a new account.</li><li>Review the Terms and the separate Privacy Notice, then activate your account.</li><li>Sign in. Administrators will receive a six-digit verification code at their registered email.</li></ol>
 <p class="text-xs text-gray-600">Complete this setup within ten minutes of opening the email link. If the setup session expires, reopen the latest invitation email. Current Terms accepted here are recognized when you sign in.</p>
@@ -43,6 +51,7 @@
 </label>
 <button type="submit" class="rounded-lg bg-red-900 px-4 py-3 font-semibold text-white">Accept invitation and activate account</button>
 </form>
+@endif
 @endif
 @endsection
 @section('scripts')

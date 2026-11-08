@@ -70,6 +70,7 @@ class PortalIctInventoryController extends Controller
             $summaries = IctInventory::query()
                 ->whereIn('institution_id', $institutionIds)
                 ->whereIn('component_type', IctInventoryController::COMPONENT_TYPES)
+                ->select('institution_id')
                 ->selectRaw('COALESCE(SUM(total_count), 0) AS total_assets_count')
                 ->selectRaw('CASE WHEN COUNT(*) > 0 AND COUNT(active_count) = COUNT(*) AND MIN(active_count) >= 0 THEN SUM(active_count) ELSE NULL END AS active_assets_count')
                 ->selectRaw('CASE WHEN COUNT(*) > 0 AND COUNT(retired_count) = COUNT(*) AND MIN(retired_count) >= 0 THEN SUM(retired_count) ELSE NULL END AS retired_assets_count')

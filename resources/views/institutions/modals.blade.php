@@ -352,7 +352,7 @@
                                                         class="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
                                                         Latitude</p>
                                                     <p id="detectedLatitude"
-                                                        class="mt-0.5 font-mono text-sm font-medium text-gray-700">â€”</p>
+                                                        class="mt-0.5 font-mono text-sm font-medium text-gray-700">—</p>
                                                 </div>
                                             </div>
 
@@ -367,7 +367,7 @@
                                                         class="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
                                                         Longitude</p>
                                                     <p id="detectedLongitude"
-                                                        class="mt-0.5 font-mono text-sm font-medium text-gray-700">â€”</p>
+                                                        class="mt-0.5 font-mono text-sm font-medium text-gray-700">—</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -2175,8 +2175,8 @@
                 detectedCity.textContent = 'Not detected';
                 detectedProvince.textContent = 'Not detected';
                 detectedCountry.textContent = 'Not detected';
-                detectedLatitude.textContent = 'â€”';
-                detectedLongitude.textContent = 'â€”';
+                detectedLatitude.textContent = '—';
+                detectedLongitude.textContent = '—';
 
                 createButton.disabled = true;
                 setLocationStatus('waiting');

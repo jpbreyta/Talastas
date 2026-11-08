@@ -538,6 +538,25 @@
                     </div>
                 @endif
 
+                @if ($analytics && $analytics->processing_stage === 'outdated')
+                    @php
+                        $lastCompletedAssessment = data_get($analytics->recommendations_detail, 'last_completed_assessment');
+                        $lastCompletedAt = data_get($lastCompletedAssessment, 'completed_at');
+                        $sourceDataChangedAt = data_get($analytics->recommendations_detail, 'source_data_changed_at');
+                    @endphp
+                    <div class="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-900" role="status">
+                        <p class="font-semibold">Inventory or connectivity data changed; the current analytics need recalculation.</p>
+                        <p class="mt-1 text-xs leading-5">
+                            @if ($lastCompletedAt)
+                                Last completed assessment: {{ \Illuminate\Support\Carbon::parse($lastCompletedAt)->format('M d, Y g:i A') }}.
+                            @else
+                                No completed assessment is available for the current data.
+                            @endif
+                            Latest source change recorded: {{ $sourceDataChangedAt ? \Illuminate\Support\Carbon::parse($sourceDataChangedAt)->format('M d, Y g:i A') : 'time unavailable' }}. The previous assessment is historical and is not presented as current.
+                        </p>
+                    </div>
+                @endif
+
                 @if ($analytics && $aiStatus === 'fallback')
                     <div class="border-b border-orange-100 bg-orange-50 px-5 py-3 text-sm text-orange-800">
                         <div class="flex items-center gap-2">
@@ -977,7 +996,8 @@
                                                         class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition hover:bg-red-50 hover:text-red-700"
                                                         title="Delete inventory record"
                                                         aria-label="Delete inventory record"
-                                                        onclick="return confirm('Delete this inventory record?')">
+                                                        data-confirm-inventory-delete
+                                                        data-inventory-name="{{ $item->asset_name }}">
                                                         <i class="fa-regular fa-trash-can text-xs"></i>
                                                     </button>
                                                 </form>

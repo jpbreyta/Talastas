@@ -13,7 +13,7 @@ export function initializeMapDashboard() {
     const status = document.getElementById('mapDashboardStatus');
     const planning = document.getElementById('mapPlanningInsights');
     async function load() {
-        status.textContent = 'Loading recorded assessment dataâ€¦';
+        status.textContent = 'Loading recorded assessment data…';
         try {
             const response = await fetch(dashboard.dataset.dashboardEndpoint, { headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
             if (!response.ok) throw new Error('Dashboard unavailable');

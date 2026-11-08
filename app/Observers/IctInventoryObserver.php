@@ -110,12 +110,30 @@ class IctInventoryObserver implements ShouldHandleEventsAfterCommit
     {
         DB::transaction(function () use ($institutionId): void {
             Institution::whereKey($institutionId)->lockForUpdate()->first();
-            InstitutionAnalytics::query()
-            ->where(
-                'institution_id',
-                $institutionId
-            )
-            ->update([
+            $analytics = InstitutionAnalytics::query()
+                ->where('institution_id', $institutionId)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $analytics) {
+                return;
+            }
+
+            $details = $analytics->recommendations_detail ?? [];
+            if ($analytics->analysis_date !== null && $analytics->processing_status === 'completed') {
+                $details['last_completed_assessment'] = [
+                    'completed_at' => $analytics->analysis_date->toIso8601String(),
+                    'gap_score' => $analytics->gap_score,
+                    'infrastructure_deficit_score' => $analytics->infrastructure_deficit_score,
+                    'connectivity_divide_score' => $analytics->connectivity_divide_score,
+                    'technological_obsolescence_score' => $analytics->technological_obsolescence_score,
+                    'narrative' => $analytics->infrastructure_narrative,
+                    'inventory_totals' => data_get($details, 'assessment.inventory_inputs.totals'),
+                ];
+            }
+            $details['source_data_changed_at'] = now()->toIso8601String();
+
+            $analytics->forceFill([
                 'gap_score' => null,
                 'infrastructure_deficit_score' => null,
                 'connectivity_divide_score' => null,
@@ -123,7 +141,7 @@ class IctInventoryObserver implements ShouldHandleEventsAfterCommit
                 'risk_level' => 'insufficient_data',
                 'infrastructure_narrative' => null,
                 'policy_recommendation' => null,
-                'recommendations_detail' => null,
+                'recommendations_detail' => $details,
                 'analysis_date' => null,
                 'ai_priorities' => null,
                 'processing_token' => (string) Str::uuid(),
@@ -133,7 +151,7 @@ class IctInventoryObserver implements ShouldHandleEventsAfterCommit
                 'processing_completed_at' => null,
                 'processing_error' => null,
                 'updated_at' => now(),
-            ]);
+            ])->saveQuietly();
         });
     }
 }

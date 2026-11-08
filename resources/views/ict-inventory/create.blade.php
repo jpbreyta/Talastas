@@ -451,6 +451,16 @@
         </template>
     @endforeach
     @include('ict-inventory._save-feedback')
+    <dialog id="deleteInventoryItemModal" class="w-[calc(100%-2rem)] max-w-md rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/60" aria-labelledby="deleteInventoryItemTitle">
+        <div class="border-b border-slate-200 px-6 py-5">
+            <h2 id="deleteInventoryItemTitle" class="text-lg font-semibold text-slate-900">Delete inventory item?</h2>
+            <p class="mt-1 text-sm text-slate-600">This saved item will be deleted when you save the inventory form.</p>
+        </div>
+        <div class="flex justify-end gap-3 bg-slate-50 px-6 py-4">
+            <button type="button" data-cancel-delete-inventory-item class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700">Cancel</button>
+            <button type="button" data-confirm-delete-inventory-item class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Delete item</button>
+        </div>
+    </dialog>
 @endsection
 
 @section('scripts')
@@ -465,6 +475,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const panels = Array.from(
         document.querySelectorAll('[data-inventory-panel]')
     );
+    const deleteItemModal = document.getElementById('deleteInventoryItemModal');
+    let resolveDeleteItem = null;
+
+    function confirmInventoryItemDelete() {
+        return new Promise((resolve) => {
+            resolveDeleteItem = resolve;
+            deleteItemModal?.showModal();
+        });
+    }
+
+    deleteItemModal?.querySelector('[data-cancel-delete-inventory-item]')?.addEventListener('click', () => deleteItemModal.close());
+    deleteItemModal?.querySelector('[data-confirm-delete-inventory-item]')?.addEventListener('click', () => {
+        deleteItemModal.close();
+        resolveDeleteItem?.(true);
+        resolveDeleteItem = null;
+    });
+    deleteItemModal?.addEventListener('cancel', () => {
+        resolveDeleteItem?.(false);
+        resolveDeleteItem = null;
+    });
+    deleteItemModal?.addEventListener('close', () => {
+        resolveDeleteItem?.(false);
+        resolveDeleteItem = null;
+    });
 
     const labels = {
         hardware: 'Hardware & Equipment',
@@ -564,6 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function validateTab(tab, subsection = null, validate = true, affectedRow = null) {
         const countFields = ['total_count', 'active_count', 'retired_count', 'functional_count', 'defective_count', 'defective_active_count'];
         const tbody = document.querySelector(`[data-inventory-rows="${tab}"]`);
+        const normalizeName = value => value.trim().replace(/\s+/g, ' ').toLowerCase();
         tbody?.querySelectorAll('[data-subtotal-group]').forEach(group => {
             if (subsection !== null && group.dataset.subtotalGroup !== subsection) return;
             const rows = rowsFor(tab).filter(row => row.dataset.subsection === group.dataset.subtotalGroup &&
@@ -590,8 +625,20 @@ document.addEventListener('DOMContentLoaded', () => {
         rowsToCheck.forEach(row => {
             const values = rowValues(row);
             const errors = window.InventoryCounts.errors(values);
-            if (countFields.some(field => values[field] !== '') && !row.querySelector('[data-field="asset_name"]')?.value.trim()) {
+            const hasRecordedData = countFields.some(field => values[field] !== '')
+                || Boolean(row.querySelector('[data-field="asset_id"]')?.value);
+            const name = normalizeName(row.querySelector('[data-field="asset_name"]')?.value ?? '');
+            if (countFields.some(field => values[field] !== '') && !name) {
                 errors.push({field: 'asset_name', message: 'Enter an item name.'});
+            }
+            if (validate && hasRecordedData && name && rowsFor(tab).some(other => {
+                if (other === row) return false;
+                const otherValues = rowValues(other);
+                const otherRecorded = countFields.some(field => otherValues[field] !== '')
+                    || Boolean(other.querySelector('[data-field="asset_id"]')?.value);
+                return otherRecorded && normalizeName(other.querySelector('[data-field="asset_name"]')?.value ?? '') === name;
+            })) {
+                errors.push({field: 'asset_name', message: 'Each component name may appear only once in the same category.'});
             }
             window.InventoryFeedback.showRowErrors(row, values, errors);
             if (errors.length) valid = false;
@@ -663,11 +710,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         row.querySelector('[data-remove-row]')
-            ?.addEventListener('click', () => {
+            ?.addEventListener('click', async () => {
                 const assetId = row.querySelector('[data-field="asset_id"]')?.value;
                 if (assetId) {
                     if (!@json(auth()->user()?->isAdmin() ?? false)) return;
-                    if (!confirm('Delete this saved inventory item?')) return;
+                    if (!await confirmInventoryItemDelete()) return;
                     const removal = document.createElement('input');
                     removal.type = 'hidden';
                     removal.name = 'removed_asset_ids[]';

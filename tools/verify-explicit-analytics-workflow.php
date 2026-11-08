@@ -23,12 +23,13 @@ $db->table('barangays')->insert(['id'=>1,'name'=>'Fixture']);
 $db->table('institutions')->insert(['id'=>1,'name'=>'Fixture','type'=>'Barangay Hall','barangay_id'=>1,'has_internet_connection'=>true,'q10_number_of_connections'=>1]);
 $db->table('ict_components')->insert(['id'=>1,'key'=>'desktop','name'=>'Desktop','component_type'=>'hardware','counts_toward_infrastructure'=>true,'is_active'=>true,'is_standard'=>true,'is_computing_device'=>true]);
 $db->table('ict_inventory')->insert(['asset_id'=>1,'institution_id'=>1,'component_id'=>1,'component_type'=>'hardware','asset_name'=>'Desktop','total_count'=>100,'active_count'=>80,'retired_count'=>20,'functional_count'=>60,'functional_count_recorded'=>true,'defective_count'=>15,'defective_active_count'=>10]);
-$db->table('institution_internet_connections')->insert(['id'=>1,'institution_id'=>1,'connection_number'=>1,'plan'=>'100 Mbps','advertised_download_mbps'=>100,'download_speed_mbps'=>60]);
+$db->table('institution_internet_connections')->insert(['id'=>1,'institution_id'=>1,'connection_number'=>1,'plan'=>'100 Mbps','advertised_download_mbps'=>100,'download_speed_mbps'=>60,'upload_speed_mbps'=>60]);
 $db->table('institution_analytics')->insert(['id'=>1,'institution_id'=>1,'processing_token'=>'run-1','processing_status'=>'queued']);
 class FixtureAnalyticsJob extends App\Jobs\ProcessInstitutionAnalytics {
  public ?array $pythonResult=null;
  protected function requestPythonAnalysis(array $payload,App\Models\Institution $institution): ?array {return $this->pythonResult;}
  public function payload(App\Models\Institution $institution): array {return $this->buildPythonPayload($institution);}
+ public function narrative(array $scores): string {return $this->buildAssessmentNarrative($scores);}
 }
 class FixtureAi extends App\Services\GeminiService {
  public $before=null;
@@ -37,7 +38,7 @@ class FixtureAi extends App\Services\GeminiService {
   if($this->before)($this->before)();
   if($this->throw)throw new RuntimeException('Fixture AI outage');
   // Malicious/extraneous numeric AI output must never be used.
-  return ['gap_score'=>99,'infrastructure_narrative'=>'Fixture','policy_recommendation'=>'Fixture','recommendations_detail'=>[]];
+  return ['gap_score'=>99,'infrastructure_narrative'=>'7 active, 7 retired, 7 functional, and 7 defective units.','policy_recommendation'=>'Replace 7 units.','recommendations_detail'=>['ai_status'=>'generated','priorities'=>[['priority'=>'Replace 7 units','rationale'=>'Seven units are defective','urgency'=>'short_term']]]];
  }
 }
 $checks=0;
@@ -55,6 +56,9 @@ $job->handle($ai,$calculator);
 $row=App\Models\InstitutionAnalytics::first();
 integrationCheck($row->gap_score===24.17 && data_get($row->recommendations_detail,'score_source')==='python'
  && data_get($row->recommendations_detail,'python_service_used')===true,'Python result is used and provenance persisted');
+integrationCheck(str_contains($row->infrastructure_narrative,'10 defective-within-active applicable units among 80 active applicable units')
+ && !str_contains($row->infrastructure_narrative,'7 active'),'Narrative is composed from structured scores, not AI numerical prose');
+integrationCheck(data_get($row->recommendations_detail,'ai_status')==='fallback','AI recommendation with unvalidated numerical claims is rejected');
 $job->pythonResult=null;
 $db->table('institution_analytics')->update(['processing_token'=>'newer','processing_status'=>'queued']);
 $job->handle($ai,$calculator);
@@ -94,4 +98,44 @@ integrationCheck((int)$db->table('ict_inventory')->value('functional_count')===9
 $request=Illuminate\Http\Request::create('/fixture','PATCH',['defective_active_count'=>null]);
 $data=$method->invoke($controller,$request,true,App\Models\IctInventory::first());
 integrationCheck($data['defective_active_count']===null,'API explicit blank remains unknown');
+
+// Institution 70 regression: seed only values supplied for this case. Other
+// counts remain NULL so the assessment cannot silently treat unknown as zero.
+$db->table('institutions')->insert(['id'=>70,'name'=>'Institution 70 fixture','type'=>'School','barangay_id'=>1,'has_internet_connection'=>null,'q10_number_of_connections'=>null]);
+$db->table('ict_components')->insert([
+ ['id'=>70,'key'=>'desktop_computer','name'=>'Desktop','component_type'=>'hardware','counts_toward_infrastructure'=>true,'is_active'=>true,'is_standard'=>true,'is_computing_device'=>true],
+ ['id'=>71,'key'=>'laptop','name'=>'Laptop','component_type'=>'hardware','counts_toward_infrastructure'=>true,'is_active'=>true,'is_standard'=>true,'is_computing_device'=>true],
+ ['id'=>72,'key'=>'router','name'=>'Router','component_type'=>'network','counts_toward_infrastructure'=>false,'is_active'=>true,'is_standard'=>true,'is_computing_device'=>false],
+]);
+$db->table('ict_inventory')->insert([
+ ['asset_id'=>70,'institution_id'=>70,'component_id'=>70,'component_type'=>'hardware','asset_name'=>'Desktop','total_count'=>null,'active_count'=>119,'retired_count'=>null,'functional_count'=>null,'functional_count_recorded'=>false,'defective_count'=>5,'defective_active_count'=>5],
+ ['asset_id'=>71,'institution_id'=>70,'component_id'=>71,'component_type'=>'hardware','asset_name'=>'Laptop','total_count'=>null,'active_count'=>null,'retired_count'=>8,'functional_count'=>null,'functional_count_recorded'=>false,'defective_count'=>null,'defective_active_count'=>null],
+ ['asset_id'=>72,'institution_id'=>70,'component_id'=>72,'component_type'=>'network','asset_name'=>'Router','total_count'=>null,'active_count'=>null,'retired_count'=>null,'functional_count'=>null,'functional_count_recorded'=>false,'defective_count'=>null,'defective_active_count'=>null],
+]);
+$db->table('institution_analytics')->insert(['id'=>70,'institution_id'=>70,'processing_token'=>'run-70','processing_status'=>'queued']);
+$institution70=App\Models\Institution::with(['ictInventory.component','internetConnections','institutionAnalytics'])->findOrFail(70);
+$job70=new FixtureAnalyticsJob(70,'run-70');
+$payload70=$job70->payload($institution70);
+$result70=$calculator->calculate($payload70);
+$assessmentRows=$result70['inventory_inputs']['rows'];
+$desktopAssessment=collect($assessmentRows)->firstWhere('label','Desktop');
+$laptopAssessment=collect($assessmentRows)->firstWhere('label','Laptop');
+integrationCheck(count($payload70['inventory'])===3 && in_array('Router',array_column($payload70['inventory'],'label'),true),'Router remains in the declared scope even when its legacy component flag is false');
+integrationCheck($desktopAssessment['active_count']===119 && $desktopAssessment['defective_count']===5 && $desktopAssessment['defective_active_count']===5,'Institution 70 Desktop preserves 119 active, 5 defective, and 5 defective-active');
+integrationCheck($laptopAssessment['retired_count']===8 && $laptopAssessment['total_count']===null && $laptopAssessment['functional_count']===null,'Institution 70 Laptop preserves 8 retired and unknown Total/Functional values');
+integrationCheck($result70['inventory_inputs']['included_rows']===3 && $result70['inventory_inputs']['totals']['total_count']===null,'Assessment preserves row count and unknown aggregate totals');
+$job70->pythonResult=array_replace($result70,['institution_id'=>70]);
+$job70->handle(new FixtureAi,$calculator);
+$analytics70=App\Models\InstitutionAnalytics::where('institution_id',70)->firstOrFail();
+integrationCheck(str_contains($analytics70->infrastructure_narrative,'Desktop has 5 recorded generally defective unit(s)')
+ && str_contains($analytics70->infrastructure_narrative,'Desktop has 5 units recorded defective within 119 active unit(s)')
+ && str_contains($analytics70->infrastructure_narrative,'Laptop has 8 recorded retired unit(s)'), 'Institution 70 narrative uses structured values');
+integrationCheck(str_contains($analytics70->infrastructure_narrative,'Active count is missing or invalid for Laptop')
+ && str_contains($analytics70->infrastructure_narrative,'Total count is missing or invalid for Desktop')
+ && !str_contains($analytics70->infrastructure_narrative,'0 total'), 'Missing institution 70 inputs are described as unavailable, not zero');
+App\Observers\IctInventoryObserver::invalidateForInstitution(70);
+$analytics70->refresh();
+integrationCheck($analytics70->processing_stage==='outdated' && $analytics70->analysis_date===null
+ && data_get($analytics70->recommendations_detail,'last_completed_assessment.completed_at')!==null
+ && data_get($analytics70->recommendations_detail,'source_data_changed_at')!==null,'Modified source data preserves the prior assessment as historical');
 echo "$checks isolated workflow checks passed.\n";

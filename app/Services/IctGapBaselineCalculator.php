@@ -17,6 +17,13 @@ class IctGapBaselineCalculator
             }
             return $row;
         }, $rows);
+        $assessmentRows = array_map(function (array $row): array {
+            $normalized = ['label' => $row['label'] ?? null];
+            foreach (['total_count', ...InventoryCounts::AVAILABILITY_FIELDS] as $field) {
+                $normalized[$field] = InventoryCounts::quantity($row[$field] ?? null);
+            }
+            return $normalized;
+        }, $rows);
         $missing = [];
         $invalid = $payload['inventory_invalid_inputs'] ?? [];
         $errors = [];
@@ -80,7 +87,8 @@ class IctGapBaselineCalculator
             ], fn ($value) => $value !== null),
             'inventory_inputs' => ['totals' => $inputs, 'recorded_row_counts' => $recorded,
                 'included_rows' => count($rows), 'coverage' => $payload['inventory_coverage'] ?? 'saved_applicable_rows',
-                'missing_expected_inventory' => $payload['missing_expected_inventory'] ?? []],
+                'missing_expected_inventory' => $payload['missing_expected_inventory'] ?? [],
+                'rows' => $assessmentRows],
         ];
     }
 

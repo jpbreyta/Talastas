@@ -35,27 +35,31 @@ def valid_speed(value, positive=False):
 
 
 def prepare_connection(row):
-    """Same conservative parser as PHP; never convert a price or bare number."""
+    """Same conservative parser as PHP; bare numeric plan values are Mbps."""
     plan = str(row.get('plan') or '').strip()
     parsed = dict(plan_classification='not_recorded', advertised_download_mbps=None, plan_reason='plan_not_recorded')
     if plan:
-        matches = list(re.finditer(r'(?<![^\W_])(?<![.,])((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?)\s*(kbps|mbps|gbps|kbit/s|mbit/s|gbit/s)\b', plan, re.I))
-        parsed = dict(plan_classification='ambiguous', advertised_download_mbps=None, plan_reason='plan_ambiguous')
-        if len(matches) == 1:
+        bare = re.fullmatch(r'((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?)', plan)
+        if bare:
+            speed = float(bare.group(1).replace(',', ''))
+            parsed = dict(plan_classification='identifiable', advertised_download_mbps=speed, plan_reason=None) if math.isfinite(speed) and speed > 0 else dict(plan_classification='ambiguous', advertised_download_mbps=None, plan_reason='invalid_advertised_speed')
+        else:
+            matches = list(re.finditer(r'(?<![^\W_])(?<![.,])((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?)\s*mbps\b', plan, re.I))
+            parsed = dict(plan_classification='ambiguous', advertised_download_mbps=None, plan_reason='plan_ambiguous')
+        if not bare and len(matches) == 1:
             match = matches[0]
             prefix = plan[:match.start()]
             ambiguous_range = re.search(r'\d\s*(?:(?:[kmg]bps|[kmg]bit/s)\s*)?(?:[-–—/]|to\b)\s*\d|\bor\s+\d', plan, re.I)
             negative = re.search(r'[-−]\s*$', prefix)
             price_speed = re.search(r'(?:₱|\$|\bPHP|\bUSD)\s*$', prefix, re.I)
             upload_only = re.search(r'\b(upload|upstream|up(?!\s+to\b))\b', plan, re.I)
-            unit = match[2]
-            if not (ambiguous_range or negative or price_speed or upload_only or unit in ['KBps', 'MBps', 'GBps']):
-                speed = float(match[1].replace(',', '')) * {'g': 1000, 'k': .001, 'm': 1}[unit[0].lower()]
+            if not (ambiguous_range or negative or price_speed or upload_only):
+                speed = float(match[1].replace(',', ''))
                 if math.isfinite(speed) and speed > 0:
                     parsed = dict(plan_classification='identifiable', advertised_download_mbps=speed, plan_reason=None)
                 else:
                     parsed['plan_reason'] = 'invalid_advertised_speed'
-        if not matches and re.search(r'\d', plan) and re.search(r'₱|\bPHP(?=\b|\d)|\bUSD(?=\b|\d)|\$|\bpesos?\b', plan, re.I):
+        if not bare and not matches and re.search(r'\d', plan) and re.search(r'₱|\bPHP(?=\b|\d)|\bUSD(?=\b|\d)|\$|\bpesos?\b', plan, re.I):
             parsed.update(plan_classification='price_only', plan_reason='plan_price_only')
     result = dict(connection_number=row.get('connection_number', '?'), **parsed,
                   advertised_speed_source='plan' if parsed['plan_classification'] == 'identifiable' else None)
@@ -127,7 +131,8 @@ def connectivity(data):
             reported = 0 if status is False else 1 if status is True else None
         rows = [dict(connection_number=1, plan_classification='identifiable',
                      advertised_download_mbps=data.get('bandwidth_allocation_mbps'),
-                     download_speed_mbps=data.get('download_speed_mbps'))] if status is True else []
+                     download_speed_mbps=data.get('download_speed_mbps'),
+                     upload_speed_mbps=data.get('upload_speed_mbps'))] if status is True else []
     errors = {}
     if status is not None and type(status) is not bool:
         errors['has_internet_connection'] = 'Select Yes, No, or Not recorded for Internet service.'
@@ -158,6 +163,7 @@ def connectivity(data):
         number = row.get('connection_number', '?')
         advertised = row.get('advertised_download_mbps')
         download = row.get('download_speed_mbps')
+        upload = row.get('upload_speed_mbps')
         bad = False
         if row.get('plan_reason') == 'advertised_speed_conflict':
             message = f'Recorded advertised download conflicts with the plan speed for connection {number}.'
@@ -174,8 +180,15 @@ def connectivity(data):
             if download is not None and download != '':
                 errors[f'internet_connections.{number}.download_speed_mbps'] = 'Measured download must be a nonnegative finite value in Mbps.'
             bad = True
+        if not valid_speed(upload):
+            messages.append(f'Record a valid measured upload speed for connection {number}.')
+            if upload is not None and upload != '':
+                errors[f'internet_connections.{number}.upload_speed_mbps'] = 'Measured upload must be a nonnegative finite value in Mbps.'
+            bad = True
         if not bad:
-            scores.append(round_score(max(float(advertised) - float(download), 0) / float(advertised) * 100))
+            download_shortfall = max(float(advertised) - float(download), 0) / float(advertised) * 100
+            upload_shortfall = max(float(advertised) - float(upload), 0) / float(advertised) * 100
+            scores.append(round_score((download_shortfall + upload_shortfall) / 2))
     score = round_score(sum(scores) / len(rows)) if rows and status is True and not messages and len(scores) == valid_reported else None
     return score, messages, errors
 
@@ -187,6 +200,12 @@ def calculate(data):
     if rows is None:
         rows = [{field + '_count': data.get(field + '_applicable_inventory_count') for field in FIELDS}]
     rows = [dict(row, functional_count=None) if row.get('functional_count_recorded') is False else row for row in rows]
+    assessment_rows = []
+    for row in rows:
+        normalized = {'label': row.get('label')}
+        for field in ['total_count'] + [name + '_count' for name in FIELDS[1:]]:
+            normalized[field] = quantity(row.get(field))
+        assessment_rows.append(normalized)
     errors = [count_errors(row) for row in rows]
     invalid = dict(data.get('inventory_invalid_inputs') or {})
     missing = []
@@ -225,7 +244,8 @@ def calculate(data):
                     ('technological_obsolescence_score', retired_reason)] if value is not None},
                 inventory_inputs=dict(totals=totals, recorded_row_counts=recorded, included_rows=len(rows),
                                       coverage=data.get('inventory_coverage', 'saved_applicable_rows'),
-                                      missing_expected_inventory=data.get('missing_expected_inventory') or []))
+                                      missing_expected_inventory=data.get('missing_expected_inventory') or [],
+                                      rows=assessment_rows))
 
 
 def compute_component_scores(inst):

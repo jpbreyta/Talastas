@@ -25,6 +25,54 @@ class GeminiService
         );
     }
 
+    /**
+     * Keep provider generated recommendations free of unverified quantities.
+     * Numerical claims are rendered from the deterministic assessment instead.
+     */
+    public function validateGeneratedRecommendations(
+        Institution $institution,
+        array $result,
+        array $scores,
+        array $planningEvidence
+    ): array {
+        $recommendations = [
+            $result['policy_recommendation'] ?? '',
+            ...collect($result['recommendations_detail']['priorities'] ?? [])
+                ->flatMap(fn ($priority) => is_array($priority)
+                    ? [$priority['priority'] ?? '', $priority['rationale'] ?? '']
+                    : [])
+                ->all(),
+        ];
+        $numberWords = 'zero|one|two|three|four|five|six|seven|eight|nine|ten|'
+            .'eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|'
+            .'eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|'
+            .'eighty|ninety|hundred|thousand|million|billion|dozen|half';
+        $hasNumericalClaim = collect($recommendations)->contains(fn ($text) =>
+            preg_match('/(?<![\pL])(?:\d+(?:[.,]\d+)?|'.$numberWords.')(?![\pL])/iu', (string) $text) === 1
+        );
+
+        if (! $hasNumericalClaim) {
+            return $result;
+        }
+
+        Log::warning('AI analytics recommendation rejected because it contains numerical claims; deterministic local recommendations used.', [
+            'institution_id' => $institution->id,
+        ]);
+
+        $fallback = $this->buildLocalFallback(
+            $institution,
+            $this->buildContext($institution, $scores, $planningEvidence),
+            [[
+                'status' => 'rejected',
+                'message' => 'Generated recommendation contained numerical claims; only structured assessment values may be reported.',
+            ]],
+            []
+        );
+        $fallback['recommendations_detail']['method'] = 'local_validated_prescriptive_fallback';
+
+        return $fallback;
+    }
+
     public function analyze(
         Institution $institution,
         array $scores = [],
@@ -499,7 +547,11 @@ NON-NEGOTIABLE RULES
 8. Urgency is operational planning guidance, not a research severity class.
    Use "immediate" only when the evidence explicitly shows a service-stopping
    condition such as no active applicable infrastructure or no Internet service.
-9. Return valid JSON only and follow the response schema exactly.
+9. Do not put numeric quantities, counts, percentages, speeds, dates, or number
+   words in generated prose. The application builds the final narrative from
+   the validated structured assessment; numeric recommendations are replaced
+   with a deterministic evidence-based fallback.
+10. Return valid JSON only and follow the response schema exactly.
 
 BASELINE DEFINITIONS
 - Infrastructure Deficit:
@@ -539,24 +591,20 @@ Produce a concise, evidence-based prescriptive analysis for the supplied
 institution.
 
 infrastructure_narrative
-- Maximum 3 short sentences.
-- State the strongest observed issue first.
-- Use exact supplied counts, percentages, Mbps values, or recorded yes/no facts.
-- Distinguish defective active infrastructure, Internet performance, and
-  retired inventory.
-- If Overall ICT Gap is unavailable, state that the required core evidence is
-  incomplete without assigning a replacement score.
+- Return a non-numerical placeholder only; TALASTAS composes the final
+  infrastructure narrative from the validated assessment.
 
 policy_recommendation
 - Maximum 3 short sentences.
 - Give a practical action sequence based on the evidence.
 - Prefer: validate evidence -> inspect/repair -> verify Internet performance ->
   reassess -> plan phased action.
-- Do not prescribe quantities or budgets not supplied by the data.
+- Use qualitative actions only. Do not state quantities, counts, percentages,
+  speeds, dates, budgets, or number words.
 
 priorities
 - Return at most 3 actions ordered by practical need.
-- Every rationale must cite at least one supplied fact.
+- Keep actions and rationales qualitative, without numerical claims.
 - urgency must be one of: immediate, short_term, medium_term.
 
 DATA
@@ -998,7 +1046,7 @@ PROMPT;
                 'label' =>
                     (string) ($item['label'] ?? ''),
                 'total_count' =>
-                    (int) ($item['total_count'] ?? 0),
+                    isset($item['total_count']) ? (int) $item['total_count'] : null,
                 'active_count' =>
                     isset($item['active_count']) ? (int) $item['active_count'] : null,
                 'retired_count' =>

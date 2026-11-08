@@ -17,7 +17,7 @@ spec.loader.exec_module(m)
 base = dict(id=1, total_applicable_inventory_count=10, active_applicable_inventory_count=8,
             retired_applicable_inventory_count=2, functional_applicable_inventory_count=7,
             defective_applicable_inventory_count=1, has_internet_connection=True,
-            bandwidth_allocation_mbps=100, download_speed_mbps=40,
+            bandwidth_allocation_mbps=100, download_speed_mbps=40, upload_speed_mbps=60,
             internet_connections=None, reported_internet_connection_count=None, inventory_invalid_inputs={})
 changes = [{}, {'retired_applicable_inventory_count': None}, {'retired_applicable_inventory_count': 0},
            {'active_applicable_inventory_count': 0}, {'defective_applicable_inventory_count': 9},

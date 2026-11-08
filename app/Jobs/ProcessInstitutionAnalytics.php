@@ -134,18 +134,22 @@ class ProcessInstitutionAnalytics implements ShouldQueue
             $institution
         );
 
-        $scores = $pythonResult !== null
-            ? $baselineCalculator->fromPythonResult(
-                $pythonResult,
-                $payload
-            )
-            : $baselineCalculator->calculate(
-                $payload
-            );
+        $scoreSource = $pythonResult !== null ? 'python' : 'laravel_fallback';
+        try {
+            $scores = $pythonResult !== null
+                ? $baselineCalculator->fromPythonResult($pythonResult, $payload)
+                : $baselineCalculator->calculate($payload);
+        } catch (\UnexpectedValueException $exception) {
+            Log::error('Python analytics result failed local parity validation.', [
+                'institution_id' => $institution->id,
+                'error' => $exception->getMessage(),
+            ]);
+            throw $exception;
+        }
 
         Log::info('Deterministic analytics scores ready.', [
             'institution_id' => $institution->id,
-            'score_source' => 'laravel_deterministic',
+            'score_source' => $scoreSource,
             'scores' => $scores,
         ]);
 
@@ -196,8 +200,8 @@ class ProcessInstitutionAnalytics implements ShouldQueue
         $recommendationDetails = array_merge(
             $aiResult['recommendations_detail'] ?? [],
             [
-                'score_source' => 'laravel_deterministic',
-                'python_service_used' => $pythonResult !== null,
+                'score_source' => $scoreSource,
+                'python_service_used' => $scoreSource === 'python',
                 'assessment' => $scores,
                 'decision_support_version' => '4.2-explicit-analytics-inputs',
                 'connectivity_assessment' => app(InternetConnectivityAssessment::class)->assess($payload),
@@ -252,7 +256,8 @@ class ProcessInstitutionAnalytics implements ShouldQueue
             $scores,
             $aiResult,
             $recommendationDetails,
-            $payload
+            $payload,
+            $scoreSource
         ): bool {
             // Serialize result publication with inventory edits and invalidation.
             $currentInstitution = Institution::whereKey($institution->id)->lockForUpdate()->firstOrFail();
@@ -428,15 +433,21 @@ class ProcessInstitutionAnalytics implements ShouldQueue
 
             if (!is_array($data)) {
                 Log::warning(
-                    'Python analytics returned an invalid response.',
+                    'Python analytics returned an invalid successful response.',
                     ['institution_id' => $institution->id, 'status' => $response->status(), 'response_type' => get_debug_type($data)]
                 );
-                return null;
+                throw new \UnexpectedValueException('Python analytics returned an invalid successful response.');
             }
 
             $rules = [
                 'institution_id' => 'required|integer|in:'.$institution->id,
                 'risk_level' => 'required|in:assessed,insufficient_data',
+                'assessment_status' => 'required|in:assessed,insufficient_data',
+                'processing_status' => 'required|in:completed',
+                'missing_inputs' => 'present|array',
+                'invalid_inputs' => 'present|array',
+                'unavailable_reasons' => 'present|array',
+                'inventory_inputs' => 'required|array',
             ];
             foreach (['gap_score', 'infrastructure_deficit_score', 'connectivity_divide_score', 'technological_obsolescence_score'] as $key) {
                 $rules[$key] = 'present|nullable|numeric|between:0,100';
@@ -444,18 +455,25 @@ class ProcessInstitutionAnalytics implements ShouldQueue
             if (array_key_exists('internet_connections', $payload)) {
                 $rules['connectivity_method'] = 'required|in:'.InternetConnectivityAssessment::METHOD;
             }
+            foreach (['totals' => 'required|array', 'recorded_row_counts' => 'required|array', 'included_rows' => 'required|integer|min:0', 'coverage' => 'required|string', 'missing_expected_inventory' => 'present|array'] as $field => $rule) {
+                $rules['inventory_inputs.'.$field] = $rule;
+            }
             if (($data['success'] ?? true) === false || isset($data['error'])) {
                 throw new \UnexpectedValueException('Python rejected the assessment; local fallback is prohibited.');
             }
             $validation = Validator::make($data, $rules);
             if ($validation->fails() || ($data['success'] ?? true) === false || isset($data['error'])) {
-                Log::warning('Python analytics response rejected; using the existing local calculation from institution records.', [
+                Log::error('Python analytics returned an invalid successful response.', [
                     'institution_id' => $institution->id,
                     'status' => $response->status(),
                     'response_keys' => array_keys($data),
                     'invalid_fields' => $validation->errors()->keys(),
                 ]);
-                return null;
+                throw new \UnexpectedValueException('Python analytics returned an invalid successful response: '.implode(', ', $validation->errors()->keys()).'.');
+            }
+
+            if ($data['risk_level'] !== $data['assessment_status']) {
+                throw new \UnexpectedValueException('Python analytics returned inconsistent assessment status values.');
             }
 
             return $data;

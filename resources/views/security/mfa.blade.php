@@ -38,10 +38,9 @@
 </div>
 <p class="text-xs text-gray-600">Codes expire in five minutes and allow five attempts. Each code can be used once.</p>
 <label class="mfa-trust">
-    <input type="checkbox" name="trust_device" value="1" class="mt-1 h-4 w-4 shrink-0 accent-red-900" aria-describedby="trustedBrowserHelp">
+    <input type="checkbox" name="trust_device" value="1" class="mt-1 h-4 w-4 shrink-0 accent-red-900">
     <span>Trust this browser</span>
 </label>
-<details class="mfa-trust-details"><summary>About trusted browsers</summary><p id="trustedBrowserHelp">Use this only on your own secure device. You can sign in without another code while this browser stays active. Verification is required after {{ $inactivityDays }} consecutive days of inactivity, within 30 days at the latest, or after a security change. Your password is still required when signing in.</p></details>
 <button type="submit" class="mfa-primary">Verify and continue</button>
 </form>
 <form method="POST" action="{{ route('security.mfa.send') }}" class="mt-4">@csrf

@@ -67,17 +67,13 @@ class InvitationManagementController extends Controller
         return back()->with('success', 'Invitation revoked.');
     }
 
-    public function reset(Request $request, User $user, RecoveryService $service, MfaService $mfa)
+    public function reset(Request $request, User $user, RecoveryService $service)
     {
         $this->confirm($request);
         abort_if($request->user()->is($user) || ! $user->is_active, 422);
         SecurityMail::requireConfigured();
         if ($user->isAdmin()) {
-            $request->validate(['email_code' => ['required', 'digits:6']]);
             abort_unless($user->mfa_confirmed_at, 409, 'This administrator must verify their email at sign-in before remote password recovery is available.');
-            if (! $mfa->verify($request->user(), $request->input('email_code'))) {
-                throw ValidationException::withMessages(['email_code' => 'A new six-digit email code is required.']);
-            }
         }
         $service->request($user->email, true);
 

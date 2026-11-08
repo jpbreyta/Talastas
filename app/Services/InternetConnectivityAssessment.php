@@ -25,7 +25,7 @@ class InternetConnectivityAssessment
         };
     }
 
-    /** Extract only one explicit bit-rate value; never interpret a bare number as Mbps. */
+    /** Extract an acquired speed from plan text; a bare numeric plan value is Mbps. */
     public function classifyPlan(?string $plan): array
     {
         $plan = trim($plan ?? '');
@@ -35,19 +35,22 @@ class InternetConnectivityAssessment
             return $result;
         }
 
-        preg_match_all('/(?<![\p{L}\d.,])((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?)\s*(kbps|mbps|gbps|kbit\/s|mbit\/s|gbit\/s)\b/iu', $plan, $matches, PREG_OFFSET_CAPTURE);
+        if (preg_match('/^\s*((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?)\s*$/', $plan, $bare)) {
+            $speed = (float) str_replace(',', '', $bare[1]);
+            return $speed > 0 && is_finite($speed)
+                ? ['plan_classification' => 'identifiable', 'advertised_download_mbps' => $speed, 'plan_reason' => null]
+                : ['plan_classification' => 'ambiguous', 'advertised_download_mbps' => null, 'plan_reason' => 'invalid_advertised_speed'];
+        }
+
+        preg_match_all('/(?<![\p{L}\d.,])((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?)\s*mbps\b/iu', $plan, $matches, PREG_OFFSET_CAPTURE);
         if (count($matches[0]) === 1) {
             $offset = $matches[0][0][1];
-            $unit = $matches[2][0][0];
             $range = preg_match('~\d\s*(?:(?:[kmg]bps|[kmg]bit/s)\s*)?(?:[-–—/]|to\b)\s*\d|\bor\s+\d~iu', $plan);
             $negative = preg_match('/[-−]\s*$/u', substr($plan, 0, $offset));
             $priceSpeed = preg_match('/(?:₱|\$|\bPHP|\bUSD)\s*$/iu', substr($plan, 0, $offset));
             $uploadOnly = preg_match('/\b(upload|upstream|up(?!\s+to\b))\b/i', $plan);
-            // Uppercase B with lowercase ps denotes bytes per second, not bits.
-            $bytes = in_array($unit, ['KBps', 'MBps', 'GBps'], true);
-            if (!$range && !$negative && !$priceSpeed && !$uploadOnly && !$bytes) {
+            if (!$range && !$negative && !$priceSpeed && !$uploadOnly) {
                 $speed = (float) str_replace(',', '', $matches[1][0][0]);
-                $speed *= match (strtolower($unit)[0]) { 'g' => 1000, 'k' => 0.001, default => 1 };
                 if (is_finite($speed) && $speed > 0) {
                     return ['plan_classification' => 'identifiable', 'advertised_download_mbps' => $speed, 'plan_reason' => null];
                 }
@@ -134,6 +137,7 @@ class InternetConnectivityAssessment
                 'connection_number' => 1, 'plan_classification' => 'identifiable',
                 'advertised_download_mbps' => $payload['bandwidth_allocation_mbps'] ?? null,
                 'download_speed_mbps' => $payload['download_speed_mbps'] ?? null,
+                'upload_speed_mbps' => $payload['upload_speed_mbps'] ?? null,
             ]] : [];
         }
         $connections = $payload['internet_connections'];
@@ -177,6 +181,7 @@ class InternetConnectivityAssessment
             $reasons = [];
             $advertised = $connection['advertised_download_mbps'] ?? null;
             $download = $connection['download_speed_mbps'] ?? null;
+            $upload = $connection['upload_speed_mbps'] ?? null;
             if (($connection['plan_reason'] ?? null) === 'advertised_speed_conflict') {
                 $reasons[] = 'advertised_speed_conflict';
                 $message = 'Recorded advertised download conflicts with the plan speed for connection '.$number.'.';
@@ -197,7 +202,17 @@ class InternetConnectivityAssessment
                     $assessment['invalid_inputs']['internet_connections.'.$number.'.download_speed_mbps'] = 'Measured download must be a nonnegative finite value in Mbps.';
                 }
             }
-            $score = $reasons === [] ? round(max((float) $advertised - (float) $download, 0) / (float) $advertised * 100, 2) : null;
+            if (!$this->validSpeed($upload)) {
+                $reasons[] = $upload === null || $upload === '' ? 'upload_not_recorded' : 'invalid_upload';
+                $assessment['messages'][] = 'Record a valid measured upload speed for connection '.$number.'.';
+                if ($upload !== null && $upload !== '') {
+                    $assessment['invalid_inputs']['internet_connections.'.$number.'.upload_speed_mbps'] = 'Measured upload must be a nonnegative finite value in Mbps.';
+                }
+            }
+            $score = $reasons === [] ? round((
+                max((float) $advertised - (float) $download, 0) / (float) $advertised * 100
+                + max((float) $advertised - (float) $upload, 0) / (float) $advertised * 100
+            ) / 2, 2) : null;
             if ($score !== null) {
                 $assessment['valid_connection_count']++;
             }

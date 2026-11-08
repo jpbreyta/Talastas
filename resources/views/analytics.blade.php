@@ -28,8 +28,8 @@
                 'label' => 'Connectivity Divide',
                 'value' => $connectivityDivide,
                 'icon' => 'fa-wifi',
-                'description' => 'Mean advertised-download shortfall, available only when every reported connection has usable data.',
-                'formula' => 'Mean of [max(Advertised Download Mbps - Measured Download Mbps, 0) / Advertised Download Mbps] x 100 across all reported connections',
+                'description' => 'Mean download and upload shortfall against acquired Mbps, available only when every reported connection has both measurements.',
+                'formula' => 'Mean across connections of the average of download and upload: [max(Acquired Mbps - Measured Mbps, 0) / Acquired Mbps] x 100',
             ],
             [
                 'label' => 'Technological Obsolescence Proxy',
@@ -524,8 +524,8 @@
                                         [
                                             'label' => 'Connectivity Divide',
                                             'score' => $analytic->connectivity_divide_score,
-                                            'formula' => 'Mean of [max(Advertised Download Mbps - Measured Download Mbps, 0) / Advertised Download Mbps] x 100 across all reported connections',
-                                            'description' => 'Relative bandwidth shortfall between recorded allocation and measured download speed.',
+                                            'formula' => 'Mean across connections of average download and upload shortfall: [max(Acquired Mbps - Measured Mbps, 0) / Acquired Mbps] x 100',
+                                            'description' => 'Relative download and upload shortfall against acquired Mbps.',
                                         ],
                                         [
                                             'label' => 'Technological Obsolescence Proxy',

@@ -505,10 +505,12 @@ BASELINE DEFINITIONS
 - Infrastructure Deficit:
   Explicitly recorded Defective within Active / Active Applicable Units x 100. Active means deployed/in-service and may include defective units. General Defective and Functional are separate responses. Never infer missing Defective within Active.
 - Connectivity Divide:
-  For each connection: max(identified advertised download Mbps - measured download Mbps, 0)
-  / identified advertised download Mbps x 100. Average connection scores only if every
-  reported connection has usable data. Never infer Mbps from prices, ambiguous plan
-  names, allocation text, upload, latency, throughput or an external target.
+  For each connection, calculate download and upload shortfall as
+  max(identified acquired Mbps - measured Mbps, 0) / identified acquired Mbps x 100,
+  then average the two. Average connection scores only if every reported connection
+  has a numeric acquired speed in the Plan field (treated as Mbps) and both
+  measured speeds. Never infer acquired speed from prices, latency, throughput or
+  an external target.
 - Technological Obsolescence Proxy:
   Retired Applicable Units / Total Applicable Units x 100.
 - Overall ICT Gap:
@@ -788,7 +790,7 @@ PROMPT;
             $parts[] = 'The encoded ICT data explicitly records no Internet connection.';
         } elseif (is_numeric($scores['connectivity_divide'] ?? null)) {
             $parts[] =
-                'Mean advertised-download shortfall is '
+                'Mean acquired-Mbps download and upload shortfall is '
                 . $this->numberText($scores['connectivity_divide'])
                 . '% across '.(int) ($connectivity['valid_connection_count'] ?? 0).' recorded connection(s).';
         } elseif (isset($connectivity['reason_codes'])) {

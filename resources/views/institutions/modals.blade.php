@@ -1,4 +1,4 @@
-{{-- Reusable institution modals --}}
+﻿{{-- Reusable institution modals --}}
 @include('institutions._form-styles')
 {{-- Add Institution Modal --}}
         <div id="addInstitutionModal" class="institution-form fixed inset-0 z-[10000] hidden overflow-hidden" aria-hidden="true" inert
@@ -352,7 +352,7 @@
                                                         class="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
                                                         Latitude</p>
                                                     <p id="detectedLatitude"
-                                                        class="mt-0.5 font-mono text-sm font-medium text-gray-700">—</p>
+                                                        class="mt-0.5 font-mono text-sm font-medium text-gray-700">â€”</p>
                                                 </div>
                                             </div>
 
@@ -367,7 +367,7 @@
                                                         class="text-[11px] font-semibold uppercase tracking-wide text-gray-400">
                                                         Longitude</p>
                                                     <p id="detectedLongitude"
-                                                        class="mt-0.5 font-mono text-sm font-medium text-gray-700">—</p>
+                                                        class="mt-0.5 font-mono text-sm font-medium text-gray-700">â€”</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -730,10 +730,9 @@
                 }
                 if (!selectedInstitutionName.value.trim()) {
                     event.preventDefault();
-
-                    showLocationValidation(
-                        'Search and select a location, or apply manual coordinates, before creating it.'
-                    );
+                    const message = 'Search and select a location, or apply manual coordinates, before creating it.';
+                    showLocationValidation(message);
+                    notify('error', message);
 
                     modalName.focus();
                     return;
@@ -741,10 +740,9 @@
 
                 if (!barangayId.value) {
                     event.preventDefault();
-
-                    showLocationValidation(
-                        'Select a valid location or apply coordinates inside a mapped Lipa City barangay before creating the institution.'
-                    );
+                    const message = 'Select a valid location or apply coordinates inside a mapped Lipa City barangay before creating the institution.';
+                    showLocationValidation(message);
+                    notify('error', message);
 
                     document
                         .getElementById('detectedLocationCard')
@@ -759,7 +757,7 @@
                 institutionSubmitting = true;
                 createButton.disabled = true;
                 createButton.innerHTML =
-                    '<i class="fa-solid fa-spinner fa-spin"></i>' +
+                    '<i class="fa-solid global-loading-icon"></i>' +
                     '<span>Creating Institution</span>';
                 form.setAttribute('aria-busy', 'true');
                 try {
@@ -784,7 +782,9 @@
                     window.location.assign(payload.redirect);
                 } catch (error) {
                     console.error('Institution submission failed', error);
-                    renderSubmissionErrors({ form: ['Unable to confirm the save. Check your connection and try again.'] });
+                    const message = 'Unable to confirm the save. Check your connection and try again.';
+                    renderSubmissionErrors({ form: [message] });
+                    notify('error', message);
                     formErrors.focus();
                 } finally {
                     institutionSubmitting = false;
@@ -987,7 +987,7 @@
                 confirmDeleteButton.disabled = isLoading;
 
                 confirmDeleteButton.innerHTML = isLoading
-                    ? '<i class="fa-solid fa-spinner fa-spin"></i><span>Deleting</span>'
+                    ? '<i class="fa-solid global-loading-icon"></i><span>Deleting</span>'
                     : '<i class="fa-solid fa-trash"></i><span>Delete Institution</span>';
             }
 
@@ -1289,7 +1289,7 @@
 
                 resetOsmBoundaryButton.disabled = true;
                 resetOsmBoundaryButton.innerHTML =
-                    '<i class="fa-solid fa-spinner fa-spin"></i> Fetching map data';
+                    '<i class="fa-solid global-loading-icon"></i> Fetching map data';
 
                 try {
                     const response = await fetch(
@@ -1721,7 +1721,7 @@
 
                 applyManualCoordinatesButton.disabled = true;
                 applyManualCoordinatesButton.innerHTML =
-                    '<i class="fa-solid fa-spinner fa-spin"></i> Checking';
+                    '<i class="fa-solid global-loading-icon"></i> Checking';
 
                 try {
                     const response = await fetch(
@@ -1913,7 +1913,7 @@
 
                 if (isLoading) {
                     geocodeButtonText.textContent = 'Searching';
-                    icon.className = 'fa-solid fa-spinner fa-spin';
+                    icon.className = 'fa-solid global-loading-icon';
                 } else {
                     geocodeButtonText.textContent = 'Search Location';
                     icon.className = 'fa-solid fa-magnifying-glass';
@@ -2151,8 +2151,8 @@
                 detectedCity.textContent = 'Not detected';
                 detectedProvince.textContent = 'Not detected';
                 detectedCountry.textContent = 'Not detected';
-                detectedLatitude.textContent = '—';
-                detectedLongitude.textContent = '—';
+                detectedLatitude.textContent = 'â€”';
+                detectedLongitude.textContent = 'â€”';
 
                 createButton.disabled = true;
                 setLocationStatus('waiting');
@@ -2206,7 +2206,7 @@
             function showDropdownLoading() {
                 searchResults.innerHTML = `
                     <div class="flex items-center justify-center gap-2 px-4 py-5 text-sm text-gray-500">
-                        <i class="fa-solid fa-spinner fa-spin text-red-600"></i>
+                        <i class="fa-solid global-loading-icon text-red-600"></i>
                         Searching for matching locations
                     </div>
                 `;
@@ -2276,3 +2276,5 @@
             @endif
         });
     </script>
+
+

@@ -70,6 +70,23 @@
     @endauth
 </head>
 <body class="talastas-app font-sans antialiased bg-gray-50 @auth role-{{ auth()->user()->role }} @endauth @hasSection('dashboard-layout') overflow-hidden h-screen @endif">
+@php
+    $routeName = request()->route()?->getName() ?? '';
+    $uri = request()->path();
+    $skeletonPage = 'default';
+    if ($routeName === 'home' || $routeName === 'map' || $uri === '/' || $uri === '/map') {
+        $skeletonPage = 'dashboard';
+    } elseif (str_starts_with($routeName, 'institutions.') || str_starts_with($uri, 'institutions')) {
+        $skeletonPage = 'institutions';
+    } elseif (str_starts_with($routeName, 'ict-inventory.') || str_starts_with($uri, 'ict-inventory')) {
+        $skeletonPage = 'inventory';
+    } elseif ($routeName === 'analytics' || $uri === '/analytics') {
+        $skeletonPage = 'analytics';
+    } elseif (str_starts_with($routeName, 'admin.users.') || str_starts_with($uri, 'admin/users')) {
+        $skeletonPage = 'users';
+    }
+@endphp
+@include('components.page-skeleton', ['page' => $skeletonPage])
     @include('layouts.sidebar')
     <div id="app" class="talastas-shell min-w-0 flex flex-col @hasSection('dashboard-layout') h-screen overflow-hidden @else min-h-screen @endif">
         @include('layouts.header')

@@ -1,4 +1,4 @@
-<div data-gps-controls data-gps-resolve-url="{{ url('/institutions/resolve-coordinates') }}" data-gps-state="idle" class="location-method-card gps-card">
+﻿<div data-gps-controls data-gps-resolve-url="{{ url('/institutions/resolve-coordinates') }}" data-gps-state="idle" class="location-method-card gps-card">
     <div class="gps-card-heading">
         <h4><i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>Use Current Location (GPS)</h4>
         <span class="location-source-badge">Location source: <span data-location-source-label>Manual</span></span>
@@ -11,7 +11,7 @@
     @foreach(['location_source', 'actor_latitude', 'actor_longitude', 'gps_accuracy', 'gps_verified'] as $gpsField)
         @error($gpsField)<p class="text-red-600">{{ $message }}</p>@enderror
     @endforeach
-    <div class="gps-status"><i data-gps-status-icon class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><p data-gps-message role="status" aria-live="polite"></p></div>
+    <div class="gps-status"><x-global-loading size="sm" color="blue-600" /><p data-gps-message role="status" aria-live="polite"></p></div>
     <input type="hidden" name="location_source" value="{{ old('location_source', $institution->location_source ?? 'manual') }}">
     <input type="hidden" name="actor_latitude">
     <input type="hidden" name="actor_longitude">
@@ -19,3 +19,4 @@
     <input type="hidden" name="gps_verified" value="0">
     <label data-gps-review class="gps-review hidden"><input type="checkbox" data-gps-confirm> I checked the pin against the institution location and corrected it if needed.</label>
 </div>
+

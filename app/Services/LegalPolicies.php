@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\QueryException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 class LegalPolicies
@@ -122,11 +123,14 @@ class LegalPolicies
     public function accepted(User $user): bool
     {
         abort_unless($this->acceptanceAvailable(), 503, 'The applicable Terms are unavailable.');
-        abort_unless(Schema::hasTable('terms_acceptances'), 503, 'Terms storage is not installed.');
         $document = $this->document('terms');
-        $receipt = DB::table('terms_acceptances')->where('user_id', $user->getKey())
-            ->where('policy_version', $document['content']['version'])
-            ->where('requirement_version', $document['content']['requirement_version'])->first();
+        try {
+            $receipt = DB::table('terms_acceptances')->where('user_id', $user->getKey())
+                ->where('policy_version', $document['content']['version'])
+                ->where('requirement_version', $document['content']['requirement_version'])->first();
+        } catch (QueryException) {
+            abort(503, 'Terms storage is not installed.');
+        }
         if (! $receipt) {
             return false;
         }

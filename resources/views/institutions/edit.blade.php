@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('page-title', 'Edit Institution')
 @section('page-icon', 'fa-building')
@@ -270,7 +270,7 @@
 
 @section('scripts')
 <script>
-// ── Toggle cards ─────────────────────────────────────────────────────
+// â”€â”€ Toggle cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 document.querySelectorAll('.toggle-card-label').forEach(label => {
     const input  = label.querySelector('.toggle-card-input');
     const body   = label.querySelector('.toggle-card-body');
@@ -304,7 +304,7 @@ document.querySelectorAll('.toggle-card-label').forEach(label => {
     input.addEventListener('change', sync);
 });
 
-// ── Accordion sections ───────────────────────────────────────────────
+// â”€â”€ Accordion sections â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function toggleSection(id) {
     const body    = document.getElementById(id);
     const btn     = body.previousElementSibling;
@@ -376,7 +376,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
         {
             maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
+            attribution: 'Â© OpenStreetMap contributors'
         }
     ).addTo(map);
 
@@ -823,7 +823,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         resetButton.disabled = true;
         resetButton.innerHTML =
-            '<i class="fa-solid fa-spinner fa-spin"></i> Fetching map data';
+            '<span class="global-loading-icon"><i class="fa-solid"></i></span> Fetching map data';
 
         try {
             const response = await fetch(
@@ -985,3 +985,4 @@ document.addEventListener('DOMContentLoaded', () => {
 })();
 </script>
 @endsection
+

@@ -1,5 +1,6 @@
-import './bootstrap';
+﻿import './bootstrap';
 import { installInstitutionList } from './institution-list';
+import { installInventoryList } from './inventory-list';
 import { installInstitutionActions } from './institution-actions';
 import { installNotifications } from './notifications';
 import { installNotificationPage } from './notification-page';
@@ -9,6 +10,20 @@ installNotifications();
 // Keep the global bundle intentionally small. GIS libraries are loaded only on
 // map routes through resources/js/gis.js so non-map pages do not download and
 // parse Leaflet, Geoman, Turf, and heat-map code.
+
+function createGlobalLoadingSpinner(message = 'Loading...', color = 'red-700') {
+    const el = document.createElement('span');
+    el.className = 'flex items-center gap-2 text-xs text-gray-600';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.innerHTML = `
+      <span class="flex shrink-0 items-center justify-center h-5 w-5 text-${color}" aria-hidden="true">
+        <i class="fa-solid fa-circle-notch fa-spin motion-reduce:animate-none"></i>
+      </span>
+      <span>${message}</span>
+    `;
+    return el;
+}
 
 const debouncedInputIds = new Set([
     'inventoryInstitutionSearch',
@@ -34,7 +49,7 @@ function createMapLoadingOverlay() {
     overlay.innerHTML = `
         <div class="w-full max-w-3xl px-6">
             <div class="mb-5 flex items-center justify-center gap-3 text-sm font-medium text-slate-600">
-                <i class="fa-solid fa-circle-notch fa-spin text-red-700" aria-hidden="true"></i>
+                <span class="global-loading-spinner"></span>
                 <span data-map-loading-label>Loading map data...</span>
             </div>
 
@@ -231,7 +246,7 @@ function createAnalyticsSkeleton() {
     overlay.innerHTML = `
         <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
             <div class="mb-6 flex items-center gap-3 text-sm font-medium text-slate-600">
-                <i class="fa-solid fa-circle-notch fa-spin text-red-700" aria-hidden="true"></i>
+                <span class="global-loading-spinner"></span>
                 <span>Updating analytics...</span>
             </div>
 
@@ -324,7 +339,7 @@ function installSubmitLoadingState() {
                 if (submitter instanceof HTMLButtonElement && !submitter.querySelector('[data-submit-spinner]')) {
                     const spinner = document.createElement('i');
                     spinner.dataset.submitSpinner = 'true';
-                    spinner.className = 'fa-solid fa-circle-notch fa-spin mr-2';
+                    spinner.className = 'global-loading-spinner mr-2';
                     spinner.setAttribute('aria-hidden', 'true');
                     submitter.prepend(spinner);
                 }
@@ -957,7 +972,7 @@ function installInstitutionAnalyticsRealtime() {
 
         if (busy) {
             button.innerHTML = [
-                '<i class="fa-solid fa-circle-notch fa-spin motion-reduce:animate-none" aria-hidden="true"></i>',
+                '<span class="global-loading-spinner"></span>',
                 '<span>Analyzing?</span>',
             ].join('');
             return;
@@ -1373,10 +1388,103 @@ function installSidebarNavigation() {
     setOpen(false, false);
 }
 
+// Inject global loading spinner styles
+const style = document.createElement('style');
+style.textContent = '.global-loading-spinner { display: inline-flex; align-items: center; justify-content: center; width: 1.25rem; height: 1.25rem; } .global-loading-spinner i { font-size: 0.875rem; }';
+document.head?.appendChild(style);
+
+const style2 = document.createElement('style');
+style2.textContent = '.global-loading-icon { display: inline-flex; align-items: center; justify-content: center; width: 1.25rem; height: 1.25rem; } .global-loading-icon i { font-size: 0.875rem; animation: spin 0.8s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } } .motion-reduce:animate-none .global-loading-icon i { animation: none; }';
+document.head?.appendChild(style2);
+
+// Page skeleton management for server-side navigation
+(function() {
+    const skeleton = document.getElementById('talastasPageSkeleton');
+    if (!skeleton) return;
+
+    let hideTimer = null;
+
+    function showSkeleton() {
+        if (hideTimer) {
+            window.clearTimeout(hideTimer);
+            hideTimer = null;
+        }
+        skeleton.hidden = false;
+        window.requestAnimationFrame(() => skeleton.classList.remove('opacity-0'));
+        skeleton.removeAttribute('aria-hidden');
+        skeleton.setAttribute('aria-live', 'polite');
+    }
+
+    function hideSkeleton() {
+        skeleton.classList.add('opacity-0');
+        skeleton.removeAttribute('aria-live');
+        if (!skeleton.hidden) {
+            hideTimer = window.setTimeout(() => {
+                skeleton.hidden = true;
+                skeleton.setAttribute('aria-hidden', 'true');
+                hideTimer = null;
+            }, 200);
+        }
+    }
+
+    // Show skeleton immediately when navigating away via link click
+    document.addEventListener('click', (event) => {
+        if (event.defaultPrevented || event.button !== 0) return;
+        const link = event.target.closest('a[href]');
+        if (!link) return;
+
+        let destination;
+        try {
+            destination = new URL(link.href, window.location.href);
+        } catch {
+            return;
+        }
+
+        // Only handle same-origin, same-window navigations
+        if (
+            destination.origin !== window.location.origin
+            || destination.href === window.location.href
+            || link.target === '_blank'
+            || event.ctrlKey
+            || event.metaKey
+            || event.shiftKey
+            || event.altKey
+        ) {
+            return;
+        }
+
+        // Skip non-GET navigations (forms, method overrides)
+        if (link.dataset.method || link.closest('form')) {
+            return;
+        }
+
+        try {
+            window.sessionStorage.setItem('talastas:navigation-pending', '1');
+        } catch {
+            // The outgoing page still gets its local transition if storage is unavailable.
+        }
+        showSkeleton();
+    });
+
+    // Show skeleton on beforeunload (covers form submissions, refresh, etc.)
+    window.addEventListener('beforeunload', () => {
+        showSkeleton();
+    });
+
+    // Keep the skeleton visible while the destination document loads. Hide it
+    // only after the new page has finished loading (including its assets).
+    window.addEventListener('load', () => hideSkeleton(), { once: true });
+    window.addEventListener('pageshow', () => hideSkeleton());
+
+    // Start with the overlay hidden on the initial page render.
+    if (document.readyState === 'complete') hideSkeleton();
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
     installSidebarNavigation();
     createMapLoadingOverlay();
     installInstitutionList();
+    installInventoryList();
     installInstitutionActions();
     installInstitutionRowNavigation();
     installAnalyticsLoadingState();
@@ -1386,3 +1494,9 @@ document.addEventListener('DOMContentLoaded', () => {
     installMetricInfoTooltips();
     installInstitutionAnalyticsRealtime();
 });
+
+
+
+
+
+

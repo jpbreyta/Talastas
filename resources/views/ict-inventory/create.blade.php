@@ -745,6 +745,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const invalid = form.querySelector(':invalid');
             activateTab(invalid?.closest('[data-inventory-panel]')?.dataset.inventoryPanel || 'connectivity');
             form.reportValidity();
+            window.TalastasToast?.notify('error', 'Please correct the highlighted inventory fields before saving.');
             return;
         }
         if (firstInvalidTab !== null) {
@@ -753,6 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const invalid = document.querySelector(`[data-inventory-panel="${firstInvalidTab}"] [aria-invalid="true"]`);
             invalid?.scrollIntoView({behavior: 'smooth', block: 'center'});
             invalid?.focus({preventScroll: true});
+            window.TalastasToast?.notify('error', 'Please correct the highlighted inventory fields before saving.');
             return;
         }
         event.preventDefault();
@@ -834,10 +836,13 @@ document.addEventListener('DOMContentLoaded', () => {
             errorPanel.querySelector('[data-save-error-title]').textContent = fallback.length
                 ? 'Check the highlighted details'
                 : (response.status === 419 ? 'Session expired. Refresh and try again.' : 'Unable to save. Please try again.');
+            window.TalastasToast?.notify('error', fallback[0] || Object.values(result.errors || {}).flat()[0]
+                || errorPanel.querySelector('[data-save-error-title]').textContent);
         } catch {
             errorPanel.querySelector('[data-save-errors]').replaceChildren();
             errorPanel.querySelector('[data-save-error-title]').textContent = 'Connection interrupted. Please try again.';
             errorPanel.hidden = false;
+            window.TalastasToast?.notify('error', errorPanel.querySelector('[data-save-error-title]').textContent);
         } finally {
             if (!navigating) {
                 saving = false;

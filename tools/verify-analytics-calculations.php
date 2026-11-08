@@ -11,10 +11,10 @@ function verify($ok, $label) { global $checks; if (!$ok) throw new RuntimeExcept
 $p = ['total_applicable_inventory_count'=>10, 'active_applicable_inventory_count'=>8,
 'retired_applicable_inventory_count'=>2, 'functional_applicable_inventory_count'=>7,
 'defective_applicable_inventory_count'=>1, 'has_internet_connection'=>true,
-'bandwidth_allocation_mbps'=>100, 'download_speed_mbps'=>40];
+'bandwidth_allocation_mbps'=>100, 'download_speed_mbps'=>40, 'upload_speed_mbps'=>60];
 $r = $c->calculate($p);
 verify($r['gap_score'] === null && $r['infrastructure_deficit_score'] === null, 'Unconfirmed defective population');
-verify($r['connectivity_divide_score'] === 60.0 && $r['technological_obsolescence_score'] === 20.0, 'Available components');
+verify($r['connectivity_divide_score'] === 50.0 && $r['technological_obsolescence_score'] === 20.0, 'Download and upload shortfalls are averaged');
 foreach ([null, 0] as $retired) {
 $r=$c->calculate(array_replace($p,['retired_applicable_inventory_count'=>$retired]));
 verify($r['technological_obsolescence_score'] === ($retired === null ? null : 0.0), 'Unknown versus zero');
@@ -23,7 +23,7 @@ $r=$c->calculate(array_replace($p,['active_applicable_inventory_count'=>0]));
 verify($r['infrastructure_deficit_score'] === null, 'Functional positive Active zero');
 $r=$c->calculate(array_replace($p,['defective_applicable_inventory_count'=>9]));
 verify($r['infrastructure_deficit_score'] === null, 'Defective greater than Active');
-foreach ([['download_speed_mbps'=>null],['download_speed_mbps'=>-1],['bandwidth_allocation_mbps'=>0]] as $change) {
+foreach ([['download_speed_mbps'=>null],['download_speed_mbps'=>-1],['upload_speed_mbps'=>null],['upload_speed_mbps'=>-1],['bandwidth_allocation_mbps'=>0]] as $change) {
 verify($c->calculate(array_replace($p,$change))['connectivity_divide_score'] === null, 'Invalid or missing connectivity');
 }
 verify($c->calculate(array_replace($p,['has_internet_connection'=>false]))['connectivity_divide_score'] === 100.0, 'Explicit no Internet');

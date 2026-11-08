@@ -1,3 +1,42 @@
+{{-- Inventory row delete confirmation --}}
+<dialog id="deleteInventoryRecordModal"
+    class="w-[calc(100%-2rem)] max-w-md rounded-2xl p-0 shadow-2xl backdrop:bg-slate-950/60"
+    aria-labelledby="deleteInventoryRecordTitle">
+    <div class="border-b border-slate-200 px-6 py-5">
+        <h2 id="deleteInventoryRecordTitle" class="text-lg font-semibold text-slate-900">Delete inventory record?</h2>
+        <p class="mt-1 text-sm text-slate-600">This permanently deletes <span data-inventory-delete-name class="font-semibold text-slate-900">this inventory record</span>.</p>
+    </div>
+    <div class="flex justify-end gap-3 bg-slate-50 px-6 py-4">
+        <button type="button" data-cancel-inventory-delete class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700">Cancel</button>
+        <button type="button" data-submit-inventory-delete class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Delete record</button>
+    </div>
+</dialog>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('deleteInventoryRecordModal');
+    let activeForm = null;
+
+    document.querySelectorAll('[data-confirm-inventory-delete]').forEach((button) => {
+        button.addEventListener('click', (event) => {
+            event.preventDefault();
+            activeForm = button.closest('form');
+            modal?.querySelector('[data-inventory-delete-name]').textContent = button.dataset.inventoryName || 'this inventory record';
+            modal?.showModal();
+        });
+    });
+
+    modal?.querySelector('[data-cancel-inventory-delete]')?.addEventListener('click', () => modal.close());
+    modal?.querySelector('[data-submit-inventory-delete]')?.addEventListener('click', () => {
+        if (!activeForm) return;
+        modal.close();
+        activeForm.requestSubmit();
+        activeForm = null;
+    });
+    modal?.addEventListener('close', () => { activeForm = null; });
+});
+</script>
+
 {{-- Delete confirmation for the streamlined institution details page --}}
 <div id="deleteInstitutionModal"
     class="fixed inset-0 z-[3300] hidden overflow-y-auto"

@@ -178,6 +178,18 @@ class ProcessInstitutionAnalytics implements ShouldQueue
                 'recommendations_detail' => ['ai_status' => 'unavailable']];
         }
 
+        $aiResult = $geminiService->validateGeneratedRecommendations(
+            $institution,
+            $aiResult,
+            $scores,
+            $planningEvidence
+        );
+        // The narrative always comes from the verified structured assessment;
+        // a language model response is never published as a numerical source.
+        $aiResult['infrastructure_narrative'] = $this->buildAssessmentNarrative(
+            $scores
+        );
+
         Log::info('AI prescriptive analytics result received.', [
             'institution_id' => $institution->id,
             'provider' =>
@@ -328,6 +340,109 @@ class ProcessInstitutionAnalytics implements ShouldQueue
         ]);
     }
 
+    protected function buildAssessmentNarrative(array $scores): string
+    {
+        $totals = data_get($scores, 'inventory_inputs.totals', []);
+        $inventoryRows = data_get($scores, 'inventory_inputs.rows', []);
+        $unavailable = $scores['unavailable_reasons'] ?? [];
+        $parts = [];
+
+        foreach ($inventoryRows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $label = trim((string) ($row['label'] ?? '')) ?: 'Applicable inventory';
+            if (is_numeric($row['defective_count'] ?? null) && (int) $row['defective_count'] > 0) {
+                $parts[] = $label.' has '.number_format((int) $row['defective_count']).' recorded generally defective unit(s).';
+            }
+            if (is_numeric($row['defective_active_count'] ?? null) && (int) $row['defective_active_count'] > 0 && is_numeric($row['active_count'] ?? null)) {
+                $parts[] = $label.' has '.number_format((int) $row['defective_active_count'])
+                    .' units recorded defective within '.number_format((int) $row['active_count']).' active unit(s).';
+            }
+            if (is_numeric($row['retired_count'] ?? null) && (int) $row['retired_count'] > 0) {
+                $parts[] = $label.' has '.number_format((int) $row['retired_count']).' recorded retired unit(s).';
+            }
+        }
+
+        $metrics = [
+            [
+                'score' => 'infrastructure_deficit_score',
+                'numerator' => 'defective_active_count',
+                'denominator' => 'active_count',
+                'label' => 'Infrastructure Deficit',
+                'numerator_label' => 'defective-within-active applicable units',
+                'denominator_label' => 'active applicable units',
+                'required_inputs' => ['active_count', 'defective_active_count'],
+            ],
+            [
+                'score' => 'technological_obsolescence_score',
+                'numerator' => 'retired_count',
+                'denominator' => 'total_count',
+                'label' => 'Retirement Proxy',
+                'numerator_label' => 'retired applicable units',
+                'denominator_label' => 'total applicable units',
+                'required_inputs' => ['total_count', 'retired_count'],
+            ],
+        ];
+
+        foreach ($metrics as $metric) {
+            $score = $scores[$metric['score']] ?? null;
+            $numerator = $totals[$metric['numerator']] ?? null;
+            $denominator = $totals[$metric['denominator']] ?? null;
+            if (is_numeric($score) && is_numeric($numerator) && is_numeric($denominator)) {
+                $parts[] = sprintf(
+                    '%s is %s%%, based on %s %s among %s %s.',
+                    $metric['label'],
+                    number_format((float) $score, 2, '.', ''),
+                    number_format((int) $numerator),
+                    $metric['numerator_label'],
+                    number_format((int) $denominator),
+                    $metric['denominator_label']
+                );
+            } else {
+                $missingRow = collect($inventoryRows)->first(function ($row) use ($metric): bool {
+                    if (! is_array($row)) {
+                        return false;
+                    }
+                    return collect($metric['required_inputs'])->contains(fn ($field) => ! is_numeric($row[$field] ?? null));
+                });
+                if (is_array($missingRow)) {
+                    $missingField = collect($metric['required_inputs'])->first(fn ($field) => ! is_numeric($missingRow[$field] ?? null));
+                    $missingLabel = match ($missingField) {
+                        'active_count' => 'Active count',
+                        'defective_active_count' => 'Defective within Active count',
+                        'total_count' => 'Total count',
+                        'retired_count' => 'Retired count',
+                        default => 'Required inventory count',
+                    };
+                    $rowLabel = trim((string) ($missingRow['label'] ?? '')) ?: 'an applicable inventory row';
+                    $reason = $missingLabel.' is missing or invalid for '.$rowLabel.'.';
+                } else {
+                    $reason = $unavailable[$metric['score']] ?? 'required inventory counts are missing or invalid.';
+                }
+                $parts[] = $metric['label'].' could not be assessed because '.$reason;
+            }
+        }
+
+        $connectivity = $scores['connectivity_divide_score'] ?? null;
+        if (is_numeric($connectivity)) {
+            $parts[] = 'Connectivity Divide is '.number_format((float) $connectivity, 2, '.', '').'%, using the recorded connection measurements.';
+        } else {
+            $reason = $unavailable['connectivity_divide_score'] ?? 'required Internet connection measurements are missing or invalid.';
+            $parts[] = 'Connectivity Divide could not be assessed because '.$reason;
+        }
+
+        $overall = $scores['gap_score'] ?? null;
+        if (is_numeric($overall)) {
+            $parts[] = 'The structured Overall ICT Gap is '.number_format((float) $overall, 2, '.', '').'%.'.
+                ' This is the arithmetic mean of the three available assessment dimensions.';
+        } else {
+            $parts[] = 'Overall ICT Gap is unavailable because one or more required assessment inputs are missing.';
+        }
+
+        return implode(' ', $parts);
+    }
+
     protected function pythonServicePayload(
         array $payload
     ): array {
@@ -362,6 +477,7 @@ class ProcessInstitutionAnalytics implements ShouldQueue
     ): array {
         return [
             ...$this->pythonServicePayload($payload),
+            'inventory_scope_audit' => $payload['inventory_scope_audit'] ?? null,
             'inventory' => collect(
                 $payload['inventory'] ?? []
             )
@@ -458,6 +574,12 @@ class ProcessInstitutionAnalytics implements ShouldQueue
             foreach (['totals' => 'required|array', 'recorded_row_counts' => 'required|array', 'included_rows' => 'required|integer|min:0', 'coverage' => 'required|string', 'missing_expected_inventory' => 'present|array'] as $field => $rule) {
                 $rules['inventory_inputs.'.$field] = $rule;
             }
+            $rules['inventory_inputs.rows'] = 'required|array';
+            $rules['inventory_inputs.rows.*'] = 'array:label,total_count,active_count,retired_count,functional_count,defective_count,defective_active_count';
+            $rules['inventory_inputs.rows.*.label'] = 'present|nullable|string';
+            foreach (['total_count', ...\App\Services\InventoryCounts::AVAILABILITY_FIELDS] as $field) {
+                $rules['inventory_inputs.rows.*.'.$field] = 'present|nullable|integer|min:0';
+            }
             if (($data['success'] ?? true) === false || isset($data['error'])) {
                 throw new \UnexpectedValueException('Python rejected the assessment; local fallback is prohibited.');
             }
@@ -522,6 +644,23 @@ class ProcessInstitutionAnalytics implements ShouldQueue
             fn (IctInventory $item): bool =>
                 app(\App\Services\InventoryCalculationScope::class)->includes($item, $this->includeSoftware ?? true)
         );
+        $excludedInventory = $inventory->reject(
+            fn (IctInventory $item): bool =>
+                app(\App\Services\InventoryCalculationScope::class)->includes($item, $this->includeSoftware ?? true)
+        )->map(function (IctInventory $item): array {
+            $reason = match (true) {
+                $item->component_type === 'software' && ! $this->includeSoftware => 'software_excluded_from_selected_scope',
+                ! in_array($item->component_type, ['hardware', 'software', 'network'], true) => 'outside_selected_inventory_types',
+                $item->component !== null && ! (bool) $item->component->counts_toward_infrastructure => 'component_flag_excludes_row',
+                default => 'excluded_by_selected_scope',
+            };
+            return [
+                'asset_id' => $item->getKey(),
+                'component_type' => $item->component_type,
+                'component_key' => $item->component?->key,
+                'reason' => $reason,
+            ];
+        })->values()->all();
 
         $institution->loadMissing('internetConnections');
         $connections = $institution->internetConnections->map(fn ($connection) =>
@@ -554,6 +693,11 @@ class ProcessInstitutionAnalytics implements ShouldQueue
             'missing_expected_inventory' => [],
             'functional_applicable_inventory_count' => \App\Services\InventoryCounts::sum($applicable, 'functional_count'),
             'applicable_inventory_record_count' => $applicable->count(),
+            'inventory_scope_audit' => [
+                'source_rows' => $inventory->count(),
+                'included_rows' => $applicable->count(),
+                'excluded_rows' => $excludedInventory,
+            ],
             'availability_recorded_row_counts' => collect(\App\Services\InventoryCounts::AVAILABILITY_FIELDS)->mapWithKeys(
                 fn ($field) => [$field => $applicable->whereNotNull($field)->count()]
             )->all(),

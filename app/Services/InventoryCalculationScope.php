@@ -15,6 +15,13 @@ class InventoryCalculationScope
             return false;
         }
 
+        // Router is part of the stated Hardware + Software + Network scope.
+        // Legacy rows can point to a component whose infrastructure flag was
+        // cleared, so retain Router by identity rather than silently dropping it.
+        if ($item->component?->key === 'router') {
+            return true;
+        }
+
         return $item->component ? (bool) $item->component->counts_toward_infrastructure : true;
     }
 

@@ -323,16 +323,17 @@ class IctInventoryController extends Controller
             ->filter(fn (IctInventory $item) => $item->component_id !== null)
             ->keyBy(fn (IctInventory $item) => (int) $item->component_id);
 
-        $existingByCategory = $existing
+        $legacyByCategory = $existing
+            ->filter(fn (IctInventory $item) => $item->component_id === null)
             ->keyBy('category');
 
         $items = $components
             ->map(function (IctComponent $component) use (
                 $existingByComponentId,
-                $existingByCategory
+                $legacyByCategory
             ): array {
                 $inventory = $existingByComponentId->get($component->id)
-                    ?? $existingByCategory->get($component->key);
+                    ?? $legacyByCategory->get($component->key);
 
                 return [
                     'asset_id' => $inventory?->asset_id,
@@ -358,6 +359,16 @@ class IctInventoryController extends Controller
             })
             ->values();
 
+        // Legacy inventory rows may have no component_id and be matched to a
+        // standard template by their category key. Keep those rows represented
+        // by that template only; otherwise the same saved asset_id is rendered
+        // again as a custom row and submitted twice.
+        $representedAssetIds = $items
+            ->pluck('asset_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
         $standardComponentIds = $components
             ->pluck('id')
             ->map(fn ($id) => (int) $id)
@@ -365,8 +376,13 @@ class IctInventoryController extends Controller
 
         $customItems = $existing
             ->filter(function (IctInventory $item) use (
-                $standardComponentIds
+                $standardComponentIds,
+                $representedAssetIds
             ): bool {
+                if (in_array((int) $item->asset_id, $representedAssetIds, true)) {
+                    return false;
+                }
+
                 if ($item->component_id === null) {
                     return true;
                 }
@@ -380,7 +396,7 @@ class IctInventoryController extends Controller
             ->map(function (IctInventory $item): array {
                 return [
                     'asset_id' => $item->asset_id,
-                    'component_id' => null,
+                    'component_id' => $item->component_id,
                     'asset_name' => $item->asset_name,
                     'subsection' =>
                         $item->specifications['inventory_subsection'] ?? $item->component?->subsection
@@ -563,23 +579,29 @@ class IctInventoryController extends Controller
                         $path =
                             "sections.{$componentType}.items.{$index}";
 
-                        $name = Str::lower(
-                            trim((string) (
-                                $item['asset_name'] ?? ''
-                            ))
+                        $submittedComponentId = (int) ($item['component_id'] ?? 0);
+                        $identity = $submittedComponentId > 0
+                            ? $components->get($submittedComponentId)
+                            : $components->first(fn (IctComponent $component) =>
+                                $component->component_type === $componentType
+                                && $this->normalizeInventoryName($component->name)
+                                    === $this->normalizeInventoryName((string) ($item['asset_name'] ?? ''))
+                            );
+                        $name = $this->normalizeInventoryName(
+                            $identity?->is_standard
+                                ? $identity->name
+                                : (string) ($item['asset_name'] ?? '')
                         );
-
-                        $identity = $components->get((int) ($item['component_id'] ?? 0));
-                        $name = $identity?->is_standard ? Str::lower($identity->name) : $name;
-                        if ($name !== '' && collect(['total_count', 'active_count', 'retired_count', 'functional_count', 'defective_count', 'defective_active_count'])->contains(fn ($field) => isset($item[$field]) && $item[$field] !== '')) {
-                            if (isset($seen[$name])) {
+                        $identityKey = $name !== '' ? 'name:'.$name : null;
+                        if ($identityKey !== null && collect(['total_count', 'active_count', 'retired_count', 'functional_count', 'defective_count', 'defective_active_count'])->contains(fn ($field) => isset($item[$field]) && $item[$field] !== '')) {
+                            if (isset($seen[$identityKey])) {
                                 $validator->errors()->add(
                                     "{$path}.asset_name",
                                     'Each component name may appear only once in the same category.'
                                 );
                             }
 
-                            $seen[$name] = true;
+                            $seen[$identityKey] = true;
                         }
 
                         $assetId =
@@ -621,7 +643,10 @@ class IctInventoryController extends Controller
                         if (! $hasCounts) {
                             continue;
                         }
-                        if ($name === '') {
+                        $itemName = $identity?->is_standard
+                            ? trim($identity->name)
+                            : trim((string) ($item['asset_name'] ?? ''));
+                        if ($itemName === '') {
                             $validator->errors()->add("{$path}.asset_name", 'Enter an item name for a recorded row.');
                         }
 
@@ -731,9 +756,14 @@ class IctInventoryController extends Controller
             }
             $component = $this->inventoryComponents()->firstWhere('id', (int) ($item['component_id'] ?? 0));
             $name = $component?->is_standard ? $component->name : trim((string) ($item['asset_name'] ?? ''));
-            $inventory = !empty($item['asset_id']) ? $byId->get($item['asset_id']) :
-                $existing->first(fn ($row) => ($component && $row->component_id === $component->id)
-                    || Str::lower(trim($row->asset_name)) === Str::lower($name));
+            $inventory = !empty($item['asset_id']) ? $byId->get($item['asset_id']) : null;
+            if (!$inventory && $component) {
+                $inventory = $existing->first(fn ($row) => (int) $row->component_id === (int) $component->id);
+            }
+            if (!$inventory && !$component) {
+                $normalizedName = $this->normalizeInventoryName($name);
+                $inventory = $existing->first(fn ($row) => $this->normalizeInventoryName((string) $row->asset_name) === $normalizedName);
+            }
             $functionalOmitted = !array_key_exists('functional_count', $item);
             if ($inventory) {
                 // Omitted fields in partial requests retain their recorded values.
@@ -776,6 +806,11 @@ class IctInventoryController extends Controller
             $byCategory->put($data['category'], $inventory);
         }
         // Omitted and blank templates never delete inventory or hide component templates.
+    }
+
+    private function normalizeInventoryName(string $name): string
+    {
+        return Str::lower(Str::squish($name));
     }
 
     private function persistInventory(Request $request, ?IctInventory $existing = null): IctInventory
@@ -956,6 +991,12 @@ class IctInventoryController extends Controller
         );
 
         $item = [
+            // Keep the saved component identity when editing a record. Without
+            // this, a renamed/custom item can be resolved as a different
+            // component and the update may change its category association.
+            'component_id' => $partial
+                ? $existing?->component_id
+                : null,
             'defective_active_count' => array_key_exists('defective_active_count', $validated)
                 ? $validated['defective_active_count'] : ($partial ? $existing?->defective_active_count : null),
             'functional_count' => array_key_exists('functional_count', $validated)
@@ -1010,7 +1051,10 @@ class IctInventoryController extends Controller
                 $assetName = $component->name;
             }
         }
-        $component ??= $components->first(fn ($row) => $row->component_type === $componentType && Str::lower($row->name) === Str::lower($assetName));
+        $component ??= $components->first(fn ($row) =>
+            $row->component_type === $componentType
+            && $this->normalizeInventoryName($row->name) === $this->normalizeInventoryName($assetName)
+        );
 
         if (!$component && $componentType === IctComponent::TYPE_CONNECTIVITY) {
             foreach (\App\Services\ConnectivityInventory::COMPONENTS as $key => $definition) {

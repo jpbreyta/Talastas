@@ -14,7 +14,7 @@ base = dict(id=1,total_applicable_inventory_count=100,active_applicable_inventor
             defective_applicable_inventory_count=15,functional_applicable_inventory_count=60,
             has_internet_connection=True,reported_internet_connection_count=1,
             internet_connections=[dict(connection_number=1,plan_classification='identifiable',
-                                       advertised_download_mbps=100,download_speed_mbps=60)])
+                                       advertised_download_mbps=100,download_speed_mbps=60,upload_speed_mbps=60)])
 cases = [base]
 for field, values in {
  'active_applicable_inventory_count':[0,None,-1,1.5,'bad'],
@@ -36,20 +36,20 @@ cases.extend([
  dict(base,has_internet_connection=None),
  dict(base,reported_internet_connection_count=None),
  dict(base,reported_internet_connection_count=2,internet_connections=base['internet_connections']+[
-      dict(connection_number=2,plan_classification='identifiable',advertised_download_mbps=50,download_speed_mbps=50)]),
+      dict(connection_number=2,plan_classification='identifiable',advertised_download_mbps=50,download_speed_mbps=50,upload_speed_mbps=50)]),
  dict(base,reported_internet_connection_count=2,internet_connections=base['internet_connections']+[
-      dict(connection_number=2,plan_classification='identifiable',advertised_download_mbps=50,download_speed_mbps=None)]),
+      dict(connection_number=2,plan_classification='identifiable',advertised_download_mbps=50,download_speed_mbps=None,upload_speed_mbps=50)]),
 ])
 for plan, explicit in [('2000',None),('PHP 2000',None),('100 Mbps',None),('50-100 Mbps',None),
                        ('100 Mbps',50),('2000',50),('100 Mbps',100),('100 Mbps',0)]:
-    c=dict(base,raw_connections=[dict(connection_number=1,plan=plan,advertised_download_mbps=explicit,download_speed_mbps=0.54)])
+    c=dict(base,raw_connections=[dict(connection_number=1,plan=plan,advertised_download_mbps=explicit,download_speed_mbps=0.54,upload_speed_mbps=0.54)])
     cases.append(c)
 for value in [None,0,-1,'bad',1000001]:
     cases.append(dict(base,internet_connections=[dict(base['internet_connections'][0],download_speed_mbps=value)]))
 cases.append(dict(base,inventory=[dict(total_count=100,active_count=80,retired_count=20,defective_active_count=10,defective_count=15,functional_count=-1),
                                 dict(total_count=0,active_count=0,retired_count=None,defective_active_count=None)]))
 for plan in ['100 Mbps', '2000', 'PHP 2000', '50-100 Mbps', '1 Gbps', '500 kbps', '100 MBps', 'Upload 100 Mbps', '100 Mbps or 200 Mbps']:
-    cases.append(dict(base,internet_connections=[dict(connection_number=1,plan=plan,download_speed_mbps=60)]))
+    cases.append(dict(base,internet_connections=[dict(connection_number=1,plan=plan,download_speed_mbps=60,upload_speed_mbps=60)]))
 for reported in ['bad', -1, 256, 1.5]:
     cases.append(dict(base,reported_internet_connection_count=reported))
 cases.append(dict(base,inventory=[dict(total_count=100,active_count=80,retired_count=20,
@@ -57,7 +57,7 @@ cases.append(dict(base,inventory=[dict(total_count=100,active_count=80,retired_c
                                      functional_count=999,functional_count_recorded=False)]))
 for status, reported in [(False, 2), (False, None), (True, 2)]:
     legacy = dict(base,has_internet_connection=status,reported_internet_connection_count=reported,
-                  bandwidth_allocation_mbps=100,download_speed_mbps=60)
+                  bandwidth_allocation_mbps=100,download_speed_mbps=60,upload_speed_mbps=60)
     legacy.pop('internet_connections')
     cases.append(legacy)
 for index, payload in enumerate(cases):

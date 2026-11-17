@@ -3,8 +3,7 @@
 @section('page-title', 'Institutions')
 @section('page-icon', 'fa-building')
 
-@section('dashboard-layout')
-@endsection
+@section('dashboard-layout', 'enabled')
 
 @section('page-tools')
 <div class="relative">
@@ -12,8 +11,13 @@
                             <i class="fa-solid fa-magnifying-glass text-sm"></i>
                         </div>
 
-                        <input id="institutionSearch" name="search" form="institutionListFilters" value="{{ request('search') }}" aria-label="Search institutions" type="search" placeholder="Search institutions..."
-                            class="w-36 sm:w-56 rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-4 text-sm text-slate-900 placeholder-slate-400 transition focus:outline-none focus:ring-2 focus:ring-red-100">
+                        <input id="institutionSearch" name="search" form="institutionListFilters" value="{{ request('search') }}" aria-label="Search institutions" type="search" placeholder="Search"
+                            class="w-36 sm:w-56 rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-9 text-sm text-slate-900 placeholder-slate-400 transition focus:outline-none focus:ring-2 focus:ring-red-100">
+                        <button type="button" data-institution-clear-search @if (!filled(request('search'))) hidden @endif
+                            aria-label="Clear institution search" title="Clear search"
+                            class="absolute inset-y-0 right-0 inline-flex w-9 items-center justify-center rounded-r-lg text-slate-500 hover:text-red-800 focus-visible:outline-2 focus-visible:outline-red-700">
+                            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                        </button>
                     </div>
 
                     @if (auth()->user()->canManageInstitutions())
@@ -28,7 +32,7 @@
 @section('content')
     @php($canManageInstitutions = auth()->user()->canManageInstitutions())
 
-    <div data-institution-list class="flex h-full min-h-0 flex-col bg-gray-100">
+    <div data-institution-list class="flex min-h-0 flex-1 flex-col bg-gray-100">
         {{-- Page Header --}}
 
         {{-- Validation Errors --}}
@@ -72,6 +76,16 @@
                     </div>
 
                     <div class="w-full sm:w-60">
+                        <label for="sectorFilter" class="sr-only">Filter by Sector</label>
+                        <select id="sectorFilter" name="sector"
+                            class="h-10 w-full appearance-auto rounded-md border border-gray-300 bg-white px-3 text-gray-700 transition hover:bg-gray-50 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100">
+                            <option value="" @selected(!request()->filled('sector'))>All Sectors</option>
+                            <option value="School" @selected(request('sector') === 'School')>School</option>
+                            <option value="Barangay Hall" @selected(request('sector') === 'Barangay Hall')>Barangay Hall</option>
+                        </select>
+                    </div>
+
+                    <div class="w-full sm:w-60">
                         <label for="institutionSort"
                             class="sr-only">
                             Sort By
@@ -103,10 +117,11 @@
                 </div>
 
                 <div class="ml-auto flex shrink-0 items-center gap-4">
-                    <button type="submit"
+                    <button type="submit" data-institution-apply
                         class="inline-flex h-10 items-center gap-2 rounded-md border border-red-700 bg-transparent px-4 text-sm font-medium text-red-700 transition hover:bg-red-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700">
-                        <i class="fa-solid fa-filter text-xs" aria-hidden="true"></i>
-                        Apply
+                        <x-loading-spinner data-apply-spinner hidden class="text-[#0F2C59]" />
+                        <i data-apply-icon class="fa-solid fa-filter text-xs" aria-hidden="true"></i>
+                        <span data-apply-label>Apply</span>
                     </button>
 
                     <a data-institution-reset href="{{ route('institutions.index') }}"
@@ -125,7 +140,10 @@
                 <span data-institution-status-label>{{ number_format($institutions->total()) }} {{ $institutions->total() === 1 ? 'institution' : 'institutions' }}</span>
             </div>
         </div>
-        @include('institutions._table-results')
+        <div class="relative flex min-h-0 flex-1 flex-col">
+            @include('institutions._table-results')
+            <x-loading-overlay data-institution-loading label="Updating institutions…" />
+        </div>
 
         @if ($canManageInstitutions)
             @include('institutions.modals')

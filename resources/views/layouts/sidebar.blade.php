@@ -35,18 +35,7 @@
             </a>
         @endforeach
         </div>
-        @if(request()->routeIs('home', 'map'))
-            <fieldset class="sidebar-map-styles mt-5 border-t border-white/15 pt-4">
-                <legend class="px-3 text-[10px] font-semibold uppercase tracking-wide text-red-100/70">Map background</legend>
-                @foreach(['default' => 'Default streets', 'satellite' => 'Satellite', 'terrain' => 'Terrain', 'blank' => 'Blank (no labels)'] as $value => $label)
-                    <label class="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs text-white hover:bg-white/10">
-                        <input type="radio" name="map-background" value="{{ $value }}" data-map-background @checked($value === 'default') class="accent-white">
-                        <span>{{ $label }}</span>
-                    </label>
-                @endforeach
-                <p id="mapBackgroundStatus" class="px-3 pt-2 text-[10px] leading-4 text-red-100" role="status"></p>
-            </fieldset>
-        @endif
+
     </nav>
     @auth
         <div class="mt-auto shrink-0 px-2 py-3">

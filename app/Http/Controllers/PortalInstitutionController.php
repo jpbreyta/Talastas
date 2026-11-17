@@ -14,6 +14,7 @@ class PortalInstitutionController extends Controller
         $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
             'barangay' => ['nullable', 'integer', 'min:1'],
+            'sector' => ['nullable', 'string', 'in:School,Barangay Hall'],
             'sort' => ['nullable', 'string', 'max:50'],
         ]);
 
@@ -60,6 +61,10 @@ class PortalInstitutionController extends Controller
 
         $barangayId = $request->integer('barangay');
 
+        if ($request->filled('sector')) {
+            $query->where('type', $request->query('sector'));
+        }
+
         if ($barangayId > 0) {
             $query->where('barangay_id', $barangayId);
         }
@@ -93,9 +98,15 @@ class PortalInstitutionController extends Controller
                 ->orderBy('name'),
         };
 
+        $query->orderBy('id');
+
         $institutions = $query
             ->paginate(20)
             ->withQueryString();
+
+        if ($institutions->isEmpty() && $institutions->currentPage() > $institutions->lastPage()) {
+            $institutions = $query->paginate(20, ['*'], 'page', $institutions->lastPage())->withQueryString();
+        }
 
         return view(
             $request->header('X-Talastas-Fragment') === 'institutions'

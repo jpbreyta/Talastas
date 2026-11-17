@@ -22,9 +22,8 @@ class InvitationManagementController extends Controller
     {
         $invitations = UserInvitation::with('institutions')->latest()->paginate(20);
         $institutions = Institution::with('barangay:id,name')->where('is_active', true)->whereIn('type', ['School', 'Barangay Hall'])->orderBy('name')->get();
-        $events = DB::table('security_events')->orderByDesc('id')->limit(50)->get();
 
-        return view('admin.users.invitations', compact('invitations', 'institutions', 'events'));
+        return view('admin.users.invitations', compact('invitations', 'institutions'));
     }
 
     private function confirm(Request $request): void

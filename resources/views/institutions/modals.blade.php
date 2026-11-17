@@ -1,4 +1,4 @@
-﻿{{-- Reusable institution modals --}}
+{{-- Reusable institution modals --}}
 @include('institutions._form-styles')
 {{-- Add Institution Modal --}}
         <div id="addInstitutionModal" class="institution-form fixed inset-0 z-[10000] hidden overflow-hidden" aria-hidden="true" inert
@@ -423,11 +423,13 @@
         </div>
 {{-- Delete Institution Modal --}}
         <div id="deleteInstitutionModal"
-            class="fixed inset-0 z-[3200] hidden overflow-y-auto"
+            class="fixed inset-0 z-[10000] hidden overflow-y-auto"
             role="dialog"
             aria-modal="true"
             aria-hidden="true"
             aria-labelledby="deleteInstitutionModalTitle"
+            aria-describedby="deleteInstitutionDescription deleteInstitutionWarning"
+            tabindex="-1"
             inert>
             <div class="flex min-h-screen items-center justify-center px-4 py-8">
                 <div id="deleteInstitutionModalOverlay"
@@ -462,14 +464,11 @@
                     </div>
 
                     <div class="px-6 py-5">
-                        <p class="text-sm text-gray-600">
-                            Are you sure you want to delete
-                            <span id="deleteInstitutionName" class="font-semibold text-gray-900"></span>?
-                        </p>
+                        <p id="deleteInstitutionDescription" class="text-sm text-gray-600"></p>
 
                         <div class="mt-4 flex items-start gap-3 rounded-xl border border-red-100 bg-red-50 px-4 py-3">
                             <i class="fa-solid fa-circle-exclamation mt-0.5 text-red-600"></i>
-                            <p class="text-sm leading-5 text-red-700">
+                            <p id="deleteInstitutionWarning" class="text-sm leading-5 text-red-700">
                                 Deleted information cannot be recovered from this page.
                             </p>
                         </div>
@@ -607,13 +606,6 @@
             const locationValidationText = document.getElementById('locationValidationText');
             const mapPlaceholder = document.getElementById('mapPlaceholder');
 
-            const deleteModal = document.getElementById('deleteInstitutionModal');
-            const deleteModalOverlay = document.getElementById('deleteInstitutionModalOverlay');
-            const closeDeleteModalButton = document.getElementById('closeDeleteInstitutionModal');
-            const cancelDeleteModalButton = document.getElementById('cancelDeleteInstitution');
-            const confirmDeleteButton = document.getElementById('confirmDeleteInstitution');
-            const deleteInstitutionName = document.getElementById('deleteInstitutionName');
-
             let mapPicker = null;
             let pickerMarker = null;
             let pickerBoundaryLayer = null;
@@ -621,24 +613,16 @@
             let drawingBoundary = false;
             let boundaryEditing = false;
             let lastFocusedElement = null;
-            let lastDeleteFocusedElement = null;
-            let pendingDelete = null;
 
             document.addEventListener('click', (event) => {
                 const add = event.target.closest('[data-open-institution-modal]');
                 if (add) openModal();
-                const button = event.target.closest('.delete-institution-button');
-                if (button) openDeleteModal(button);
             });
 
             closeModalButton?.addEventListener('click', closeModal);
             cancelModalButton?.addEventListener('click', closeModal);
             modalOverlay?.addEventListener('click', closeModal);
 
-            closeDeleteModalButton?.addEventListener('click', closeDeleteModal);
-            cancelDeleteModalButton?.addEventListener('click', closeDeleteModal);
-            deleteModalOverlay?.addEventListener('click', closeDeleteModal);
-            confirmDeleteButton?.addEventListener('click', deleteInstitution);
             geocodeButton?.addEventListener('click', searchLocations);
             toggleManualCoordinatesButton?.addEventListener('click', toggleManualCoordinates);
             applyManualCoordinatesButton?.addEventListener('click', applyManualCoordinates);
@@ -649,11 +633,6 @@
 
             document.addEventListener('keydown', event => {
                 if (event.key !== 'Escape') {
-                    return;
-                }
-
-                if (!deleteModal?.classList.contains('hidden')) {
-                    closeDeleteModal();
                     return;
                 }
 
@@ -861,150 +840,6 @@
 
                 resetCreateButton();
                 lastFocusedElement?.focus();
-            }
-
-            function openDeleteModal(button) {
-                pendingDelete = {
-                    url: button.dataset.deleteUrl,
-                    id: button.dataset.institutionId,
-                    name: button.dataset.institutionName || 'this institution',
-                    row: document.getElementById(`institution-row-${button.dataset.institutionId}`)
-                };
-
-                const actionsMenuId = button.closest('[data-institution-actions-menu]')?.id;
-                lastDeleteFocusedElement = actionsMenuId
-                    ? document.querySelector(`[data-institution-actions-toggle][aria-controls="${actionsMenuId}"]`) || button
-                    : button;
-                deleteInstitutionName.textContent = pendingDelete.name;
-
-                deleteModal.classList.remove('hidden');
-                deleteModal.removeAttribute('aria-hidden');
-                deleteModal.removeAttribute('inert');
-                document.body.style.overflow = 'hidden';
-
-                setTimeout(() => confirmDeleteButton?.focus(), 50);
-            }
-
-            function closeDeleteModal() {
-                if (confirmDeleteButton?.disabled) {
-                    return;
-                }
-
-                if (document.activeElement && deleteModal.contains(document.activeElement)) {
-                    document.activeElement.blur();
-                }
-
-                deleteModal.classList.add('hidden');
-                deleteModal.setAttribute('aria-hidden', 'true');
-                deleteModal.setAttribute('inert', '');
-                document.body.style.overflow = '';
-
-                pendingDelete = null;
-                resetDeleteButton();
-                lastDeleteFocusedElement?.focus();
-            }
-
-            async function deleteInstitution() {
-                if (!pendingDelete?.url || confirmDeleteButton?.disabled) {
-                    return;
-                }
-
-                setDeleteLoading(true);
-
-                try {
-                    const response = await fetch(pendingDelete.url, {
-                        method: 'DELETE',
-                        headers: {
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest',
-                            'X-CSRF-TOKEN': document
-                                .querySelector('meta[name="csrf-token"]')
-                                ?.getAttribute('content') || ''
-                        }
-                    });
-
-                    const contentType = response.headers.get('content-type') || '';
-                    let data = null;
-
-                    if (contentType.includes('application/json')) {
-                        data = await response.json();
-                    }
-
-                    if (!response.ok) {
-                        throw new Error(
-                            (response.status >= 500 ? 'Unable to retrieve location information. Please try again.' : data?.message) ||
-                            (response.status === 419
-                                ? 'Your session expired. Refresh the page and try again.'
-                                : 'The institution could not be deleted.')
-                        );
-                    }
-
-                    const message = (response.status >= 500 ? 'Unable to retrieve location information. Please try again.' : data?.message) || 'Institution deleted successfully.';
-                    const row = pendingDelete.row;
-
-                    deleteModal.classList.add('hidden');
-                    deleteModal.setAttribute('aria-hidden', 'true');
-                    deleteModal.setAttribute('inert', '');
-                    document.body.style.overflow = '';
-
-                    if (row) {
-                        row.classList.add('opacity-0');
-
-                        setTimeout(() => {
-                            row.remove();
-
-                            const remainingRows =
-                                document.querySelectorAll('.inst-row').length;
-
-                            if (remainingRows === 0) {
-                                sessionStorage.setItem(
-                                    'institutionToast',
-                                    JSON.stringify({
-                                        type: 'deleted',
-                                        message
-                                    })
-                                );
-
-                                window.location.reload();
-                                return;
-                            }
-
-                            notify('deleted', message);
-                        }, 180);
-                    } else {
-                        notify('deleted', message);
-                    }
-
-                    pendingDelete = null;
-                    resetDeleteButton();
-                } catch (error) {
-                    console.error('Institution deletion failed:', error);
-                    notify(
-                        'error',
-                        error instanceof Error
-                            ? error.message
-                            : 'The institution could not be deleted.'
-                    );
-                    setDeleteLoading(false);
-                }
-            }
-
-            function setDeleteLoading(isLoading) {
-                confirmDeleteButton.disabled = isLoading;
-
-                confirmDeleteButton.innerHTML = isLoading
-                    ? '<i class="fa-solid global-loading-icon"></i><span>Deleting</span>'
-                    : '<i class="fa-solid fa-trash"></i><span>Delete Institution</span>';
-            }
-
-            function resetDeleteButton() {
-                if (!confirmDeleteButton) {
-                    return;
-                }
-
-                confirmDeleteButton.disabled = false;
-                confirmDeleteButton.innerHTML =
-                    '<i class="fa-solid fa-trash"></i><span>Delete Institution</span>';
             }
 
             function initializeMap() {

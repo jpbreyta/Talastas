@@ -3,7 +3,7 @@
             @if ($institutions->count() > 0)
                 <div class="min-h-0 flex-1 overflow-y-auto px-5 pb-2 pt-4">
                     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                        <div class="overflow-x-auto">
+                        <div class="table-scroll overflow-x-auto" role="region" aria-label="ICT inventory table" tabindex="0">
                             <table class="w-full min-w-[900px] text-sm">
                                 <thead>
                                     <tr class="border-b border-gray-200 bg-gray-50 text-left">
@@ -75,7 +75,7 @@
                                                         class="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-700 transition hover:bg-red-100"
                                                         data-stop-accordion>
                                                         <i class="fa-solid fa-plus"></i>
-                                                        Manage Inventory
+                                                        Manage
                                                     </a>
 
                                                 </div>

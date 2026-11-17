@@ -34,10 +34,32 @@
     .users-module .users-drawer { position: fixed; inset: 0 0 0 auto; margin: 0 0 0 auto; width: min(36rem, 100%); max-width: 100%; height: 100dvh; max-height: 100dvh; border: 0; padding: 0; background: #fff; color: #111827; box-shadow: -8px 0 32px #11182726; overflow-y: auto; }
     .users-module .users-drawer::backdrop { background: #11182766; }
     .users-module [hidden] { display: none !important; }
+    .users-module .users-accounts-table td { padding: .75rem 1.25rem; vertical-align: middle; }
+    .users-accounts-table td:nth-child(1) { max-width: 18rem; }
+    .users-accounts-table td:nth-child(2), .users-accounts-table td:nth-child(4) { max-width: 22rem; }
+    .users-module .users-account-search { padding-left: 2.5rem; padding-right: 2.75rem; }
+    .users-account-search::-webkit-search-cancel-button { -webkit-appearance: none; }
+    .users-clear-search { position: absolute; inset: 0 0 0 auto; width: 2.75rem; display: grid; place-items: center; border-radius: .625rem; color: #6b7280; }
+    .users-assignment-details .users-assignment-expanded,
+    .users-assignment-details[open] > summary .users-assignment-collapsed { display: none; }
+    .users-assignment-details[open] > summary .users-assignment-expanded { display: inline; }
+    .users-assignment-details ul:focus-visible { outline: 2px solid #75151d; outline-offset: 2px; }
+    .users-account-menu { position: fixed; z-index: 11000; width: 11rem; max-width: calc(100vw - 1rem); padding: .25rem; border: 1px solid #e5e7eb; border-radius: .5rem; background: white; box-shadow: 0 4px 12px #1118271a; font-size: .875rem; }
+    .users-account-menu[hidden] { display: none !important; }
+    .users-account-menu button { display: flex; align-items: center; gap: .5rem; width: 100%; min-height: 36px; padding: .5rem .75rem; text-align: left; }
+    .users-account-menu button:hover { background: #f9fafb; }
+    .users-account-menu button:focus-visible { outline: 2px solid #75151d; outline-offset: -2px; }
+    .users-module .users-confirmation { width: min(28rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); margin: auto; padding: 0; border: 0; border-radius: .875rem; background: white; color: #111827; overflow-y: auto; }
+    .users-module .users-confirmation::backdrop { background: #11182766; }
+    .users-module .users-confirmation p { overflow-wrap: anywhere; }
     @media (max-width: 639px) {
         .users-module .users-tabs { margin-bottom: 1.25rem; gap: 0; }
         .users-module .users-tabs a { padding: .875rem 1rem; font-size: .875rem; }
         .users-module .users-table th, .users-module .users-table td { padding: 1rem; }
+        .users-module .users-accounts-table td { padding: .75rem 1rem; }
+        .users-module [data-user-actions-toggle], .users-account-menu button,
+        .users-module .users-assignment-details summary { min-height: 44px; }
+        .users-module [data-user-actions-toggle] { min-width: 44px; }
     }
 </style>
 @endonce

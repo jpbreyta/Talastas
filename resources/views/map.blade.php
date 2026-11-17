@@ -3,30 +3,18 @@
 @section('dashboard-layout', 'enabled')
 
 @section('content')
-    <div class="map-dashboard" data-dashboard-endpoint="{{ route('map.analytics.summary') }}">
-        <div class="dashboard-summary-grid">
-            <x-dashboard-metric label="Total Institutions" icon="fa-building-columns" metric-key="institution_count" :count="true" />
-            <x-dashboard-metric label="Overall ICT Gap" icon="fa-chart-line" metric-key="average_gap_score" />
-            <x-dashboard-metric label="Infrastructure Deficit" icon="fa-computer" metric-key="infrastructure_deficit_score" />
-            <x-dashboard-metric label="Connectivity Divide" icon="fa-wifi" metric-key="connectivity_divide_score" />
-        </div>
+    <div class="map-dashboard map-focused-dashboard flex min-h-0 flex-1 flex-col" aria-label="GIS map workspace">
         <div id="mapStage" class="map-workspace relative min-h-0 w-full overflow-hidden">
-            <span id="mapAnalysisBadge" class="map-analysis-badge" hidden></span>
             <div id="map" class="absolute inset-0 h-full w-full bg-slate-200"></div>
-            <div id="heatmapKey" class="map-heatmap-key" role="status" aria-live="polite" hidden>
-                <strong id="heatmapKeyTitle">Heatmap — Overall ICT Gap</strong>
-                <div class="map-heatmap-scale" aria-hidden="true"></div>
-                <div class="map-heatmap-scale-labels"><span>Lower need</span><span>Higher need</span></div>
-                <p id="heatmapKeyCount"></p>
-                <p>Nearby institution scores blend; colors are not barangay averages.</p>
-            </div>
-
-            <button type="button" id="mapInformationButton" class="map-information-button"
-                aria-label="Map information" title="Map information" aria-expanded="false" aria-controls="mapInformationPanel">
-                <span aria-hidden="true">i</span>
+            <x-loading-overlay id="mapLoadingOverlay" label="Updating map…" />
+            <button type="button" id="toggleMapFullscreen"
+                class="absolute right-3 top-3 z-[1000] inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-md hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-blue-600"
+                aria-controls="mapStage" aria-pressed="false" aria-label="Enlarge map" title="Enlarge map">
+                <i class="fa-solid fa-expand" aria-hidden="true"></i>
+                <span>Enlarge map</span>
             </button>
+            <p id="mapBackgroundStatus" class="sr-only" role="status"></p>
         </div>
-        @include('partials.map-dashboard-insights')
             <div id="sidePanel"
                 class="institution-details-panel invisible translate-x-full" role="region" aria-label="Institution details">
                 <div class="flex items-center justify-between border-b border-gray-200 p-4">
@@ -40,133 +28,6 @@
                 <div id="panelContent" class="institution-details-content"></div>
             </div>
 
-            <div id="mapInformationOverlay" class="map-information-overlay" data-open="false" aria-hidden="true" inert>
-                <button type="button" id="mapInformationBackdrop" class="map-information-backdrop" tabindex="-1" aria-label="Close map information"></button>
-                <section id="mapInformationPanel" class="map-information-panel" role="region" aria-labelledby="mapInformationTitle" tabindex="-1">
-                    <div class="map-information-heading">
-                        <h2 id="mapInformationTitle"><i class="fa-solid fa-circle-info" aria-hidden="true"></i> Map Information</h2>
-                        <button type="button" id="closeMapInformation" aria-label="Close map information"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
-                    </div>
-                    <div class="map-information-tabs" role="tablist" aria-label="Map information sections">
-                        <button id="mapLegendTab" role="tab" aria-selected="true" aria-controls="mapLegendSection" type="button">Legend</button>
-                        <button id="mapMetricTab" role="tab" aria-selected="false" aria-controls="mapMetricDetails" tabindex="-1" type="button">Metric Details</button>
-                        <button id="mapBaselineTab" role="tab" aria-selected="false" aria-controls="mapBaselineInfo" tabindex="-1" type="button">Baseline</button>
-                    </div>
-                    <div class="map-information-content">
-                        <section id="mapLegendSection" role="tabpanel" aria-labelledby="mapLegendTab" tabindex="0">
-                        <div id="mapLegend"
-                            class="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                            <div class="flex items-center justify-between border-b border-slate-100 px-3.5 py-2.5">
-                                <div class="flex items-center gap-2">
-                                    <i class="fa-solid fa-layer-group text-xs text-slate-500" aria-hidden="true"></i>
-                                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-600">
-                                        ICT Gap Legend
-                                    </span>
-                                </div>
-                                <span id="legendMetricShort"
-                                    class="max-w-[150px] truncate text-[10px] font-semibold text-slate-400">
-                                    Overall ICT Gap
-                                </span>
-                            </div>
-
-                            <div class="space-y-3 px-3.5 py-3">
-                                <div>
-                                    <div class="mb-1.5 flex items-center justify-between gap-3">
-                                        <span id="legendMetricLabel" class="text-xs font-semibold text-slate-700">
-                                            Institution color — Overall ICT Gap
-                                        </span>
-                                        <span class="text-[10px] text-slate-400">0–100%</span>
-                                    </div>
-
-                                    <div class="h-2.5 w-full rounded-full"
-                                        style="background: linear-gradient(90deg, #2563eb 0%, #f59e0b 50%, #dc2626 100%);">
-                                    </div>
-
-                                    <div class="mt-1 grid grid-cols-3 text-[10px] font-medium text-slate-500">
-                                        <span class="text-left">0%</span>
-                                        <span class="text-center">50%</span>
-                                        <span class="text-right">100%</span>
-                                    </div>
-
-                                    <div class="mt-0.5 flex justify-between text-[10px] text-slate-400">
-                                        <span>Lower observed gap</span>
-                                        <span>Higher observed gap</span>
-                                    </div>
-
-                                    <p class="mt-1.5 text-[10px] leading-4 text-slate-400">
-                                        Continuous scale only; these colors are not severity categories.
-                                    </p>
-
-                                    <div class="mt-2 flex items-center gap-2 text-[11px] text-slate-500">
-                                        <span class="inline-block h-3 w-3 rounded-sm border-2 border-white bg-slate-400 shadow-sm"></span>
-                                        <span>Not calculated / insufficient data</span>
-                                    </div>
-                                </div>
-
-                                <div class="border-t border-slate-100 pt-2.5">
-                                    <div class="grid grid-cols-1 gap-1.5 text-[11px] text-slate-500">
-                                        <div class="flex items-center gap-2">
-                                            <span class="inline-block h-0 w-5 border-t-2 border-slate-500"></span>
-                                            <span>Barangay boundary</span>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <span class="inline-block h-0 w-5 border-t-[3px] border-red-700"></span>
-                                            <span>Selected barangay</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="space-y-2 border-t border-slate-100 pt-2.5 text-[11px] text-slate-500">
-                                    <p class="font-semibold text-slate-700">Institution icons (saved location)</p>
-                                    <div class="flex items-center gap-2"><span class="institution-map-symbol institution-legend-symbol"><i class="fa-solid fa-school" aria-hidden="true"></i></span><span>School</span></div>
-                                    <div class="flex items-center gap-2"><span class="institution-map-symbol institution-legend-symbol"><i class="fa-solid fa-landmark" aria-hidden="true"></i></span><span>Barangay Hall</span></div>
-                                    <div class="flex items-center gap-2"><span class="institution-map-symbol institution-legend-symbol"><i class="fa-solid fa-building" aria-hidden="true"></i></span><span>Other institution</span></div>
-                                    <p class="text-[10px]">Icon identifies institution type; background color shows the selected ICT metric.</p>
-                                </div>
-
-                                <div id="heatmapLegendInfo" class="hidden border-t border-slate-100 pt-2.5">
-                                    <div class="flex items-start gap-2">
-                                        <i class="fa-solid fa-fire-flame-curved mt-0.5 text-xs text-red-500" aria-hidden="true"></i>
-                                        <div>
-                                            <p id="heatmapLegendTitle" class="text-[11px] font-semibold text-slate-700">
-                                                Gap Heatmap
-                                            </p>
-                                            <p id="heatmapLegendDescription" class="mt-0.5 text-[10px] leading-4 text-slate-500">
-                                                Spatial blend of assessed institution scores.
-                                            </p>
-                                            <p id="heatmapLegendCount" class="mt-1 text-[10px] font-medium text-slate-400"></p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="map-data-source"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><div><strong>Data source</strong><p>Based on recorded institutional data. Colors show a continuous calculated gap, rather than severity categories.</p></div></div>
-                        <div class="mt-3 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5">
-                            <i class="fa-solid fa-map-location-dot mt-0.5 text-sm text-slate-500" aria-hidden="true"></i>
-                            <div class="min-w-0">
-                                <p class="text-xs font-semibold text-slate-700">Region details</p>
-                                <p id="barangay-hover-info" class="mt-1 text-xs text-slate-500">Hover over a region for details</p>
-                            </div>
-                        </div>
-                        </section>
-                        <section id="mapMetricDetails" role="tabpanel" aria-labelledby="mapMetricTab" tabindex="0" hidden><h3 id="mapMetricDetailsTitle">Overall ICT Gap</h3><p id="mapMetricDetailsDescription" class="mt-3 text-sm text-slate-600"></p></section>
-                        <section id="mapBaselineInfo" role="tabpanel" aria-labelledby="mapBaselineTab" tabindex="0" hidden>
-                            <div class="px-5 pb-5 pt-4">
-                                <p class="text-[10px] font-bold uppercase tracking-[0.1em] text-slate-400">ICT Gap Baseline</p>
-                                <div class="mb-3 mt-2 border-t border-slate-100"></div>
-                                <ul class="space-y-2.5 text-[0.8125rem] leading-[1.5] text-slate-600">
-                                    <li>Infrastructure Deficit uses defective active applicable units divided by active applicable units.</li>
-                                    <li>Connectivity Divide treats the numeric acquired speed in Plan as Mbps and averages download and upload shortfalls against it.</li>
-                                    <li>Technological Obsolescence is a retirement-based proxy using retired applicable units divided by total applicable units.</li>
-                                    <li>Overall ICT Gap is the equal arithmetic mean of the three core component percentages when all are available.</li>
-                                    <li>Use the <strong>Color by</strong> selector to choose which calculated metric controls institution colors and the optional heatmap.</li>
-                                    <li>The heatmap is a spatial blend of institution points, not a barangay score or severity classification.</li>
-                                </ul>
-                            </div>
-                        </section>
-                    </div>
-                </section>
-            </div>
 
     </div>
 @endsection
@@ -176,82 +37,51 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const informationButton = document.getElementById('mapInformationButton');
-            const headerInformationButton = document.getElementById('headerMapInformationButton');
-            const informationOverlay = document.getElementById('mapInformationOverlay');
-            const informationPanel = document.getElementById('mapInformationPanel');
-            const closeInformation = document.getElementById('closeMapInformation');
             const stage = document.getElementById('mapStage');
-            const compactScreen = window.matchMedia('(max-width: 1023px)');
-            let informationOpener = informationButton;
-            const informationIsOpen = () => informationOverlay.dataset.open === 'true';
-            const resizeMap = () => { window.dispatchEvent(new Event('map-dashboard-resize')); };
-            function closeMapInformation(restoreFocus = true) {
-                informationOverlay.dataset.open = 'false';
-                informationOverlay.setAttribute('aria-hidden', 'true');
-                informationOverlay.inert = true;
-                informationButton.setAttribute('aria-expanded', 'false');
-                headerInformationButton?.setAttribute('aria-expanded', 'false');
-                document.getElementById('map').inert = false;
-                if (stage.dataset.panel === 'information') delete stage.dataset.panel;
-                resizeMap();
-                if (restoreFocus) informationOpener.focus();
+            const mapLoadingOverlay = document.getElementById('mapLoadingOverlay');
+            let mapLoadingCount = 0;
+            const afterMapPaint = () => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            function beginMapLoading() {
+                const releaseGlobalLoader = window.showGlobalLoader?.('Updating map…');
+                mapLoadingCount++;
+                mapLoadingOverlay.hidden = typeof releaseGlobalLoader === 'function';
+                stage.setAttribute('aria-busy', 'true');
+                return async () => {
+                    await afterMapPaint();
+                    mapLoadingCount--;
+                    mapLoadingOverlay.hidden = mapLoadingCount === 0 || typeof releaseGlobalLoader === 'function';
+                    stage.setAttribute('aria-busy', String(mapLoadingCount > 0));
+                    releaseGlobalLoader?.();
+                };
             }
-            function openMapInformation(event, focus = true) {
-                if (informationIsOpen()) { closeMapInformation(); return; }
-                informationOpener = event?.currentTarget || informationButton;
-                document.getElementById('sidePanel').classList.add('translate-x-full', 'invisible');
-                stage.dataset.panel = 'information';
-                informationOverlay.inert = false;
-                informationOverlay.setAttribute('aria-hidden', 'false');
-                informationOverlay.dataset.open = 'true';
-                informationPanel.setAttribute('role', compactScreen.matches ? 'dialog' : 'region');
-                informationPanel.setAttribute('aria-modal', String(compactScreen.matches));
-                informationButton.setAttribute('aria-expanded', 'true');
-                headerInformationButton?.setAttribute('aria-expanded', 'true');
-                document.getElementById('map').inert = compactScreen.matches;
-                resizeMap(); if (focus) closeInformation.focus();
+            async function withMapLoading(work) {
+                const finish = beginMapLoading();
+                try {
+                    // Give the browser a paint before synchronous Leaflet work.
+                    await afterMapPaint();
+                    await work();
+                } catch (error) {
+                    console.error('Unable to update map:', error);
+                    window.TalastasToast?.notify('error', 'The map could not be updated. Please try again.');
+                } finally {
+                    await finish();
+                }
             }
-            informationButton.addEventListener('click', openMapInformation);
-            headerInformationButton?.addEventListener('click', openMapInformation);
-            closeInformation.addEventListener('click', () => closeMapInformation());
-            document.getElementById('mapInformationBackdrop').addEventListener('click', () => closeMapInformation());
-            compactScreen.addEventListener('change', () => {
-                document.getElementById('map').inert = informationIsOpen() && compactScreen.matches;
-                informationPanel.setAttribute('role', compactScreen.matches ? 'dialog' : 'region');
-                informationPanel.setAttribute('aria-modal', String(compactScreen.matches));
-                resizeMap();
+            const resizeMap = () => window.dispatchEvent(new Event('map-dashboard-resize'));
+            const filtersMenu = document.getElementById('mapFiltersMenu');
+            document.addEventListener('click', event => {
+                if (!filtersMenu.contains(event.target)) filtersMenu.open = false;
             });
-            const tabs = [...document.querySelectorAll('.map-information-tabs [role="tab"]')];
-            function activateInformationTab(tab) {
-                tabs.forEach(item => {
-                    const active = item === tab;
-                    item.setAttribute('aria-selected', String(active)); item.tabIndex = active ? 0 : -1;
-                    document.getElementById(item.getAttribute('aria-controls')).hidden = !active;
-                });
-            }
-            tabs.forEach((tab, index) => {
-                tab.addEventListener('click', () => activateInformationTab(tab));
-                tab.addEventListener('keydown', event => {
-                    let next;
-                    if (event.key === 'ArrowRight') next = tabs[(index + 1) % tabs.length];
-                    if (event.key === 'ArrowLeft') next = tabs[(index + tabs.length - 1) % tabs.length];
-                    if (event.key === 'Home') next = tabs[0];
-                    if (event.key === 'End') next = tabs[tabs.length - 1];
-                    if (next) { event.preventDefault(); activateInformationTab(next); next.focus(); }
-                });
+            filtersMenu.addEventListener('keydown', event => {
+                if (event.key === 'Escape') {
+                    filtersMenu.open = false;
+                    filtersMenu.querySelector('summary').focus();
+                    event.stopPropagation();
+                }
             });
             document.addEventListener('keydown', event => {
-                if (!informationIsOpen() && stage.dataset.panel === 'institution' && event.key === 'Escape') {
-                    event.preventDefault(); document.getElementById('closePanel').click(); return;
-                }
-                if (!informationIsOpen()) return;
-                if (event.key === 'Escape') { event.preventDefault(); closeMapInformation(); }
-                if (event.key === 'Tab' && compactScreen.matches) {
-                    const controls = [...informationPanel.querySelectorAll('button, [tabindex="0"]')].filter(item => item.tabIndex >= 0 && !item.closest('[hidden]'));
-                    const first = controls[0], last = controls[controls.length - 1];
-                    if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-                    else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+                if (event.key === 'Escape' && stage.dataset.panel === 'institution') {
+                    document.getElementById('closePanel').click();
                 }
             });
 
@@ -289,12 +119,11 @@
                 terrain: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Elevation/World_Hillshade/MapServer/tile/{z}/{y}/{x}', {
                     attribution: 'Tiles &copy; Esri; terrain sources: Esri, USGS and the GIS User Community', maxNativeZoom: 16, maxZoom: 19
                 }),
-                blank: null
+                blank: L.layerGroup()
             };
             const mapStage = document.getElementById('mapStage');
             let currentBackground = null;
             const backgroundStatus = document.getElementById('mapBackgroundStatus');
-            const backgroundChoices = [...document.querySelectorAll('[data-map-background]')];
             Object.values(backgrounds).filter(Boolean).forEach(layer => layer.on('tileerror', () => {
                 if (layer === currentBackground) backgroundStatus.textContent = 'Some map tiles could not load. Try Default streets or retry later.';
             }));
@@ -306,17 +135,20 @@
                 if (map.getZoom() > backgroundMaxZoom[key]) {
                     map.setZoom(backgroundMaxZoom[key], { animate: false });
                 }
-                if (currentBackground) map.removeLayer(currentBackground);
+                if (currentBackground && currentBackground !== backgrounds[key]) map.removeLayer(currentBackground);
                 currentBackground = backgrounds[key];
                 if (currentBackground) {
-                    currentBackground.setOpacity(mapStage.classList.contains('heatmap-active') ? 0.45 : 1);
-                    currentBackground.addTo(map);
+                    currentBackground.setOpacity?.(mapStage.classList.contains('heatmap-active') ? 0.45 : 1);
+                    if (!map.hasLayer(currentBackground)) currentBackground.addTo(map);
                 }
-                backgroundChoices.forEach(input => { input.checked = input.value === key; });
                 backgroundStatus.textContent = key === 'blank' ? 'Plain background; institution markers and boundaries remain visible.' : '';
                 try { localStorage.setItem('talastas.map.background', key); } catch {}
             }
-            backgroundChoices.forEach(input => input.addEventListener('change', () => selectBackground(input.value)));
+            L.control.layers({ Default: backgrounds.default, Satellite: backgrounds.satellite, Terrain: backgrounds.terrain, Blank: backgrounds.blank }, null, { position: 'topleft', collapsed: true }).addTo(map);
+            map.on('baselayerchange', event => {
+                const key = Object.keys(backgrounds).find(key => backgrounds[key] === event.layer);
+                if (key) selectBackground(key);
+            });
             let savedBackground = 'default';
             try { savedBackground = localStorage.getItem('talastas.map.background') || 'default'; } catch {}
             selectBackground(savedBackground);
@@ -343,6 +175,33 @@
                     ? new ResizeObserver(syncMapSize)
                     : null;
 
+            // CSS fullscreen keeps the map and its existing Leaflet instance alive.
+            const fullscreenButton = document.getElementById('toggleMapFullscreen');
+            const dashboard = mapStage.closest('.map-dashboard');
+            let mapEnlarged = false;
+            function setMapEnlarged(enlarged) {
+                mapEnlarged = enlarged;
+                mapStage.classList.toggle('relative', !enlarged);
+                ['fixed', 'inset-0', 'z-[2000]'].forEach(name => mapStage.classList.toggle(name, enlarged));
+                dashboard.classList.toggle('map-enlarged', enlarged);
+                fullscreenButton.setAttribute('aria-pressed', String(enlarged));
+                const label = enlarged ? 'Minimize map' : 'Enlarge map';
+                fullscreenButton.setAttribute('aria-label', label);
+                fullscreenButton.title = label;
+                fullscreenButton.querySelector('span').textContent = label;
+                fullscreenButton.querySelector('i').className = enlarged ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
+                // Wait for layout before Leaflet measures the new container size.
+                syncMapSize();
+                fullscreenButton.focus({ preventScroll: true });
+            }
+            fullscreenButton.addEventListener('click', () => setMapEnlarged(!mapEnlarged));
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape' && mapEnlarged) {
+                    event.preventDefault();
+                    setMapEnlarged(false);
+                }
+            });
+
             mapResizeObserver?.observe(mapStage);
             window.addEventListener('resize', syncMapSize);
             window.addEventListener('map-dashboard-resize', () => { syncMapSize(); setTimeout(syncMapSize, 260); });
@@ -353,6 +212,8 @@
 
             let heatmapLayer = null;
             let institutionFeatures = [];
+            // Keep every layer so filtering can restore previously hidden institutions.
+            let institutionLayers = [];
             let barangayOverlay = null;
             let activeInstitutionBoundary = null;
             // Registry: barangay name → layer, populated after GeoJSON loads
@@ -362,14 +223,13 @@
             const barangayBtn = document.getElementById('toggleBarangays');
             const barangaySelect = document.getElementById('barangaySelect');
             const metricSelect = document.getElementById('mapMetricSelect');
-            const hoverInfo = document.getElementById('barangay-hover-info');
-            const legendMetricLabel = document.getElementById('legendMetricLabel');
-            const legendMetricShort = document.getElementById('legendMetricShort');
-            const heatmapLegendInfo = document.getElementById('heatmapLegendInfo');
-            const heatmapLegendTitle = document.getElementById('heatmapLegendTitle');
-            const heatmapLegendDescription = document.getElementById('heatmapLegendDescription');
-            const heatmapLegendCount = document.getElementById('heatmapLegendCount');
-            const heatmapKey = document.getElementById('heatmapKey');
+            const establishmentSelect = document.getElementById('mapEstablishmentSelect');
+            const districtSelect = document.getElementById('mapDistrictSelect');
+            const barangayDistricts = new Map();
+            const normalizeDistrict = value => String(value ?? '').trim().toUpperCase();
+            const normalizeBarangay = value => String(value ?? '').trim().toLowerCase();
+            let activeDistrict = '';
+
 
             const metricDefinitions = {
                 gap_score: {
@@ -391,13 +251,17 @@
             };
 
             let activeMetric = metricSelect?.value || 'gap_score';
+            let activeEstablishment = establishmentSelect?.value || 'all';
             let heatmapVisible = false;
             let activeBarangayLayer = null;
 
             function metricValue(properties, metricKey = activeMetric) {
                 const rawValue = properties?.[metricKey];
 
-                if (rawValue === null || rawValue === undefined || rawValue === '') {
+                if (
+                    !['number', 'string'].includes(typeof rawValue)
+                    || (typeof rawValue === 'string' && rawValue.trim() === '')
+                ) {
                     return null;
                 }
 
@@ -416,12 +280,12 @@
                 return `rgb(${channel(0)}, ${channel(1)}, ${channel(2)})`;
             }
 
-            function metricColor(value) {
-                if (value === null) {
+            function getGapColor(score) {
+                if (score === null || score === undefined || String(score).trim() === '' || !Number.isFinite(Number(score))) {
                     return '#94a3b8';
                 }
 
-                const normalized = Math.max(0, Math.min(100, value)) / 100;
+                const normalized = Math.max(0, Math.min(100, Number(score))) / 100;
 
                 if (normalized <= 0.5) {
                     return interpolateColor(
@@ -438,8 +302,70 @@
                 );
             }
 
+            // One predicate keeps markers, boundaries, and the heatmap in sync.
+            function districtOf(properties) {
+                return normalizeDistrict(properties?.district || properties?.DISTRICT)
+                    || barangayDistricts.get(normalizeBarangay(properties?.barangay || properties?.NAME || properties?.name))
+                    || '';
+            }
+
+            function matchesDistrict(properties) {
+                return !activeDistrict || districtOf(properties) === activeDistrict;
+            }
+
+            function matchesInstitutionFilters(properties) {
+                return matchesDistrict(properties)
+                    && (activeEstablishment === 'all' || properties?.type === activeEstablishment)
+                    && metricValue(properties) !== null;
+            }
+
+            function refreshDistrictOptions() {
+                const districts = new Set([
+                    ...barangayDistricts.values(),
+                    ...institutionFeatures.map(feature => districtOf(feature.properties))
+                ]);
+                districtSelect.replaceChildren(new Option('All districts', ''));
+                [...districts].filter(Boolean).sort().forEach(district => {
+                    districtSelect.add(new Option(district, district));
+                });
+                districtSelect.value = activeDistrict;
+            }
+
+            function filterDistrictBoundaries() {
+                if (!barangayOverlay) return;
+                Object.entries(barangayLayerMap).forEach(([name, layer]) => {
+                    const visible = matchesDistrict(layer.feature.properties);
+                    if (visible) barangayOverlay.addLayer(layer);
+                    else barangayOverlay.removeLayer(layer);
+                    const option = [...barangaySelect.options].find(option => option.value === name);
+                    if (option) { option.hidden = !visible; option.disabled = !visible; }
+                    if (!visible && layer === activeBarangayLayer) {
+                        layer.setStyle({ weight: 1.5, color: '#64748b', fillOpacity: 0.04 });
+                        activeBarangayLayer = null;
+                        barangaySelect.value = '';
+                    }
+                });
+            }
+
+            function fitDistrict() {
+                map.stop();
+                const bounds = L.latLngBounds([]);
+                window.institutionsLayer?.eachLayer(layer => {
+                    if (layer.getLatLng) bounds.extend(layer.getLatLng());
+                    else if (layer.getBounds) bounds.extend(layer.getBounds());
+                });
+                // District polygons provide a useful destination when no markers match.
+                if (!bounds.isValid()) {
+                    Object.values(barangayLayerMap).forEach(layer => {
+                        if (matchesDistrict(layer.feature.properties)) bounds.extend(layer.getBounds());
+                    });
+                }
+                if (bounds.isValid()) map.fitBounds(bounds, { padding: [48, 48], maxZoom: 16, animate: false });
+            }
+
             function buildHeatData() {
                 return institutionFeatures
+                    .filter(feature => matchesInstitutionFilters(feature.properties))
                     .map((feature) => {
                         const properties = feature.properties || {};
                         const value = metricValue(properties);
@@ -466,37 +392,66 @@
                     .filter(Boolean);
             }
 
+            const legendControl = L.control({ position: 'bottomright' });
+            let legendMetricLabel;
+            legendControl.onAdd = () => {
+                const container = L.DomUtil.create('div', 'leaflet-control map-compact-legend');
+                container.innerHTML = `<details><summary>Legend</summary><div class="map-legend-content text-slate-700">
+                    <section aria-label="Color key" class="rounded-lg bg-gray-50 p-2">
+                        <div class="mb-1.5 flex flex-wrap items-center gap-1">
+                            <h3 class="map-legend-metric text-xs font-semibold text-gray-900"></h3>
+                            <span class="map-gap-help">
+                                <button type="button" aria-label="About the selected gap metric" aria-describedby="mapGapTooltip"
+                                    class="inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-600 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-500">
+                                    <svg class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" focusable="false">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM10 5a1 1 0 1 0 0 2 1 1 0 0 0 0-2ZM9 9a1 1 0 0 0 0 2v3a1 1 0 0 0 1 1h1a1 1 0 1 0 0-2v-3a1 1 0 0 0-1-1H9Z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                                <span id="mapGapTooltip" role="tooltip"
+                                    class="invisible absolute bottom-full right-0 z-10 w-48 rounded-md bg-slate-800 px-3 py-2 text-[11px] font-normal leading-relaxed text-white opacity-0 shadow-lg group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"></span>
+                            </span>
+                        </div>
+                        <div class="map-legend-gradient" role="img" aria-label="Score scale: blue at 0%, orange at 50%, red at 100%"></div>
+                        <div class="mt-1 flex justify-between text-[10px] text-gray-500"><span>0%</span><span>50%</span><span>100%</span></div>
+                        <div class="mt-0.5 flex justify-between text-[10px] leading-tight text-gray-600"><span>Low Gap</span><span>High Gap</span></div>
+                    </section>
+                    <section aria-label="Symbol key" class="mt-2 rounded-lg bg-gray-50 p-2">
+                        <h3 class="mb-1.5 text-xs font-semibold text-gray-900">Establishment Type</h3>
+                        <ul class="m-0 list-none space-y-1 p-0">
+                            ${[['fa-book-open', 'Elementary School'], ['fa-graduation-cap', 'High School'], ['fa-landmark', 'Barangay Hall'], ['fa-school', 'Other / unspecified school']].map(([icon, label]) => `<li class="flex items-center gap-2 leading-tight"><span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-gray-400 text-white" aria-hidden="true">${institutionSvg(icon)}</span><span>${label}</span></li>`).join('')}
+                        </ul>
+                    </section>
+                    <section aria-label="Map Marker Clusters" class="mt-2 rounded-lg bg-gray-50 p-2">
+                        <h3 class="mb-1.5 text-xs font-semibold text-gray-900">Map Marker Clusters</h3>
+                        <div class="flex items-start gap-2">
+                            <span class="institution-map-cluster h-8 w-8 shrink-0" aria-hidden="true"><span>4</span></span>
+                            <div class="min-w-0">
+                                <p class="m-0 font-semibold leading-tight">Grouped establishments</p>
+                                <p class="mt-1 text-[11px] leading-relaxed">Number indicates nearby locations. Click to zoom in or expand.</p>
+                            </div>
+                        </div>
+                    </section>
+                    <div class="mt-2 flex items-center gap-2 text-[10px] text-gray-500"><span class="inline-block w-5 border-t border-slate-500" aria-hidden="true"></span>Barangay boundary</div>
+                </div></details>`;
+                legendMetricLabel = container.querySelector('.map-legend-metric');
+                L.DomEvent.disableClickPropagation(container);
+                L.DomEvent.disableScrollPropagation(container);
+                const details = container.querySelector('details');
+                container.addEventListener('mouseenter', () => { if (matchMedia('(hover: hover)').matches) details.open = true; });
+                container.addEventListener('mouseleave', () => { if (!container.contains(document.activeElement)) details.open = false; });
+                container.addEventListener('keydown', event => { if (event.key === 'Escape') { details.open = false; details.querySelector('summary').focus(); } });
+                return container;
+            };
+            legendControl.addTo(map);
             function updateLegend() {
-                const metric = metricDefinitions[activeMetric]
-                    || metricDefinitions.gap_score;
-                const heatData = buildHeatData();
-
-                legendMetricLabel.textContent =
-                    `Institution color — ${metric.label}`;
-
-                legendMetricShort.textContent = metric.shortLabel;
-                document.getElementById('mapMetricDetailsTitle').textContent = metric.label;
-                const descriptions = [...document.querySelectorAll('#mapBaselineInfo li')];
-                const metricIndex = { gap_score: 3, infrastructure_deficit_score: 0, connectivity_divide_score: 1, technological_obsolescence_score: 2 };
-                document.getElementById('mapMetricDetailsDescription').textContent = descriptions[metricIndex[activeMetric] ?? 3].textContent;
-
-                heatmapLegendInfo.classList.toggle(
-                    'hidden',
-                    !heatmapVisible
-                );
-
-                heatmapLegendTitle.textContent =
-                    `Heatmap — ${metric.label}`;
-
-                heatmapLegendDescription.textContent =
-                    'Spatial blend of assessed institution scores. It is not a barangay average; nearby points can combine visually.';
-
-                heatmapLegendCount.textContent = heatData.length > 0
-                    ? `${heatData.length} assessed institution point${heatData.length === 1 ? '' : 's'} included`
-                    : 'No calculated institution scores are available for this metric.';
-                heatmapKey.hidden = !heatmapVisible;
-                document.getElementById('heatmapKeyTitle').textContent = heatmapLegendTitle.textContent;
-                document.getElementById('heatmapKeyCount').textContent = heatmapLegendCount.textContent;
+                legendMetricLabel.textContent = (metricDefinitions[activeMetric] || metricDefinitions.gap_score).shortLabel;
+                const explanations = {
+                    gap_score: 'Average of infrastructure, connectivity, and retirement-based scores, available only when all three can be calculated. Higher percentages mean a larger ICT gap.',
+                    infrastructure_deficit_score: 'Defective units within active applicable equipment, as a percentage of active applicable equipment. Higher percentages mean a larger gap.',
+                    connectivity_divide_score: 'Average download-speed shortfall against advertised speeds across recorded Internet connections. Confirmed no Internet service scores 100%. Higher percentages mean a larger gap.',
+                    technological_obsolescence_score: 'Retired applicable units as a percentage of total applicable units. This is a retirement proxy, not equipment age. Higher percentages mean a larger gap.'
+                };
+                document.getElementById('mapGapTooltip').textContent = explanations[activeMetric] || explanations.gap_score;
             }
 
             let selectedInstitutionMarker = null;
@@ -505,23 +460,61 @@
                     return;
                 }
 
-                window.institutionsLayer.eachLayer((layer) => {
-                    if (!(layer instanceof L.Marker)) {
+                // Clear a filtered-out selection before styling any layer, so
+                // every remaining marker restores its color in the same pass.
+                if (selectedInstitutionMarker && !matchesInstitutionFilters(
+                    selectedInstitutionMarker.feature?.properties || selectedInstitutionMarker.properties
+                )) {
+                    selectedInstitutionMarker = null;
+                    clearInstitutionBoundary();
+                    document.getElementById('sidePanel').classList.add('translate-x-full', 'invisible');
+                    delete stage.dataset.panel;
+                    resizeMap();
+                }
+
+                const removed = [];
+                const added = [];
+                institutionLayers.forEach((layer) => {
+                    const properties = layer.feature?.properties || layer.properties;
+                    const value = metricValue(properties);
+                    if (!matchesInstitutionFilters(properties)) {
+                        if (window.institutionsLayer.hasLayer(layer)) removed.push(layer);
                         return;
                     }
 
-                    const value = metricValue(layer.properties);
+                    const color = selectedInstitutionMarker && layer !== selectedInstitutionMarker
+                        ? '#94a3b8'
+                        : getGapColor(value);
+
+                    // Leaflet recreates a marker's DOM when it is restored. Keep
+                    // its icon HTML current, including while the group is off-map.
+                    if (layer instanceof L.Marker) {
+                        layer.options.icon.options.html = institutionSymbol(
+                            institutionIconClass(properties), color
+                        );
+                    }
+                    if (!window.institutionsLayer.hasLayer(layer)) {
+                        added.push(layer);
+                    }
+
+                    if (!(layer instanceof L.Marker)) {
+                        layer.setStyle?.({ color, fillColor: color });
+                        return;
+                    }
 
                     const symbol = layer.getElement()?.querySelector('.institution-map-symbol');
-                    if (symbol) symbol.style.backgroundColor = metricColor(value);
+                    if (symbol) symbol.style.backgroundColor = color;
 
                     layer.getElement()?.classList.toggle('selected-institution-marker', layer === selectedInstitutionMarker);
                 });
+                // Batch membership changes so the cluster tree updates once per filter.
+                window.institutionsLayer.removeLayers(removed);
+                window.institutionsLayer.addLayers(added);
             }
 
             function rebuildHeatmap() {
                 mapStage.classList.toggle('heatmap-active', heatmapVisible);
-                currentBackground?.setOpacity(heatmapVisible ? 0.45 : 1);
+                currentBackground?.setOpacity?.(heatmapVisible ? 0.45 : 1);
                 if (heatmapLayer) {
                     map.removeLayer(heatmapLayer);
                     heatmapLayer = null;
@@ -620,9 +613,12 @@
 
             // ── Reset to city-wide view ──────────────────────────────────────────
             function resetView() {
+                activeDistrict = '';
+                districtSelect.value = '';
+                filterDistrictBoundaries();
                 selectedInstitutionMarker = null;
                 updateInstitutionMarkerStyles();
-                closeMapInformation(false);
+                rebuildHeatmap();
                 delete stage.dataset.panel;
                 resizeMap();
                 clearInstitutionBoundary();
@@ -681,8 +677,9 @@
             let outsideMask = null;
 
             // Load barangay boundaries
+            const finishBoundaryLoading = beginMapLoading();
             fetch('/data/lipa-city-barangays.geojson')
-                .then(r => r.json())
+                .then(r => { if (!r.ok) throw new Error('Boundary request failed: ' + r.status); return r.json(); })
                 .then(data => {
                     function createOutsideMask(geoJsonData) {
                         if (outsideMask) {
@@ -758,6 +755,7 @@
                             const name = props.NAME || props.name;
                             // Register layer by name for dropdown lookup
                             barangayLayerMap[name] = layer;
+                            barangayDistricts.set(normalizeBarangay(name), normalizeDistrict(props.district || props.DISTRICT));
 
                             // Click → fly to this barangay
                             layer.on('click', (event) => {
@@ -797,9 +795,6 @@
                                         fillOpacity: 0.08
                                     });
                                 }
-                                hoverInfo.innerHTML =
-                                    `<span class="not-italic text-slate-700 font-medium">${name}</span>`;
-                                hoverInfo.classList.remove('text-slate-400', 'italic');
                             });
 
                             layer.on('mouseout', () => {
@@ -810,8 +805,6 @@
                                         fillOpacity: 0.04
                                     });
                                 }
-                                hoverInfo.innerHTML = 'Hover over a region for details';
-                                hoverInfo.classList.add('text-slate-400', 'italic');
                             });
                         }
                     });
@@ -828,6 +821,11 @@
                         opt.textContent = name;
                         barangaySelect.appendChild(opt);
                     });
+                    refreshDistrictOptions();
+                    filterDistrictBoundaries();
+                    updateInstitutionMarkerStyles();
+                    rebuildHeatmap();
+                    if (activeDistrict) fitDistrict();
 
                     // Dropdown → fly to selected barangay
                     barangaySelect.addEventListener('change', () => {
@@ -837,7 +835,7 @@
                             return;
                         }
                         const layer = barangayLayerMap[selected];
-                        if (!layer) return;
+                        if (!layer || !matchesDistrict(layer.feature.properties)) return;
                         // Ensure barangay overlay is visible
                         if (!map.hasLayer(barangayOverlay)) {
                             map.addLayer(barangayOverlay);
@@ -860,9 +858,38 @@
                         flyToBarangay(layer);
                     });
                 })
-                .catch(err => console.error('Error loading barangays:', err));
+                .catch(err => console.error('Error loading barangays:', err))
+                .finally(finishBoundaryLoading);
 
             // Load institution data
+            // Shared artwork for both Leaflet markers and the legend; no external images.
+            function institutionSvg(icon) {
+                const paths = {
+                    'fa-book-open': '<path d="M3 4c3-.8 5.8-.2 8 1.3V21c-2.2-1.5-5-2.1-8-1.3V4Zm10 1.3C15.2 3.8 18 3.2 21 4v15.7c-3-.8-5.8-.2-8 1.3V5.3Z"/>',
+                    'fa-graduation-cap': '<path d="m12 3 11 5-11 5L1 8l11-5Zm-7 9 7 3.2 7-3.2v5c-4.2 3.2-9.8 3.2-14 0v-5Zm16-1 2-.9V19h-2v-8Z"/>',
+                    'fa-landmark': '<path d="m12 2 10 6v2H2V8l10-6ZM4 12h3v7H4v-7Zm6.5 0h3v7h-3v-7Zm6.5 0h3v7h-3v-7ZM2 20h20v3H2v-3Z"/>',
+                    'fa-school': '<path fill-rule="evenodd" d="m12 2 10 7v13H2V9l10-7Zm-1 5v4h2V7h-2Zm-5 6v3h3v-3H6Zm9 0v3h3v-3h-3Zm-5 4v5h4v-5h-4Z" clip-rule="evenodd"/>',
+                    'fa-building': '<path fill-rule="evenodd" d="M4 2h16v20H4V2Zm4 4v3h2V6H8Zm6 0v3h2V6h-2Zm-6 6v3h2v-3H8Zm6 0v3h2v-3h-2Zm-4 6v4h4v-4h-4Z" clip-rule="evenodd"/>'
+                };
+                return `<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">${paths[icon] || paths['fa-building']}</svg>`;
+            }
+
+            function institutionSymbol(icon, metricBackground = '#0F2C59') {
+                return `<span class="institution-map-symbol" style="background-color: ${metricBackground}"><span class="flex h-6 w-6 items-center justify-center text-white">${institutionSvg(icon)}</span></span>`;
+            }
+
+            function institutionIconClass(properties) {
+                const normalize = value => String(value ?? '').trim().toLowerCase()
+                    .replace(/[_-]+/g, ' ').replace(/\s+/g, ' ');
+                const type = normalize(properties.type);
+                if (type === 'barangay hall') return 'fa-landmark';
+                const level = normalize(properties.school_level) || type;
+                if (['elementary', 'elementary school', 'primary'].includes(level)) return 'fa-book-open';
+                if (['high school', 'junior high', 'junior high school', 'senior high', 'senior high school', 'secondary'].includes(level)) return 'fa-graduation-cap';
+                return type === 'school' ? 'fa-school' : 'fa-building';
+            }
+
+            const finishInstitutionLoading = beginMapLoading();
             fetch(@json(route('map.data.institutions')), {
                 headers: {
                     'Accept': 'application/json',
@@ -883,7 +910,7 @@
                             metricValue(props);
 
                         const color =
-                            metricColor(selectedMetricValue);
+                            getGapColor(selectedMetricValue);
 
 
                         return {
@@ -896,6 +923,7 @@
                     });
 
                     institutionFeatures = features;
+                    refreshDistrictOptions();
                     document.dispatchEvent(new CustomEvent('map-institutions-loaded', { detail: features }));
 
                     window.institutionsLayer = L.geoJSON({
@@ -904,15 +932,14 @@
                     }, {
                         pointToLayer: (feature, latlng) => {
                             const props = feature.properties;
-                            const iconClass = props.type === 'School' ? 'fa-school'
-                                : props.type === 'Barangay Hall' ? 'fa-landmark' : 'fa-building';
+                            const iconClass = institutionIconClass(props);
                             const marker = L.marker(latlng, {
                                 icon: L.divIcon({
                                     className: 'institution-map-marker',
-                                    html: `<span class="institution-map-symbol" style="background-color: ${props.markerColor}"><i class="fa-solid ${iconClass}" aria-hidden="true"></i></span>`,
-                                    iconSize: [24, 24],
-                                    iconAnchor: [12, 12],
-                                    popupAnchor: [0, -14]
+                                    html: institutionSymbol(iconClass, props.markerColor),
+                                    iconSize: [36, 36],
+                                    iconAnchor: [18, 18],
+                                    popupAnchor: [0, -20]
                                 }),
                                 keyboard: false,
                                 title: `${props.name} (${props.type || 'Other institution'})`,
@@ -921,7 +948,9 @@
                             marker.properties = props; // Attach properties for later use
                             return marker;
                         }
-                    }).addTo(map);
+                    });
+
+                    institutionLayers = window.institutionsLayer.getLayers();
 
                     // Attach click events and popups after adding to map
                     window.institutionsLayer.eachLayer(function(layer) {
@@ -1000,6 +1029,10 @@
                                         <span class="font-medium">${escapeHtml(props.barangay)}</span>
                                     </div>
                                     <div class="flex justify-between">
+                                        <span class="text-gray-600">District:</span>
+                                        <span class="font-medium">${escapeHtml(districtOf(props) || 'Not recorded')}</span>
+                                    </div>
+                                    <div class="flex justify-between">
                                         <span class="text-gray-600">Internet Connection:</span>
                                         <span class="font-medium">${props.has_internet_connection === true ? 'Yes' : (props.has_internet_connection === false ? 'No' : 'Not recorded')}</span>
                                     </div>
@@ -1034,7 +1067,7 @@
                                         <span class="text-gray-600">
                                             Connectivity Divide
                                             <span class="ml-1 cursor-help text-[10px] text-gray-400"
-                                                title="Formula: [max(Bandwidth Allocation - Measured Download Speed, 0) / Bandwidth Allocation] x 100">i</span>
+                                                title="Average per-connection download-speed shortfall against advertised speed; confirmed no Internet service scores 100%.">i</span>
                                         </span>
                                         <span class="font-medium">${props.connectivity_divide_score !== null && props.connectivity_divide_score !== undefined ? Number(props.connectivity_divide_score).toFixed(1) + '%' : '—'}</span>
                                     </div>
@@ -1073,11 +1106,9 @@
                         `;
 
                             layer.on('click', function(e) {
-                                console.log('Institution clicked:', props.name);
-                                e.originalEvent.stopPropagation();
+                                e.originalEvent?.stopPropagation();
 
-                                closeMapInformation(false);
-                                selectedInstitutionMarker = layer;
+                                                selectedInstitutionMarker = layer;
                                 updateInstitutionMarkerStyles();
                                 stage.dataset.panel = 'institution';
                                 document.getElementById('panelContent').scrollTop = 0;
@@ -1110,37 +1141,85 @@
                                     }
                                 }, 10);
                             });
-                            const markerElement = layer.getElement();
-                            if (markerElement) {
-                                markerElement.setAttribute('tabindex', '0');
-                                markerElement.setAttribute('role', 'button');
-                                markerElement.setAttribute('aria-label', `Show institution details for ${props.name}`);
-                                markerElement.addEventListener('keydown', event => {
-                                    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); layer.fire('click', { originalEvent: event }); }
-                                });
-                            }
+                            const configureMarkerElement = () => {
+                                const markerElement = layer.getElement();
+                                if (markerElement) {
+                                    markerElement.setAttribute('tabindex', '0');
+                                    markerElement.setAttribute('role', 'button');
+                                    markerElement.setAttribute('aria-label', `Show institution details for ${props.name}`);
+                                    markerElement.classList.toggle('selected-institution-marker', layer === selectedInstitutionMarker);
+                                    markerElement.onkeydown = event => {
+                                        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); layer.fire('click', { originalEvent: event }); }
+                                    };
+                                }
+                            };
+                            layer.on('add', configureMarkerElement);
+                            configureMarkerElement();
+                        }
+                    });
+                    // The GeoJSON group constructs the original icons and handlers only.
+                    // A single cluster group owns the displayed, filtered markers.
+                    window.institutionsLayer.clearLayers();
+                    window.institutionsLayer = L.markerClusterGroup({
+                        maxClusterRadius: 52,
+                        // Keep each ungrouped establishment's original icon and metric color.
+                        singleMarkerMode: false,
+                        clusterPane: 'institutionMarkers',
+                        showCoverageOnHover: false,
+                        zoomToBoundsOnClick: true,
+                        spiderfyOnMaxZoom: true,
+                        animate: !matchMedia('(prefers-reduced-motion: reduce)').matches,
+                        iconCreateFunction: cluster => {
+                            const count = cluster.getChildCount();
+                            const size = count >= 100 ? 44 : 42;
+                            return L.divIcon({
+                                className: 'institution-map-cluster',
+                                html: `<span aria-label="${count} establishments grouped here. Zoom in or expand group.">${count}</span>`,
+                                iconSize: [size, size],
+                                iconAnchor: [size / 2, size / 2]
+                            });
                         }
                     });
                     updateInstitutionMarkerStyles();
+                    // Filter before displaying: insufficient-data layers never
+                    // enter the map, even for the initial render.
+                    window.institutionsLayer.addTo(map);
                     rebuildHeatmap();
 
                     console.log('Institutions layer added to map with', features.length, 'features');
+                    if (activeDistrict) fitDistrict();
                     setTimeout(() => map.invalidateSize(), 200);
                 })
-                .catch(err => { console.error('Error loading institutions:', err); document.dispatchEvent(new Event('map-institutions-error')); });
+                .catch(err => { console.error('Error loading institutions:', err); document.dispatchEvent(new Event('map-institutions-error')); })
+                .finally(finishInstitutionLoading);
 
-            heatmapBtn.addEventListener('click', () => {
+            heatmapBtn.addEventListener('click', () => withMapLoading(() => {
                 heatmapVisible = !heatmapVisible;
                 rebuildHeatmap();
                 updateHeatmapButtonState();
-            });
+            }));
 
-            metricSelect?.addEventListener('change', () => {
+            metricSelect?.addEventListener('change', () => withMapLoading(() => {
                 activeMetric = metricSelect.value;
                 updateInstitutionMarkerStyles();
                 rebuildHeatmap();
                 updateLegend();
-            });
+            }));
+
+            establishmentSelect?.addEventListener('change', () => withMapLoading(() => {
+                activeEstablishment = establishmentSelect.value;
+                // Reuse cached layers and their event handlers; no additional fetch.
+                updateInstitutionMarkerStyles();
+                rebuildHeatmap();
+            }));
+
+            districtSelect.addEventListener('change', () => withMapLoading(() => {
+                activeDistrict = districtSelect.value;
+                filterDistrictBoundaries();
+                updateInstitutionMarkerStyles();
+                rebuildHeatmap();
+                fitDistrict();
+            }));
 
             barangayBtn.addEventListener('click', () => {
                 if (barangayOverlay) {
@@ -1165,7 +1244,7 @@
             //     rotateMode: false
             // });
 
-            document.getElementById('clearDrawings').addEventListener('click', () => {
+            document.getElementById('clearDrawings')?.addEventListener('click', () => {
                 map.eachLayer(layer => {
                     if (layer.pm && layer.pm.enabled()) layer.pm.remove();
                 });
@@ -1200,7 +1279,6 @@
                 imperial: true
             }).addTo(map);
 
-            if (!compactScreen.matches) openMapInformation(undefined, false);
 
             // Close side panel
             document.getElementById('closePanel').addEventListener('click', (e) => {
@@ -1210,7 +1288,10 @@
                 delete stage.dataset.panel;
                 resizeMap();
                 clearInstitutionBoundary();
-                selectedInstitutionMarker?.getElement()?.focus();
+                const previouslySelected = selectedInstitutionMarker;
+                selectedInstitutionMarker = null;
+                updateInstitutionMarkerStyles();
+                previouslySelected?.getElement()?.focus();
             });
         });
     </script>
@@ -1244,12 +1325,12 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 24px;
-            height: 24px;
+            width: 36px;
+            height: 36px;
             box-sizing: border-box;
             border: 2px solid white;
-            border-radius: 6px;
-            background: #94a3b8;
+            border-radius: 10px;
+            background: #0F2C59;
             color: white;
             font-size: 12px;
             box-shadow: 0 2px 6px rgb(15 23 42 / 35%);

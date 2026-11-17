@@ -45,6 +45,7 @@ class IctMappingController extends Controller
                         'id' => $inst->id,
                         'name' => $inst->name,
                         'type' => $inst->type,
+                        'district' => $inst->barangay?->district,
                         'barangay' =>
                             $inst->barangay?->name
                             ?? 'Unknown',

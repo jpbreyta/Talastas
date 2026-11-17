@@ -1,6 +1,6 @@
 export function inventoryListUrl(form, currentUrl) {
     const url = new URL(currentUrl);
-    for (const key of ['search', 'status', 'sort', 'page']) url.searchParams.delete(key);
+    for (const key of ['search', 'barangay', 'sector', 'status', 'sort', 'page']) url.searchParams.delete(key);
     for (const [key, value] of new FormData(form)) {
         if (String(value).trim()) url.searchParams.set(key, String(value).trim());
     }
@@ -40,7 +40,6 @@ export function installInventoryList() {
     const form = document.getElementById('inventoryListFilters');
     const search = document.getElementById('inventoryInstitutionSearch');
     const statusFilter = document.getElementById('inventoryInstitutionFilter');
-    const sort = document.getElementById('inventorySort');
     const status = document.getElementById('inventorySearchStatus');
     const results = () => page.querySelector('[data-inventory-results]');
     let controller;
@@ -71,7 +70,8 @@ export function installInventoryList() {
     function syncControls(url) {
         search.value = url.searchParams.get('search') || '';
         statusFilter.value = url.searchParams.get('status') || 'all';
-        sort.value = url.searchParams.get('sort') || 'name';
+        form.elements.barangay.value = url.searchParams.get('barangay') || '';
+        form.elements.sector.value = url.searchParams.get('sector') || '';
     }
 
     async function refresh(url, history = 'push') {
@@ -217,12 +217,13 @@ export function installInventoryList() {
     });
 
     page.addEventListener('click', (event) => {
-        const link = event.target.closest('[data-inventory-results] nav a');
+        const link = event.target.closest('[data-inventory-results] nav a, [data-inventory-reset]');
         if (!link || event.defaultPrevented || event.button !== 0
             || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
         const url = new URL(link.href);
         if (url.origin !== window.location.origin) return;
         event.preventDefault();
+        if (link.matches('[data-inventory-reset]')) syncControls(url);
         void refresh(url);
     });
 

@@ -1,15 +1,15 @@
 @php($canManageInstitutions = auth()->user()->canManageInstitutions())
         {{-- Content Area --}}
-        <div data-institution-results data-total="{{ $institutions->total() }}" class="flex min-h-0 flex-1 flex-col">
+        <div data-institution-results data-total="{{ $institutions->total() }}" data-page="{{ $institutions->currentPage() }}" class="flex min-h-0 flex-1 flex-col">
             @if ($institutions->count() > 0)
-                <div class="min-h-0 flex-1 overflow-y-auto px-5 pb-1 pt-3">
-                    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+                <div class="flex min-h-0 flex-1 flex-col px-5 pb-1 pt-3">
+                    <div class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
                         @if ($canManageInstitutions)
                             data-institution-selection data-batch-delete-url="{{ route('institutions.batch-destroy') }}"
                         @endif>
                         @if ($canManageInstitutions)
                             <div data-institution-batch-actions hidden
-                                class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-red-50/50 px-4 py-2">
+                                class="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-red-50/50 px-4 py-2">
                                 <span data-institution-selected-count class="text-xs font-medium text-gray-700" role="status" aria-live="polite"></span>
                                 <div class="flex items-center gap-2">
                                     <button type="button" data-institution-clear-selection
@@ -22,80 +22,80 @@
                                 </div>
                             </div>
                         @endif
-                        <div class="overflow-x-auto">
+                        <div class="institution-table-scroll table-scroll min-h-0 flex-1" role="region" aria-label="Institutions table" tabindex="0">
                             <table class="w-full min-w-[800px] text-sm">
                                 <thead class="sticky top-0 z-10">
                                     <tr class="border-b border-gray-200 bg-gray-50 text-left">
                                         @if ($canManageInstitutions)
-                                            <th scope="col" class="w-12 px-2 py-2">
+                                            <th scope="col" class="w-12 px-6 py-4">
                                                 <label data-institution-selection-control class="inline-flex h-8 w-8 cursor-pointer items-center justify-center">
                                                     <input type="checkbox" data-institution-select-all aria-label="Select all visible institutions on this page"
                                                         class="h-4 w-4 cursor-pointer accent-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700">
                                                 </label>
                                             </th>
                                         @endif
-                                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
+                                        <th scope="col" class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
                                             Institution
                                         </th>
-                                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
+                                        <th scope="col" class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
                                             Sector
                                         </th>
-                                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
+                                        <th scope="col" class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
                                             Barangay
                                         </th>
-                                        <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
+                                        <th scope="col" class="px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-500">
                                             Status
                                         </th>
-                                        <th class="w-20 px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
+                                        <th scope="col" class="w-20 px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-gray-500">
                                             Actions
                                         </th>
                                     </tr>
                                 </thead>
 
-                                <tbody class="divide-y divide-gray-100">
+                                <tbody class="divide-y divide-gray-200">
                                     @foreach ($institutions as $institution)
                                         <tr id="institution-row-{{ $institution->id }}"
                                             data-institution-show-url="{{ route('institutions.show', $institution) }}"
-                                            class="inst-row cursor-pointer transition hover:bg-red-50/40 focus-within:bg-red-50/40">
+                                            class="inst-row cursor-pointer bg-white transition hover:bg-gray-50 focus-within:bg-gray-50">
                                             @if ($canManageInstitutions)
-                                                <td class="w-12 px-2 py-2">
+                                                <td class="w-12 px-6 py-4">
                                                     <label data-institution-selection-control class="inline-flex h-8 w-8 cursor-pointer items-center justify-center">
                                                         <input type="checkbox" data-institution-select name="institution_ids[]" value="{{ $institution->id }}"
+                                                            data-institution-name="{{ $institution->name }}"
                                                             aria-label="Select {{ $institution->name }}"
                                                             class="h-4 w-4 cursor-pointer accent-red-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700">
                                                     </label>
                                                 </td>
                                             @endif
-                                            <td class="px-4 py-3">
+                                            <td class="px-6 py-4">
                                                 <a href="{{ route('institutions.show', $institution) }}"
-                                                    class="font-medium text-gray-900 hover:text-red-800 hover:underline focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700">
+                                                    class="table-text-wrap block font-medium text-gray-900 hover:text-red-800 hover:underline focus-visible:rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700">
                                                     {{ $institution->name }}
                                                 </a>
                                             </td>
 
-                                            <td class="px-4 py-3 text-gray-500">
+                                            <td class="px-6 py-4 text-gray-500">
                                                 {{ $institution->type }}
                                             </td>
 
-                                            <td class="px-4 py-3 text-gray-500">
+                                            <td class="px-6 py-4 text-gray-500">
                                                 {{ $institution->barangay?->name ?? '—' }}
                                             </td>
 
-                                            <td class="px-4 py-3">
+                                            <td class="px-6 py-4">
                                                 @if ($institution->is_active)
-                                                    <span class="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">
-                                                        <i class="fa-solid fa-circle-check text-[10px]"></i>
-                                                        Active
+                                                    <span class="inline-flex whitespace-nowrap items-center rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">
+                                                        Operational
                                                     </span>
                                                 @else
-                                                    <span class="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500">
+                                                    <span class="inline-flex whitespace-nowrap items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-500">
                                                         <i class="fa-solid fa-circle-minus text-[10px]"></i>
                                                         Inactive
                                                     </span>
                                                 @endif
                                             </td>
 
-                                            <td class="w-20 px-4 py-3 text-right">
+                                            <td class="w-20 px-6 py-4 text-right">
                                                 <div class="flex justify-end">
                                                     @if ($canManageInstitutions)
                                                         <button type="button" data-institution-actions-toggle
@@ -107,6 +107,11 @@
                                                         <div id="institution-actions-{{ $institution->id }}" data-institution-actions-menu hidden
                                                             role="menu" aria-label="Actions for {{ $institution->name }}"
                                                             class="fixed z-[2500] w-36 max-w-[calc(100vw-16px)] rounded-lg border border-gray-200 bg-white p-1 text-left shadow-md">
+                                                        <a href="{{ route('institutions.show', $institution) }}"
+                                                            role="menuitem" class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-red-700">
+                                                            <i class="fa-solid fa-eye" aria-hidden="true"></i>
+                                                            View Details
+                                                        </a>
                                                         <a href="{{ route('institutions.edit', $institution) }}"
                                                             role="menuitem" class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-red-700">
                                                             <i class="fa-solid fa-pen"></i>
@@ -144,11 +149,11 @@
                     </div>
 
                     <h3 class="mt-4 text-sm font-semibold text-gray-900">
-                        {{ request()->filled('search') || request()->filled('barangay') ? 'No matching institutions' : 'No institutions yet' }}
+                        {{ request()->filled('search') || request()->filled('barangay') || request()->filled('sector') ? 'No matching institutions' : 'No institutions yet' }}
                     </h3>
 
                     <p class="mt-1 text-sm text-gray-500">
-                        {{ request()->filled('search') || request()->filled('barangay')
+                        {{ request()->filled('search') || request()->filled('barangay') || request()->filled('sector')
                             ? 'Try another search or reset your filters.'
                             : ($canManageInstitutions ? 'Get started by adding your first institution.' : 'No institution records are currently available.') }}
                     </p>

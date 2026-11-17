@@ -47,9 +47,49 @@
         .legal-button-secondary:hover { background: #fef2f2; }
         @media (max-width: 479px) { .legal-action-row > a, .legal-action-row > button, .legal-action-row > form, .legal-action-row > form > button { width: 100%; } }
         @media print { .legal-navigation, .legal-actions { display: none; } .legal-copy { box-shadow: none; border: 0; } }
+        .terms-refined .legal-copy { font-size: 1rem; }
+        .terms-refined .legal-copy p { margin: .75rem 0 1.1rem; line-height: 1.7; }
+        @media (min-width: 640px) {
+            .terms-refined .legal-copy section[aria-labelledby^="section-"] > p,
+            .privacy-notice .legal-copy section[aria-labelledby^="section-"] > p { text-align: justify; text-align-last: left; }
+        }
+        .terms-refined .legal-copy h2, .terms-refined .legal-copy h3 { scroll-margin-top: 2rem; }
+        .terms-refined #policy-title { scroll-margin-top: 2rem; }
+        :is(.terms-refined, .privacy-notice) .legal-copy .terms-document-status p { margin: .4rem 0 0; font-size: .875rem; line-height: 1.6; }
+        :is(.terms-refined, .privacy-notice) .legal-copy .terms-document-status .terms-status-label { font-size: .75rem; line-height: 1.5; }
+        .terms-status-summary { display: flex; min-height: 5rem; align-items: center; gap: 1rem; padding: .75rem 1rem; list-style: none; }
+        .terms-status-summary::-webkit-details-marker { display: none; }
+        .terms-status-disclosure:not([open]) .terms-details-expanded,
+        .terms-status-disclosure[open] .terms-details-collapsed { display: none; }
+        .terms-status-disclosure[open] .fa-chevron-down { transform: rotate(180deg); }
+        @media (max-width: 639px) {
+            .terms-status-summary { flex-wrap: wrap; gap: .5rem; }
+            .terms-status-summary > .min-w-0 { flex-basis: 100%; }
+            .terms-status-toggle { min-height: 2.75rem; }
+        }
+        :is(.terms-refined, .privacy-notice) .legal-copy .terms-document-status .terms-status-explanation { margin-top: .75rem; }
+        :is(.terms-refined, .privacy-notice) .terms-status-metadata dd { overflow-wrap: anywhere; }
+        .terms-refined [data-toc-link] { transition: none; }
+        .terms-refined [data-toc-link]:hover { padding-left: .75rem; }
+        .terms-refined .legal-copy #policy-references + ul { font-size: .9375rem; line-height: 1.65; }
+        .terms-refined .legal-copy details p { margin-bottom: 0; font-size: .875rem; }
+        .terms-refined select:focus-visible { outline: 2px solid #800000; outline-offset: 3px; }
+        @media (min-width: 1024px) {
+            .terms-refined .legal-document-navigation { top: 1.5rem; }
+            .terms-refined .legal-document-navigation nav { max-height: calc(100dvh - 3rem); }
+        }
+        @media (max-width: 1023px) { .terms-refined .legal-document-navigation { display: none; } }
+        @media (max-width: 639px) {
+            .terms-refined .legal-copy { padding: 1.25rem; font-size: .9375rem; }
+            .terms-refined header nav { gap: .25rem .5rem; }
+            .terms-refined .legal-actions[aria-labelledby="consent-heading"] .legal-button { width: 100%; }
+        }
+        @media print { .terms-jump, .legal-back-top { display: none; } }
+        @media print { .legal-footer { position: static; } }
     </style>
 </head>
-<body class="bg-gray-50 font-sans text-gray-900">
+<body class="flex min-h-screen flex-col bg-gray-50 font-sans text-gray-900 {{ ($document['kind'] ?? null) === 'terms' ? 'terms-refined' : (($document['kind'] ?? null) === 'privacy' ? 'privacy-notice' : '') }}">
+@include('partials.global-loader')
     <a href="#legal-content" class="sr-only bg-white p-3 text-gray-900 focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:ring-2 focus:ring-offset-2">Skip to policy content</a>
     <header class="bg-[#800000] text-white">
         <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-5">
@@ -66,21 +106,28 @@
             </nav>
         </div>
     </header>
-    <main id="legal-content" class="mx-auto max-w-7xl px-4 py-8" tabindex="-1">
+    <main id="legal-content" class="mx-auto w-full max-w-7xl flex-1 px-4 py-8" tabindex="-1">
         @yield('content')
     </main>
+    <div class="legal-footer sticky bottom-0 z-20 shrink-0">
+        @include('layouts.footer')
+    </div>
 <script>
     document.querySelectorAll('[data-policy-document]').forEach(panel => {
         const links = [...panel.querySelectorAll('[data-toc-link]')];
         const headings = links.map(link => document.getElementById(link.hash.slice(1))).filter(Boolean);
+        const jump = panel.querySelector('[data-policy-jump]');
         if (!headings.length) return;
         const update = () => {
             let current = headings[0];
-            headings.forEach(heading => { if (heading.getBoundingClientRect().top <= 120) current = heading; });
+            headings.forEach(heading => { if (heading.getBoundingClientRect().top <= (jump ? 64 : 120)) current = heading; });
+            if (jump && window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2
+                && headings[headings.length - 1].getBoundingClientRect().top < window.innerHeight) current = headings[headings.length - 1];
             links.forEach(link => {
                 if (link.hash === '#' + current.id) link.setAttribute('aria-current', 'location');
                 else link.removeAttribute('aria-current');
             });
+            if (jump && document.activeElement !== jump) jump.value = current.id;
         };
         let scheduled = false;
         window.addEventListener('scroll', () => {
@@ -89,6 +136,14 @@
             requestAnimationFrame(() => { update(); scheduled = false; });
         }, { passive: true });
         window.addEventListener('resize', update);
+        window.addEventListener('hashchange', update);
+        jump?.addEventListener('change', () => {
+            const heading = headings.find(item => item.id === jump.value);
+            if (!heading) return;
+            window.location.hash = heading.id;
+            heading.focus({ preventScroll: true });
+            update();
+        });
         update();
     });
 </script>

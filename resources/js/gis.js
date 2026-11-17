@@ -2,11 +2,10 @@ import { installLipaNavigation } from './lipa-map-navigation';
 import './map-dashboard';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
 
-// The map currently renders institutions with circle markers and its drawing
-// controls are disabled. Keep the critical GIS entry lean and avoid loading
-// marker icon assets, Leaflet Search, Geoman, and the full Turf bundle on the
-// initial Home/Map request.
+// Reuse the existing marker clustering dependency; drawing controls remain disabled.
 window.L = L;
 window.installLipaNavigation = (map, data) => installLipaNavigation(map, L, data);
 

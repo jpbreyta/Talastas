@@ -143,6 +143,11 @@
             box-shadow: 0 0 0 2px rgba(122, 31, 43, 0.08);
         }
 
+        .login-input:focus-visible {
+            outline: 2px solid #7A1F2B;
+            outline-offset: 2px;
+        }
+
         @media (forced-colors: active) {
             .login-input:focus-visible {
                 outline: 2px solid Highlight;
@@ -277,7 +282,10 @@
             .talastas-pattern,
             .talastas-highlight,
             .talastas-glow,
-            .logo-glow {
+            .logo-glow,
+            .animate-fadeInUp,
+            .float-animation,
+            .gold-pulse {
                 animation: none;
             }
 
@@ -286,13 +294,19 @@
             .login-button::before {
                 transition: none;
             }
+
+            .login-button:hover,
+            .login-button:active {
+                transform: none;
+            }
         }
     </style>
 </head>
 
 <body class="antialiased bg-[#F8F6F6]">
+@include('partials.global-loader')
 
-    <main class="min-h-screen flex">
+    <main class="min-h-svh flex">
 
         <!-- ============================================================
              LEFT SIDE - TALASTAS BRANDING
@@ -303,7 +317,8 @@
                 lg:flex
                 lg:w-[52%]
                 xl:w-[55%]
-                min-h-screen
+                min-w-0
+                min-h-svh
                 relative
                 overflow-hidden
                 brand-gradient
@@ -314,6 +329,7 @@
 
             <!-- Decorative Map / Network SVG -->
             <div
+                aria-hidden="true"
                 class="
                     absolute
                     inset-0
@@ -443,13 +459,17 @@
                 <div class="flex max-w-xl flex-1 flex-col justify-center py-10">
                     <span class="mb-6 block h-0.5 w-12 bg-[#D6A84B]" aria-hidden="true"></span>
                     <h2 class="text-[36px] xl:text-[48px] leading-[1.1] font-extrabold tracking-[-0.04em]">
-                        Alam.<br>
-                        Kabisado.<br>
-                        <span class="text-[#E7C36C]">Tukoy.</span>
+                        Ebalwasyon.<br>
+                        Bilis.<br>
+                        <span class="text-[#E7C36C]">Aksyon.</span>
                     </h2>
-                    <p class="mt-5 text-sm leading-relaxed text-white/70">
-                        Impormasyong malinaw.<br>
-                        Desisyong mas tiyak.
+                    <p class="mt-5 text-2xl xl:text-3xl leading-tight font-bold tracking-tight text-[#F4BF57]">
+                        May EBA, May Alam!
+                    </p>
+                    <p class="mt-4 flex max-w-sm flex-col gap-1 text-sm leading-relaxed text-white/70">
+                        <span>Matalinong pagmamapa.</span>
+                        <span>Maaasahang impormasyon.</span>
+                        <span>Mas mabilis na aksyon para sa Lipa.</span>
                     </p>
                 </div>
 
@@ -492,7 +512,8 @@
                 w-full
                 lg:w-[48%]
                 xl:w-[45%]
-                min-h-screen
+                min-w-0
+                min-h-svh
                 flex
                 items-center
                 justify-center
@@ -504,7 +525,7 @@
             "
         >
 
-            <div class="w-full max-w-107.5">
+            <div class="min-w-0 w-full max-w-107.5">
 
                 <img src="{{ asset('images/LandScapeBG.png') }}"
                     alt="TALASTAS - GIS-Based ICT Mapping System" width="866" height="288"
@@ -517,7 +538,7 @@
 
                     <span class="mb-4 block h-0.5 w-12 bg-[#D6A84B]" aria-hidden="true"></span>
 
-                    <h2
+                    <h1
                         class="
                             text-3xl
                             sm:text-[36px]
@@ -528,7 +549,7 @@
                         "
                     >
                         Welcome Back
-                    </h2>
+                    </h1>
 
                     <p
                         class="

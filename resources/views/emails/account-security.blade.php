@@ -4,7 +4,13 @@
 <div style="max-width:560px;margin:auto;background:white;padding:28px;border-top:4px solid #74151b">
 <p style="color:#74151b;font-weight:bold">TALASTAS ICT Mapping</p>
 <h1 style="font-size:22px">{{ $title }}</h1>
-@if($kind==='verification')
+@if($kind==='email_change_verification')
+<p>Enter this code on your signed-in TALASTAS Profile page to confirm this as your new email address:</p>
+<p style="font-size:30px;font-weight:bold;letter-spacing:6px">{{ $details['code'] }}</p>
+<p>This code expires in five minutes, allows five attempts, and works once. Your existing email stays active until confirmation. If you did not request this change, ignore this message.</p>
+@elseif($kind==='email_changed')
+<p>Your TALASTAS account email address was changed after verification. Existing sessions and access tokens were invalidated. If you did not make this change, contact your System Administrator immediately through your established support channel.</p>
+@elseif($kind==='verification')
 <p>Enter this six-digit code in TALASTAS to verify your sign-in or security action:</p>
 <p style="font-size:30px;font-weight:bold;letter-spacing:6px">{{ $details['code'] }}</p>
 <p>This code expires in five minutes and can be used once. Never share it. If you did not request this code, do not enter it and contact your System Admin.</p>

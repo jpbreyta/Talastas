@@ -25,7 +25,7 @@ const context = vm.createContext({ document:{getElementById:()=>errors,createEle
     FormData:class {}, fetch:async()=>{ calls++; return respond(); }, sessionStorage:{setItem(){}},
     window:{location:{assign:url=>redirects.push(url)}}, console });
 const start = source.indexOf('            const formErrors =');
-const end = source.indexOf('            function openModal', start);
+const end = source.indexOf('            async function openModal', start);
 vm.runInContext(source.slice(start,end), context);
 let prevented = false;
 await form.submit({preventDefault(){prevented=true;}});

@@ -2,6 +2,7 @@
 @import './notifications.css';
 @import './page-header.css';
 @import './dashboard.css';
+@import './talastas-loader.css';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -334,7 +335,7 @@
     background: transparent;
 }
 
-.map-header-controls :is(button, select):focus-visible {
+.map-header-controls :is(button, select, summary):focus-visible {
     outline: 2px solid white;
     outline-offset: 2px;
 }
@@ -607,6 +608,23 @@
 .talastas-sidebar-account-menu { width: min(20rem, calc(100vw - 2rem)); overscroll-behavior: contain; }
 
 /* Keep the current directory visible while its replacement is loading. */
+[data-institution-loading][hidden], #mapLoadingOverlay[hidden], [data-apply-spinner][hidden], [data-apply-icon][hidden] { display: none; }
+[data-institution-apply]:disabled { cursor: wait; opacity: 0.65; }
+[data-institution-batch-actions][hidden], [data-institution-clear-search][hidden] { display: none; }
+#institutionSearch::-webkit-search-cancel-button { -webkit-appearance: none; }
+.talastas-header-tools button[data-institution-clear-search] { padding: 0; border: 0; background: transparent; color: #64748b; }
+.talastas-header-tools button[data-institution-clear-search]:hover { background: #f1f5f9; color: #74151b; }
+.talastas-header-tools button[data-institution-clear-search]:focus-visible { outline: 2px solid #74151b; outline-offset: -3px; }
+[data-institution-batch-actions] button:disabled { cursor: wait; opacity: 0.65; }
+.institution-table-scroll { overflow: auto; }
+.talastas-app main table tbody tr[data-selected],
+.talastas-app main table tbody tr[data-selected]:hover,
+.talastas-app main table tbody tr[data-selected]:focus-within { background: #fff5f5; }
+#deleteInstitutionModal button:focus-visible { outline: 2px solid #74151b; outline-offset: 3px; }
+#deleteInstitutionModal button:disabled { cursor: wait; opacity: 0.65; }
+@media (max-width: 767px) {
+    .institution-table-scroll :is([data-institution-selection-control], [data-institution-actions-toggle]) { min-width: 44px; min-height: 44px; }
+}
 [data-institution-results] {
     position: relative;
     isolation: isolate;
@@ -614,41 +632,41 @@
 [data-institution-results][aria-busy="true"] {
     overflow: hidden;
 }
-[data-institution-results][aria-busy="true"]::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto;
-    height: 3px;
-    z-index: 3;
-    background: linear-gradient(90deg, transparent, #c9232b, transparent);
-    background-size: 50% 100%;
-    background-repeat: no-repeat;
-    animation: institution-loading-bar 1.3s ease-in-out infinite;
-    pointer-events: none;
+/* Compact map tools: one filter trigger and native Leaflet widgets. */
+.map-header-controls { position: relative; gap: 0.5rem; }
+.map-filters-menu { position: static; order: 0; flex: 0 0 auto; }
+.map-filters-menu > summary::-webkit-details-marker { display: none; }
+.map-filters-popover { z-index: 20; width: min(64rem, calc(100vw - 2rem)); max-height: 70dvh; overflow-y: auto; overscroll-behavior: contain; }
+.map-filters-popover :is(.map-header-metric, .map-header-barangay) { display: grid; order: initial; min-width: 0; grid-template-columns: 1fr; gap: 0.375rem; }
+.map-filters-popover label { color: #0F2C59; font-weight: 600; }
+.map-filters-popover select { width: 100%; height: 2.5rem; border-color: #cbd5e1; }
+.map-filters-popover #resetView { color: #0F2C59; border-color: #cbd5e1; background: #F4F6F9; }
+.map-filters-popover :is(button, select):focus-visible { outline-color: #0F2C59; }
+.map-compact-legend { color: #0F2C59; background: white; border-radius: 0.5rem; box-shadow: 0 2px 8px #0f2c5926; }
+.map-compact-legend summary { cursor: pointer; padding: 0.625rem 0.875rem; font-weight: 600; }
+.map-compact-legend summary:focus-visible { outline: 2px solid #0F2C59; outline-offset: -3px; border-radius: 0.5rem; }
+.map-compact-legend details { max-height: min(60dvh, 28rem); overflow-y: auto; overscroll-behavior: contain; }
+.map-gap-help { display: contents; }
+#mapGapTooltip { display: none; position: static; width: 100%; visibility: visible; opacity: 1; }
+.map-gap-help:hover #mapGapTooltip,
+.map-gap-help:focus-within #mapGapTooltip { display: block; }
+.map-legend-content { width: min(14rem, calc(100vw - 5rem)); padding: 0 0.625rem 0.625rem; font-size: 0.75rem; }
+.map-legend-metric { display: block; margin: 0; }
+.map-legend-gradient { height: 0.5rem; border-radius: 9999px; background: linear-gradient(90deg, #2563eb, #f59e0b, #dc2626); }
+.map-workspace .leaflet-control-layers { color: #0F2C59; border: 1px solid #e2e8f0; border-radius: 0.5rem; }
+.institution-map-cluster { display: grid; place-items: center; box-sizing: border-box; border: 1px solid #7084AB; border-radius: 50%; background: #E7EDF7; color: #263D68; font-family: var(--font-sans); font-size: 14px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; box-shadow: 0 0 0 2px white; }
+.institution-map-cluster > span { display: grid; place-items: center; width: 100%; height: 100%; }
+.institution-map-cluster:focus-visible { outline: 2px solid #0F2C59; outline-offset: 3px; }
+.institution-details-content { overflow-wrap: anywhere; }
+.institution-details-content .space-y-1 > div > span { min-width: 0; }
+
+@media (max-width: 767px) {
+    .map-header-controls .map-header-button,
+    .map-filters-popover select,
+    .map-compact-legend summary { min-height: 44px; }
+    .map-workspace .leaflet-control-zoom a { width: 44px; height: 44px; line-height: 44px; }
 }
-[data-institution-results][aria-busy="true"]::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    background: linear-gradient(105deg, transparent 25%, rgb(255 255 255 / 75%) 50%, transparent 75%);
-    background-size: 200% 100%;
-    animation: institution-loading-shimmer 1.5s ease-in-out infinite;
-    pointer-events: none;
-}
-@keyframes institution-loading-bar {
-    from { background-position: -100% 0; }
-    to { background-position: 200% 0; }
-}
-@keyframes institution-loading-shimmer {
-    from { background-position: 200% 0; }
-    to { background-position: -200% 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-    [data-institution-results][aria-busy="true"]::before,
-    [data-institution-results][aria-busy="true"]::after {
-        animation: none;
-        background-position: center;
-    }
-    [data-institution-list-status] .fa-spin { animation: none; }
+
+@media (min-width: 1024px) {
+    .map-filters-popover { width: min(64rem, calc(100vw - var(--talastas-sidebar-width) - 3rem)); }
 }

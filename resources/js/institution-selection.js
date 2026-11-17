@@ -1,3 +1,5 @@
+import { requestInstitutionDeletion, refreshAfterInstitutionDeletion } from './institution-deletion';
+
 export function installInstitutionSelection() {
     const container = document.querySelector('[data-institution-selection]');
     if (!container) {
@@ -28,9 +30,7 @@ export function installInstitutionSelection() {
             }
             checkbox.disabled = busy;
             const row = checkbox.closest('.inst-row');
-            if (row.classList.contains('bg-red-50/60') !== checkbox.checked) {
-                row.classList.toggle('bg-red-50/60', checkbox.checked);
-            }
+            row.toggleAttribute('data-selected', checkbox.checked);
         });
 
         const visible = inputs.filter(isVisible);
@@ -39,7 +39,7 @@ export function installInstitutionSelection() {
         selectAll.indeterminate = selectedCount > 0 && selectedCount < visible.length;
         selectAll.disabled = busy || visible.length === 0;
         actions.hidden = selectedCount === 0;
-        count.textContent = `${selectedCount} selected`;
+        count.textContent = `${selectedCount} institution${selectedCount === 1 ? '' : 's'} selected on this page`;
         deleteButton.disabled = busy || selectedCount === 0;
         clearButton.disabled = busy;
         deleteButton.setAttribute('aria-busy', String(busy));
@@ -76,57 +76,26 @@ export function installInstitutionSelection() {
             return;
         }
         syncSelection();
-        const ids = selected().map((checkbox) => Number(checkbox.value));
-        if (!ids.length || !window.confirm(
-            `Delete ${ids.length} selected institution${ids.length === 1 ? '' : 's'} and their related inventory and analytics? This cannot be undone.`
-        )) {
-            return;
-        }
+        const records = selected().map(checkbox => ({
+            id: Number(checkbox.value), name: checkbox.dataset.institutionName || checkbox.getAttribute('aria-label').replace(/^Select /, ''),
+        }));
+        if (!records.length) return;
 
         busy = true;
         syncSelection();
         try {
-            const response = await fetch(container.dataset.batchDeleteUrl, {
-                method: 'DELETE',
-                credentials: 'same-origin',
-                headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-                },
-                body: JSON.stringify({ institution_ids: ids }),
+            const payload = await requestInstitutionDeletion({
+                url: container.dataset.batchDeleteUrl, records, trigger: deleteButton, batch: true,
+                onSettled: () => { busy = false; syncSelection(); },
             });
-            const payload = await response.json().catch(() => ({}));
-            if (!response.ok || payload.success !== true || !Array.isArray(payload.deleted_ids)) {
-                const validationMessage = Object.values(payload.errors || {}).flat()[0];
-                throw new Error(response.status >= 500
-                    ? 'Institutions could not be deleted. No changes were saved.'
-                    : validationMessage || payload.message || (response.status === 419
-                        ? 'Your session expired. Refresh the page and try again.'
-                        : 'The selected institutions could not be deleted.'));
-            }
-
-            // Reuse the existing Institution toast across a full refresh so
-            // pagination and server totals reflect the completed deletion.
-            payload.deleted_ids.forEach((id) => {
-                checkboxes().find((checkbox) => Number(checkbox.value) === Number(id))
-                    ?.closest('.inst-row').remove();
-            });
-            try {
-                sessionStorage.setItem('institutionToast', JSON.stringify({
-                    type: 'deleted', message: payload.message,
-                }));
-                const destination = new URL(window.location.href);
-                const page = Number(destination.searchParams.get('page') || 1);
-                if (checkboxes().length === 0 && page > 1) {
-                    destination.searchParams.set('page', String(page - 1));
-                    window.location.assign(destination.href);
-                } else {
-                    window.location.reload();
-                }
-            } catch {
-                window.InstitutionModal?.notify('deleted', payload.message);
+            busy = false;
+            if (payload) {
+                const deleted = new Set(payload.deleted_ids);
+                checkboxes().forEach(checkbox => {
+                    if (deleted.has(Number(checkbox.value))) checkbox.checked = false;
+                });
+                syncSelection();
+                await refreshAfterInstitutionDeletion(payload, records);
             }
         } catch (error) {
             window.InstitutionModal?.notify('error', error instanceof Error

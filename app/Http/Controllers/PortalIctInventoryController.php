@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\IctInventory;
+use App\Models\Barangay;
 use App\Models\Institution;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -14,27 +15,27 @@ class PortalIctInventoryController extends Controller
     {
         $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
+            'barangay' => ['nullable', 'integer', 'min:1'],
+            'sector' => ['nullable', Rule::in(['School', 'Barangay Hall'])],
             'status' => ['nullable', Rule::in(['all', 'active', 'attention', 'empty'])],
         ]);
         $search = trim((string) $request->query('search', ''));
         $status = $request->query('status', 'all');
 
-        $query = Institution::query()
-            ->whereIn('type', ['School', 'Barangay Hall'])
+        $visibleInstitutions = Institution::query()->whereIn('type', ['School', 'Barangay Hall']);
+        if ($request->user()->isEditor()) {
+            $visibleInstitutions->whereHas('assignedUsers', fn (Builder $assigned) => $assigned->whereKey($request->user()->id));
+        }
+        $barangays = Barangay::query()
+            ->whereIn('id', (clone $visibleInstitutions)->select('barangay_id'))
+            ->orderBy('name')->get(['id', 'name']);
+
+        $query = (clone $visibleInstitutions)
+            ->when($request->filled('barangay'), fn (Builder $query) => $query->where('barangay_id', $request->integer('barangay')))
+            ->when($request->filled('sector'), fn (Builder $query) => $query->where('type', $request->query('sector')))
             ->when($search !== '', function (Builder $query) use ($search): void {
                 $pattern = '%'.str_replace(['!', '%', '_'], ['!!', '!%', '!_'], mb_strtolower($search)).'%';
-                $query->where(function (Builder $matches) use ($pattern): void {
-                    $matches->whereRaw("LOWER(name) LIKE ? ESCAPE '!'", [$pattern])
-                        ->orWhereRaw("LOWER(type) LIKE ? ESCAPE '!'", [$pattern])
-                        ->orWhereHas('barangay', fn (Builder $barangay) =>
-                            $barangay->whereRaw("LOWER(name) LIKE ? ESCAPE '!'", [$pattern]))
-                        ->orWhereHas('ictInventory', function (Builder $inventory) use ($pattern): void {
-                            $inventory->whereIn('component_type', IctInventoryController::COMPONENT_TYPES)
-                                ->where(fn (Builder $items) => $items
-                                    ->whereRaw("LOWER(asset_name) LIKE ? ESCAPE '!'", [$pattern])
-                                    ->orWhereRaw("LOWER(component_type) LIKE ? ESCAPE '!'", [$pattern]));
-                        });
-                });
+                $query->whereRaw("LOWER(name) LIKE ? ESCAPE '!'", [$pattern]);
             })
             ->when(in_array($status, ['active', 'attention', 'empty'], true), function (Builder $query) use ($status): void {
                 $column = match ($status) {
@@ -51,15 +52,6 @@ class PortalIctInventoryController extends Controller
             ->select(['id', 'name', 'type', 'barangay_id'])
             ->with('barangay:id,name')
             ->orderBy('name');
-
-        $user = $request->user();
-
-        if ($user->isEditor()) {
-            $query->whereHas(
-                'assignedUsers',
-                fn ($assigned) => $assigned->whereKey($user->id)
-            );
-        }
 
         $institutions = $query->paginate(20)->withQueryString();
 
@@ -93,6 +85,7 @@ class PortalIctInventoryController extends Controller
         return view($request->header('X-Talastas-Fragment') === 'inventory'
             ? 'ict-inventory._table-results' : 'ict-inventory.index', [
             'institutions' => $institutions,
+            'barangays' => $barangays,
         ]);
     }
 

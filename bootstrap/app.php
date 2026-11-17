@@ -33,7 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (ThrottleRequestsException $exception, Request $request) {
-            if (! $request->routeIs('security.*', 'login.submit', 'api.v1.auth.login', 'admin.invitations.*', 'admin.users.*', 'legal.accept', 'api.v1.legal.accept', 'profile.password.update')) {
+            if (! $request->routeIs('security.*', 'login.submit', 'api.v1.auth.login', 'admin.invitations.*', 'admin.users.*', 'legal.accept', 'api.v1.legal.accept', 'profile.password.update', 'profile.name.update', 'profile.email.*')) {
                 return null;
             }
             SecurityAudit::record('security.rate_limited', $request->user()?->id, 'denied');
@@ -62,7 +62,7 @@ return Application::configure(basePath: dirname(__DIR__))
             } elseif ($request->routeIs('legal.accept')) {
                 $returnUrl = route('legal.review');
                 $returnLabel = 'Return to Terms acknowledgement';
-            } elseif ($request->routeIs('profile.password.update')) {
+            } elseif ($request->routeIs('profile.password.update', 'profile.name.update', 'profile.email.*')) {
                 $returnUrl = route('profile.account');
                 $returnLabel = 'Return to your profile';
             }

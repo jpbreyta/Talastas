@@ -1,5 +1,6 @@
 ﻿import './bootstrap';
 import { installInstitutionList } from './institution-list';
+import { installAnalyticsPage } from './analytics-page';
 import { installInventoryList } from './inventory-list';
 import { installInstitutionActions } from './institution-actions';
 import { installNotifications } from './notifications';
@@ -34,7 +35,9 @@ const debouncedInputIds = new Set([
 
 const inputTimers = new WeakMap();
 
-function createMapLoadingOverlay() {
+function createMapLoadingOverlay({ force = false } = {}) {
+    // The shared loader owns blocking map loads. Keep this overlay for retry errors.
+    if (document.getElementById('globalLoader') && !force) return;
     if (!document.getElementById('map') || document.getElementById('talastasMapLoading')) {
         return;
     }
@@ -82,7 +85,7 @@ function finishMapLoading() {
 }
 
 function showMapLoadingError() {
-    createMapLoadingOverlay();
+    createMapLoadingOverlay({ force: true });
 
     const overlay = document.getElementById('talastasMapLoading');
     if (!overlay) {
@@ -237,6 +240,7 @@ function installInstitutionRowNavigation() {
 }
 
 function createAnalyticsSkeleton() {
+    if (document.getElementById('globalLoader')) return;
     if (document.getElementById('talastasAnalyticsLoading')) {
         return;
     }
@@ -1400,93 +1404,11 @@ const style2 = document.createElement('style');
 style2.textContent = '.global-loading-icon { display: inline-flex; align-items: center; justify-content: center; width: 1.25rem; height: 1.25rem; } .global-loading-icon i { font-size: 0.875rem; animation: spin 0.8s linear infinite; } @keyframes spin { to { transform: rotate(360deg); } } .motion-reduce:animate-none .global-loading-icon i { animation: none; }';
 document.head?.appendChild(style2);
 
-// Page skeleton management for server-side navigation
-(function() {
-    const skeleton = document.getElementById('talastasPageSkeleton');
-    if (!skeleton) return;
-
-    let hideTimer = null;
-
-    function showSkeleton() {
-        if (hideTimer) {
-            window.clearTimeout(hideTimer);
-            hideTimer = null;
-        }
-        skeleton.hidden = false;
-        window.requestAnimationFrame(() => skeleton.classList.remove('opacity-0'));
-        skeleton.removeAttribute('aria-hidden');
-        skeleton.setAttribute('aria-live', 'polite');
-    }
-
-    function hideSkeleton() {
-        skeleton.classList.add('opacity-0');
-        skeleton.removeAttribute('aria-live');
-        if (!skeleton.hidden) {
-            hideTimer = window.setTimeout(() => {
-                skeleton.hidden = true;
-                skeleton.setAttribute('aria-hidden', 'true');
-                hideTimer = null;
-            }, 200);
-        }
-    }
-
-    // Show skeleton immediately when navigating away via link click
-    document.addEventListener('click', (event) => {
-        if (event.defaultPrevented || event.button !== 0) return;
-        const link = event.target.closest('a[href]');
-        if (!link) return;
-
-        let destination;
-        try {
-            destination = new URL(link.href, window.location.href);
-        } catch {
-            return;
-        }
-
-        // Only handle same-origin, same-window navigations
-        if (
-            destination.origin !== window.location.origin
-            || destination.href === window.location.href
-            || link.target === '_blank'
-            || event.ctrlKey
-            || event.metaKey
-            || event.shiftKey
-            || event.altKey
-        ) {
-            return;
-        }
-
-        // Skip non-GET navigations (forms, method overrides)
-        if (link.dataset.method || link.closest('form')) {
-            return;
-        }
-
-        try {
-            window.sessionStorage.setItem('talastas:navigation-pending', '1');
-        } catch {
-            // The outgoing page still gets its local transition if storage is unavailable.
-        }
-        showSkeleton();
-    });
-
-    // Show skeleton on beforeunload (covers form submissions, refresh, etc.)
-    window.addEventListener('beforeunload', () => {
-        showSkeleton();
-    });
-
-    // Keep the skeleton visible while the destination document loads. Hide it
-    // only after the new page has finished loading (including its assets).
-    window.addEventListener('load', () => hideSkeleton(), { once: true });
-    window.addEventListener('pageshow', () => hideSkeleton());
-
-    // Start with the overlay hidden on the initial page render.
-    if (document.readyState === 'complete') hideSkeleton();
-})();
-
 document.addEventListener('DOMContentLoaded', () => {
     installSidebarNavigation();
     createMapLoadingOverlay();
     installInstitutionList();
+    installAnalyticsPage();
     installInventoryList();
     installInstitutionActions();
     installInstitutionRowNavigation();

@@ -68,36 +68,17 @@
         @endif
     @endauth
 </head>
-<body class="talastas-app font-sans antialiased bg-gray-50 @auth role-{{ auth()->user()->role }} @endauth @hasSection('dashboard-layout') overflow-hidden h-screen @endif">
-@php
-    $routeName = request()->route()?->getName() ?? '';
-    $uri = request()->path();
-    $skeletonPage = 'default';
-    if ($routeName === 'home' || $routeName === 'map' || $uri === '/' || $uri === '/map') {
-        $skeletonPage = 'dashboard';
-    } elseif (str_starts_with($routeName, 'institutions.') || str_starts_with($uri, 'institutions')) {
-        $skeletonPage = 'institutions';
-    } elseif (str_starts_with($routeName, 'ict-inventory.') || str_starts_with($uri, 'ict-inventory')) {
-        $skeletonPage = 'inventory';
-    } elseif ($routeName === 'analytics' || $uri === '/analytics') {
-        $skeletonPage = 'analytics';
-    } elseif (str_starts_with($routeName, 'admin.users.') || str_starts_with($uri, 'admin/users')) {
-        $skeletonPage = 'users';
-    }
-@endphp
-@include('components.page-skeleton', ['page' => $skeletonPage])
+<body class="talastas-app h-dvh overflow-hidden font-sans antialiased bg-gray-50 @auth role-{{ auth()->user()->role }} @endauth">
+@include('partials.global-loader')
     @include('layouts.sidebar')
-    <div id="app" class="talastas-shell min-w-0 flex flex-col @hasSection('dashboard-layout') h-screen overflow-hidden @else min-h-screen @endif">
+    <div id="app" class="talastas-shell flex h-dvh min-h-0 min-w-0 flex-col overflow-hidden">
         @include('layouts.header')
 
-        <main class="min-w-0 @hasSection('dashboard-layout') flex-1 min-h-0 overflow-hidden flex flex-col @else flex-1 @endif">
+        <main data-global-loader-region class="min-h-0 min-w-0 flex-1 @hasSection('dashboard-layout') flex flex-col overflow-hidden @else overflow-y-auto @endif">
             @yield('content')
         </main>
 
-        @hasSection('dashboard-layout')
-        @else
-            @include('layouts.footer')
-        @endif
+        @include('layouts.footer')
     </div>
     @include('partials.notifications')
     @auth

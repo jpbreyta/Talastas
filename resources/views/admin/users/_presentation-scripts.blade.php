@@ -34,69 +34,12 @@ document.addEventListener('DOMContentLoaded', () => {
         update();
         updateInstitutionFilter();
     });
-    document.querySelectorAll('[data-invitation-action-form]').forEach(form => {
-        const radios = Array.from(form.querySelectorAll('[data-invitation-action]'));
-        const password = form.querySelector('[data-invitation-password]');
-        const submit = form.querySelector('[data-invitation-submit]');
-        const label = form.querySelector('[data-invitation-submit-label]');
-        const confirmations = Array.from(form.querySelectorAll('[data-invitation-confirmation]'));
-        const resetButton = () => {
-            submit.disabled = true;
-            submit.setAttribute('aria-disabled', 'true');
-            submit.className = 'users-button cursor-not-allowed opacity-50';
-        };
-        const update = (resetConfirmation = false) => {
-            const action = radios.find(radio => radio.checked)?.value;
-            confirmations.forEach(row => {
-                const checkbox = row.querySelector('[data-action-confirmation]');
-                const active = row.dataset.invitationConfirmation === action;
-                row.hidden = !active;
-                checkbox.disabled = !active;
-                if (!active || resetConfirmation) checkbox.checked = false;
-            });
-            const activeConfirmation = confirmations.find(row => row.dataset.invitationConfirmation === action)?.querySelector('[data-action-confirmation]');
-            const confirmed = Boolean(action && activeConfirmation?.checked);
-            const resend = action === 'resend';
-            if (action) {
-                form.action = resend ? form.dataset.resendUrl : form.dataset.revokeUrl;
-                label.textContent = resend ? 'Resend invitation' : 'Revoke invitation';
-                submit.className = confirmed
-                    ? (resend ? submit.dataset.resendClass : submit.dataset.revokeClass)
-                    : `${resend ? submit.dataset.resendClass : submit.dataset.revokeClass} cursor-not-allowed opacity-50`;
-            } else {
-                label.textContent = 'Select an action';
-                resetButton();
-            }
-            password.disabled = !confirmed;
-            password.setAttribute('aria-disabled', String(!confirmed));
-            password.classList.toggle('cursor-not-allowed', !confirmed);
-            password.classList.toggle('bg-gray-100', !confirmed);
-            password.classList.toggle('text-gray-400', !confirmed);
-            password.classList.toggle('bg-white', confirmed);
-            password.classList.toggle('text-gray-900', confirmed);
-            submit.disabled = !confirmed;
-            submit.setAttribute('aria-disabled', String(!confirmed));
-        };
-        radios.forEach(radio => radio.addEventListener('change', () => update(true)));
-        confirmations.forEach(row => row.querySelector('[data-action-confirmation]')?.addEventListener('change', () => update()));
-        form.addEventListener('submit', event => {
-            const action = radios.find(radio => radio.checked)?.value;
-            const confirmation = confirmations.find(row => row.dataset.invitationConfirmation === action)?.querySelector('[data-action-confirmation]');
-            if (!action || !confirmation?.checked || password.disabled || !password.value) {
-                event.preventDefault();
-                update();
-                if (!action) radios[0]?.focus();
-                else if (!confirmation?.checked) confirmation?.focus();
-                else password.focus();
-            }
-        });
-        update();
-    });
     let editorTrigger = null;
     let previousOverflow = '';
     function openEditor(dialog, trigger) {
         if (!dialog || dialog.open) return;
-        editorTrigger = trigger;
+        const menuId = trigger?.closest('[data-user-actions-menu]')?.id;
+        editorTrigger = menuId ? document.querySelector(`[data-user-actions-toggle][aria-controls="${menuId}"]`) || trigger : trigger;
         previousOverflow = document.documentElement.style.overflow;
         dialog.showModal();
         document.documentElement.style.overflow = 'hidden';

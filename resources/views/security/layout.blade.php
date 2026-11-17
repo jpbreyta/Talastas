@@ -12,6 +12,7 @@
 </head>
 
 <body class="min-h-screen bg-gray-100 text-gray-900">
+@include('partials.global-loader')
     <main class="mx-auto @yield('container-class', 'max-w-xl') px-4 py-8 sm:py-12">
         <a href="{{ route('login') }}" class="text-sm font-semibold text-red-900">TALASTAS ICT Mapping</a>
         <section

@@ -56,6 +56,15 @@
 }
 .talastas-header-tools :is(button, a):hover { background: rgb(255 255 255 / 18%); }
 .talastas-header-tools :is(button, a):focus-visible { outline: 2px solid white; outline-offset: 2px; }
+.talastas-header-tools button.inventory-search-trigger {
+    padding: 0;
+    border: 0;
+    border-radius: 0.5rem 0 0 0.5rem;
+    background: transparent;
+    color: #64748b;
+}
+.talastas-header-tools button.inventory-search-trigger:hover { background: #f1f5f9; color: #0f2c59; }
+.talastas-header-tools button.inventory-search-trigger:focus-visible { outline: 2px solid #0f2c59; outline-offset: -3px; }
 @media (min-width: 1280px) {
     .talastas-feature-header { grid-template-columns: minmax(0, 1fr) auto auto; min-height: 60px; }
     .talastas-feature-header > .shrink-0 { grid-column: 3; }

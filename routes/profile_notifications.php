@@ -8,6 +8,13 @@ Route::middleware(['auth:web', 'auth.session', 'account.secure', 'terms.accepted
     Route::get('/profile', [AccountProfileController::class, 'show'])
         ->name('profile.account');
 
+    Route::put('/profile/name', [AccountProfileController::class, 'updateName'])
+        ->middleware(['throttle:5,1,profile-name:', 'mfa.fresh'])->name('profile.name.update');
+    Route::post('/profile/email-change', [AccountProfileController::class, 'requestEmailChange'])
+        ->middleware(['throttle:5,60,profile-email-request:', 'mfa.fresh'])->name('profile.email.request');
+    Route::post('/profile/email-change/confirm', [AccountProfileController::class, 'confirmEmailChange'])
+        ->middleware(['throttle:10,1,profile-email-confirm:', 'mfa.fresh'])->name('profile.email.confirm');
+
     Route::put('/profile/password', [AccountProfileController::class, 'updatePassword'])
         ->middleware(['throttle:5,1,profile-password:', 'mfa.fresh'])
         ->name('profile.password.update');

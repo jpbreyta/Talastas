@@ -39,6 +39,7 @@ class AnalyticsController extends Controller
 
         $this->applyIndexFilters($analyticsQuery, $request);
 
+        $reportingSelection = clone $analyticsQuery;
         $prescription = app(AnalyticsPrescription::class)->build((clone $analyticsQuery)->get());
 
         if ($user->isViewer()) {
@@ -60,7 +61,7 @@ class AnalyticsController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        $summary = $this->summaryData($request);
+        $summary = $this->summaryData($request, $reportingSelection);
 
         $averageGapScore = $summary['average_gap_score'];
 
@@ -70,7 +71,7 @@ class AnalyticsController extends Controller
         $latestAnalysisDate = $summary['latest_analysis_date'];
 
         $primaryCityConcern = $this->primaryCityConcern($summary);
-        $barangayScores = $this->barangayScores($request);
+        $barangayScores = $this->barangayScores($request, $reportingSelection);
 
         $barangays = Barangay::query()
             ->orderBy('name')
@@ -723,21 +724,21 @@ class AnalyticsController extends Controller
         }
     }
 
-    private function summaryData(?Request $request = null): array
+    private function summaryData(?Request $request = null, ?Builder $selection = null): array
     { 
         $institutionCount = Institution::query()
             ->where('is_active', true)
             ->whereIn('type', ['School', 'Barangay Hall'])
             ->count(); 
 
-        $aggregateQuery = InstitutionAnalytics::query()
+        $aggregateQuery = $selection ? clone $selection : InstitutionAnalytics::query()
             ->whereHas('institution', function (Builder $query): void {
                 $query
                     ->where('is_active', true)
                     ->whereIn('type', ['School', 'Barangay Hall']);
             });
 
-        if ($request) {
+        if ($request && ! $selection) {
             $this->applyIndexFilters($aggregateQuery, $request);
         }
 
@@ -815,7 +816,7 @@ class AnalyticsController extends Controller
      * scores. Institution type remains available in the detailed table/filter;
      * the score is not presented as a standards-based barangay compliance rate.
      */
-    private function barangayScores(?Request $request = null)
+    private function barangayScores(?Request $request = null, ?Builder $selection = null)
     {
         $query = Institution::query()
             ->join(
@@ -835,8 +836,10 @@ class AnalyticsController extends Controller
             ->whereNotNull('institution_analytics.gap_score');
 
         if ($request) {
-            $selected = $this->activeAnalyticsQuery();
-            $this->applyIndexFilters($selected, $request);
+            $selected = $selection ? clone $selection : $this->activeAnalyticsQuery();
+            if (! $selection) {
+                $this->applyIndexFilters($selected, $request);
+            }
             $query->whereIn('institution_analytics.id', $selected->select('institution_analytics.id'));
         }
 

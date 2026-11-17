@@ -11,6 +11,8 @@ class AccountSecurityMail extends Mailable
     {
         $titles = [
             'verification' => 'Your TALASTAS verification code',
+            'email_change_verification' => 'Verify your new TALASTAS email address',
+            'email_changed' => 'Your TALASTAS email address was changed',
             'invitation' => 'Your TALASTAS invitation',
             'recovery' => 'Your password recovery code',
             'admin_reset' => 'A System Admin requested your password reset',

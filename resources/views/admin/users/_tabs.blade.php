@@ -1,5 +1,5 @@
 @php
-    $logQuery = request()->routeIs('admin.users.logs') ? request()->except('tab') : [];
+    $logQuery = request()->routeIs('admin.users.logs') ? request()->except('tab', 'view', 'security_page') : [];
     $userTabs = [
         'accounts' => ['label' => 'Accounts', 'url' => route('admin.users.index')],
         'invitations' => ['label' => 'Invitations', 'url' => route('admin.invitations.index')],

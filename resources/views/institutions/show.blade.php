@@ -42,7 +42,7 @@
             'gemini' => 'Gemini',
             'groq' => 'Groq',
             'local' => 'Local',
-            default => 'Not available',
+            default => filled($recommendationDetails['provider'] ?? null) ? $recommendationDetails['provider'] : 'Not available',
         };
 
         $providerClasses = match ($providerKey) {
@@ -75,9 +75,9 @@
 
         $scoreSource = $recommendationDetails['score_source'] ?? null;
         $scoreSourceLabel = match ($scoreSource) {
-            'python_service' => 'Python analytics',
-            'local_deterministic_fallback' => 'Local score fallback',
-            default => 'Not available',
+            'python', 'python_service' => 'Python analytics',
+            'laravel_fallback', 'local_deterministic_fallback' => 'Local score fallback',
+            default => $scoreSource ?: 'Not available',
         };
 
         $priorities = $recommendationDetails['priorities'] ?? [];
@@ -115,7 +115,7 @@
         $inventoryItems = $institution->ictInventory
             ->whereIn('component_type', ['hardware', 'software', 'network'])->values();
 
-        $inventoryTotal = (int) $inventoryItems->sum('total_count');
+        $inventoryTotal = \App\Services\InventoryCounts::sum($inventoryItems, 'total_count');
 
         $inventoryActive = \App\Services\InventoryCounts::sum($inventoryItems, 'active_count');
 
@@ -246,7 +246,7 @@
         };
     @endphp
 
-    <div class="flex h-full min-h-0 flex-col bg-slate-50">
+    <div class="institution-details-page flex h-full min-h-0 min-w-0 flex-col bg-slate-50">
         <x-page-header :title="$institution->name" :subtitle="$institution->type . ' - ' . ($institution->barangay?->name ?? 'Barangay not available')" :back-url="route('institutions.index')" back-label="Back to institutions" :padded="true" class="border-b border-gray-200 bg-white">
 
             <x-slot:actions>
@@ -270,7 +270,7 @@
 
         <div class="min-h-0 flex-1 overflow-y-auto px-5 py-5">
             <div id="institutionSummaryMetrics"
-                class="mb-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                class="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 @php
                     $savedBoundaryType =
                         $institution->location_geojson['type']
@@ -326,8 +326,8 @@
                     <div data-analytics-metric="{{ $metric['key'] }}"
                         title="{{ data_get($analytics?->recommendations_detail, 'assessment.unavailable_reasons.'.$metric['key'], $metric['description']) }}"
                         data-metric-available="{{ $metric['value'] !== null ? '1' : '0' }}"
-                        class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl {{ $metric['icon_class'] }}">
+                        class="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl {{ $metric['icon_class'] }}">
                             <i class="fa-solid {{ $metric['icon'] }}"></i>
                         </div>
 
@@ -340,7 +340,7 @@
                                     :description="$metric['description']" />
                             </div>
 
-                            <div class="mt-1 flex min-h-7 items-baseline gap-1">
+                            <div class="mt-1 flex min-h-6 flex-wrap items-baseline gap-x-1 gap-y-1">
                                 <span data-metric-value
                                     class="text-xl font-bold text-slate-900">{{ $metric['value'] !== null ? number_format((float) $metric['value'], 1) : '' }}</span>
                                 <span data-metric-unit
@@ -349,12 +349,12 @@
                                     class="text-sm font-semibold text-slate-400 {{ $metric['value'] !== null ? 'hidden' : '' }}">
                                     Not calculated
                                 </span>
+                                @if ($metric['key'] === 'gap_score')
+                                    <span class="ml-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold {{ $riskClasses }}">{{ $riskLabel }}</span>
+                                @endif
                             </div>
                             @if ($metric['value'] === null && ($reason = data_get($analytics?->recommendations_detail, 'assessment.unavailable_reasons.'.$metric['key'])))
                                 <p class="mt-1 text-xs text-amber-700">{{ $reason }}</p>
-                            @endif
-                            @if ($metric['key'] === 'gap_score')
-                                <span class="mt-1 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-semibold {{ $riskClasses }}">{{ $riskLabel }}</span>
                             @endif
                         </div>
                     </div>
@@ -478,7 +478,7 @@
                             <h2 class="text-sm font-semibold text-gray-900">ICT Gap Analytics Report</h2>
                             <p class="mt-0.5 text-xs text-gray-500">
                                 Current scoring, analysis narrative, and policy recommendation.</p>
-                            <p class="mt-1 text-xs text-gray-500">Last report scope: {{ data_get($recommendationDetails, 'calculation_scope.label', 'Not recorded for this report') }}
+                            <p class="mt-1 text-xs text-gray-500">Generated: {{ $analytics?->analysis_date?->format('M d, Y g:i A') ?? 'Not available' }}
                             </p>
                         </div>
                     </div>
@@ -568,9 +568,9 @@
                 @if ($analytics)
                     <div class="p-5">
                         {{-- LGU Decision Support --}}
-                        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
                             {{-- Column 1: Planning Assessment --}}
-                            <article class="institution-planning-insight flex h-full flex-col rounded-xl border border-gray-200 bg-white p-5">
+                            <article class="institution-planning-insight institution-report-content flex min-w-0 flex-col rounded-xl border border-gray-200 bg-white p-5">
                                 <div class="mb-3 flex items-start justify-between gap-3">
                                     <div class="flex items-center gap-2">
                                         <span
@@ -607,13 +607,11 @@
                                     </div>
                                 @endif
 
-                                <p class="whitespace-pre-line text-sm leading-6 text-gray-600">
-                                    {{ $analytics->infrastructure_narrative ?: 'No planning assessment is available yet.' }}
-                                </p>
+                                @include('institutions._planning-assessment')
                             </article>
 
                             {{-- Column 2: Recommended First Action --}}
-                            <article class="institution-planning-insight flex h-full flex-col rounded-xl border border-slate-200 bg-slate-50 p-5">
+                            <article class="institution-planning-insight institution-report-content flex min-w-0 flex-col rounded-xl border border-slate-200 bg-slate-50 p-5">
                                 <div class="mb-3 flex items-center gap-2">
                                     <span
                                         class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white text-red-600 shadow-sm ring-1 ring-slate-200">
@@ -688,7 +686,7 @@
                                             };
                                         @endphp
 
-                                        <article class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                                        <article class="institution-report-content min-w-0 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                                             <div class="mb-3 flex items-start justify-between gap-3">
                                                 <span
                                                     class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white">
@@ -718,41 +716,35 @@
                             </div>
                         @endif
 
-                        <div
-                            class="mt-5 flex flex-col gap-3 border-t border-gray-200 pt-4 text-xs text-gray-500 sm:flex-row sm:flex-wrap sm:items-center">
-                            <span
-                                class="inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium {{ $providerClasses }}"
-                                title="{{ $analyticsModel ?: 'Model not available' }}">
-                                <i class="fa-solid {{ $providerIcon }}"></i>
-                                {{ $providerLabel }}
-                            </span>
-
-                            <span class="inline-flex items-center gap-1.5">
-                                <i class="fa-solid fa-calculator text-gray-400"></i>
-                                {{ $scoreSourceLabel }}
-                            </span>
-
-                            @if ($analyticsModel)
-                                <span class="inline-flex items-center gap-1.5">
-                                    <i class="fa-solid fa-cube text-gray-400"></i>
-                                    {{ $analyticsModel }}
-                                </span>
-                            @endif
-
-                            @if ($decisionSupportVersion)
-                                <span class="inline-flex items-center gap-1.5">
-                                    <i class="fa-solid fa-layer-group text-gray-400"></i>
-                                    Decision Support v{{ $decisionSupportVersion }}
-                                </span>
-                            @endif
-
-                            <span class="inline-flex items-center gap-1.5">
-                                <i class="fa-regular fa-calendar text-gray-400"></i>
-                                {{ $analytics->analysis_date
-                                    ? $analytics->analysis_date->format('M d, Y g:i A')
-                                    : 'Recalculation required' }}
-                            </span>
-                        </div>
+                        <details class="institution-report-details mt-5 border-t border-gray-200 pt-4 text-xs text-gray-600">
+                            <summary class="w-fit cursor-pointer rounded font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-700">Report Details</summary>
+                            <dl class="mt-3 grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+                                <div>
+                                    <dt class="font-semibold text-gray-700">AI provider</dt>
+                                    <dd class="mt-1"><span class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 {{ $providerClasses }}"><i class="fa-solid {{ $providerIcon }}" aria-hidden="true"></i>{{ $providerLabel }}</span></dd>
+                                </div>
+                                <div>
+                                    <dt class="font-semibold text-gray-700">AI model</dt>
+                                    <dd class="mt-1">{{ $analyticsModel ?: 'Not available' }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="font-semibold text-gray-700">Decision-support version</dt>
+                                    <dd class="mt-1">{{ $decisionSupportVersion ?: 'Not available' }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="font-semibold text-gray-700">Score source</dt>
+                                    <dd class="mt-1">{{ $scoreSourceLabel }}@if ($scoreSource) ({{ $scoreSource }})@endif</dd>
+                                </div>
+                                <div>
+                                    <dt class="font-semibold text-gray-700">Report scope</dt>
+                                    <dd class="mt-1">{{ data_get($recommendationDetails, 'calculation_scope.label') ?: 'Not recorded for this report' }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="font-semibold text-gray-700">Generation date</dt>
+                                    <dd class="mt-1">{{ $analytics->analysis_date?->format('M d, Y g:i A') ?? 'Not available' }}</dd>
+                                </div>
+                            </dl>
+                        </details>
                     </div>
                 @else
                     <div class="flex flex-col items-center justify-center px-5 py-14 text-center">
@@ -867,13 +859,19 @@
                                     <i class="fa-solid {{ $inventoryMetric['icon'] }} text-sm"></i>
                                 </span>
 
-                                <span class="text-2xl font-bold tabular-nums {{ $inventoryMetric['value_class'] }}">
+                                <span class="text-2xl font-bold tabular-nums {{ $inventoryMetric['value_class'] }}"
+                                    aria-label="{{ $inventoryMetric['label'] }}: {{ $inventoryMetric['value'] === null ? 'Not recorded' : number_format($inventoryMetric['value']) }}">
                                     {{ $inventoryMetric['value'] === null ? '—' : number_format($inventoryMetric['value']) }}
                                 </span>
                             </div>
 
-                            <p class="mt-3 text-xs font-semibold text-slate-700">
+                            <p class="mt-3 flex items-center gap-1 text-xs font-semibold text-slate-700">
                                 {{ $inventoryMetric['label'] }}
+                                @if ($inventoryMetric['label'] === 'Active Units')
+                                    <x-metric-info title="Active Units"
+                                        formula="Sum of recorded Active counts across inventory rows."
+                                        description="Active means deployed or in service and may include defective units. Missing counts are not treated as zero." />
+                                @endif
                             </p>
                             <p class="mt-0.5 text-[11px] leading-4 text-slate-400">
                                 {{ $inventoryMetric['caption'] }}
@@ -884,7 +882,7 @@
 
                 @if ($inventoryItems->isNotEmpty())
                     <div class="w-full overflow-x-auto">
-                        <table class="w-full min-w-[900px] table-auto text-sm">
+                        <table class="institution-inventory-table w-full min-w-[900px] table-auto text-sm">
                             <thead>
                                 <tr class="border-b border-slate-200 bg-white text-left">
                                     <th class="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -946,7 +944,14 @@
 
                                         <td class="px-4 py-3 text-xs text-slate-600">
                                             {{ $categoryLabel }}
-                                            <p @if ($item->availability_status === 'Availability Recorded') hidden @endif class="mt-1 text-xs text-amber-700">{{ $item->availability_status === 'Availability Recorded' ? '' : $item->availability_status }}</p>
+                                            @if ($item->availability_status !== 'Availability Recorded')
+                                                <span class="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-800"
+                                                    title="{{ $item->availability_status }}: one or more required inventory counts are missing or invalid.">
+                                                    <span class="sr-only">Availability: </span>
+                                                    {{ $item->availability_status === 'Availability Partially Recorded' ? 'Partially recorded' : 'Not recorded' }}
+                                                    <span class="sr-only">; one or more required inventory counts are missing or invalid.</span>
+                                                </span>
+                                            @endif
                                         </td>
 
                                         @foreach ([

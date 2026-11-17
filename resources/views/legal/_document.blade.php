@@ -6,9 +6,21 @@
     $institutionallyPublished = $document['institutionally_approved'] ?? false;
     $titleTag = ($embedded ?? false) ? 'h2' : 'h1';
     $sectionTag = ($embedded ?? false) ? 'h3' : 'h2';
+    $refineTerms = ($document['kind'] ?? null) === 'terms';
 @endphp
 <div class="grid grid-cols-1 items-start gap-8 lg:grid-cols-12" data-policy-document>
-<aside class="legal-navigation lg:col-span-3 lg:sticky lg:top-8">
+@if ($refineTerms)
+    <div class="terms-jump lg:hidden">
+        <label for="terms-section-jump" class="mb-2 block text-sm font-semibold">Jump to section</label>
+        <select id="terms-section-jump" data-policy-jump class="w-full min-w-0 rounded-lg border border-gray-300 bg-white p-3 text-sm">
+            <option value="">Choose a section</option>
+            @foreach ($policy['sections'] as $section)<option value="section-{{ $loop->iteration }}">{{ $section['heading'] }}</option>@endforeach
+            <option value="policy-references">References for review</option>
+        </select>
+        <noscript><style>.terms-refined .legal-document-navigation { display: block !important; } .terms-jump { display: none; }</style></noscript>
+    </div>
+@endif
+<aside class="legal-navigation legal-document-navigation lg:col-span-3 lg:sticky lg:top-8">
     <nav aria-label="Document contents" class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm lg:max-h-[calc(100dvh-4rem)] lg:overflow-y-auto">
         <p class="mb-3 text-xs font-bold uppercase tracking-widest text-gray-600">On this page</p>
         <ul class="space-y-2 text-sm">
@@ -21,7 +33,10 @@
 </aside>
 <article class="legal-copy lg:col-span-9 rounded-xl border border-gray-200 bg-white px-8 py-8 shadow-sm lg:px-12" aria-labelledby="policy-title">
     <div>
-    <{{ $titleTag }} id="policy-title" class="text-3xl font-extrabold tracking-tight sm:text-4xl">{{ $policy['title'] }}</{{ $titleTag }}>
+    <{{ $titleTag }} id="policy-title" @if ($refineTerms) tabindex="-1" @endif class="text-3xl font-extrabold tracking-tight sm:text-4xl">{{ $policy['title'] }}</{{ $titleTag }}>
+    @if ($refineTerms || ($document['kind'] ?? null) === 'privacy')
+        @include('legal._terms-status')
+    @else
     <div class="mt-4 mb-6 flex flex-wrap items-center gap-3 text-sm">
         <span class="inline-flex rounded-full border border-gray-300 bg-gray-100 px-3 py-1 font-semibold text-gray-900">{{ $developerPublication ? 'Source version' : 'Version' }} {{ $policy['version'] }}</span>
         <span class="text-gray-600">{{ $developerPublication ? 'Application use from:' : 'Effective date:' }} {{ $developerPublication ? $acknowledgementRelease['effective_at'] : ($policy['effective_at'] ?? 'Pending approval') }}</span>
@@ -40,6 +55,7 @@
             <strong>Draft pending review.</strong> Not approved or effective. Account acknowledgement does not constitute institutional approval.
             Institutional details marked for confirmation must be resolved before publication.
         </div>
+    @endif
     @endif
     <p class="text-sm text-gray-600">{{ $policy['change_summary'] }}</p>
     @foreach ($policy['sections'] as $section)
@@ -62,6 +78,7 @@
         <summary class="cursor-pointer">Document integrity</summary>
         <p class="break-all">SHA-256: {{ $document['hash'] }}</p>
     </details>
+    @if ($refineTerms)<a href="#policy-title" class="legal-back-top mt-4 inline-flex min-h-11 items-center text-sm">Back to top</a>@endif
 </div>
 </article>
 </div>

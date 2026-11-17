@@ -48,37 +48,44 @@
 
         $topBarangays = collect($barangayScores ?? [])
             ->take(5);
+        $barangayChartMaximum = max(1, (float) $topBarangays->max('gap_score'));
 
         $hasFilters =
             request()->filled('q')
             || request()->filled('barangay')
             || request()->filled('type')
-            || request()->filled('risk');
+            || request()->filled('risk')
+            || request()->filled('date_from')
+            || request()->filled('date_to');
     @endphp
 
     <div class="analytics-dashboard min-h-full pb-6">
         <div class="dashboard-content">
 
-            <form method="GET" action="{{ route('analytics') }}" class="reporting-selection dashboard-card">
+            <form method="GET" action="{{ route('analytics') }}" data-analytics-selection class="reporting-selection dashboard-card">
                 <div class="reporting-heading"><h2>Reporting Period and Selection</h2><div class="reporting-exports">@if(auth()->user()->isAdmin() || auth()->user()->isViewer())
-<a href="{{ route('analytics.report', request()->except('page')) }}" class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white"><i class="fa-solid fa-file-pdf"></i> LGU PDF Report</a>
-<a href="{{ route('analytics.csv', request()->except('page')) }}"
+<a data-no-global-loader href="{{ route('analytics.report', request()->except('page')) }}" class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white"><i class="fa-solid fa-file-pdf"></i> LGU PDF Report</a>
+<a data-no-global-loader href="{{ route('analytics.csv', request()->except('page')) }}"
                         class="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700">
                         <i class="fa-solid fa-file-csv"></i>
                         Export CSV
                     </a>
 @endif</div></div>
                 <div class="reporting-fields">
-                    <label class="text-xs text-gray-600">From<input type="date" name="date_from" value="{{ request('date_from') }}" class="mt-1 block rounded-lg border border-gray-300 p-2 text-sm"></label>
-                    <label class="text-xs text-gray-600">Through<input type="date" name="date_to" value="{{ request('date_to') }}" class="mt-1 block rounded-lg border border-gray-300 p-2 text-sm"></label>
+                    <label class="text-xs text-gray-600">From<input type="date" name="date_from" value="{{ old('date_from', request('date_from')) }}" aria-describedby="analyticsDateRangeError analyticsDateFromError" class="mt-1 block rounded-lg border border-gray-300 p-2 text-sm"></label>
+                    <label class="text-xs text-gray-600">Through<input type="date" name="date_to" value="{{ old('date_to', request('date_to')) }}" aria-describedby="analyticsDateRangeError analyticsDateToError" class="mt-1 block rounded-lg border border-gray-300 p-2 text-sm"></label>
                         <label class="text-xs text-gray-600">Barangay<select aria-label="Filter by barangay" name="barangay" class="mt-1 block rounded-lg border border-gray-300 p-2 text-sm"><option value="">All barangays</option>@foreach($barangays as $barangay)<option value="{{ $barangay->id }}" @selected((string)request('barangay') === (string)$barangay->id)>{{ $barangay->name }}</option>@endforeach</select></label>
                         <label class="text-xs text-gray-600">Institution Type<select aria-label="Filter by institution type" name="type" class="mt-1 block rounded-lg border border-gray-300 p-2 text-sm"><option value="">All types</option>@foreach(['School', 'Barangay Hall'] as $type)<option @selected(request('type') === $type)>{{ $type }}</option>@endforeach</select></label>
-                        @foreach(['q', 'risk'] as $filter)<input type="hidden" name="{{ $filter }}" value="{{ request($filter) }}">@endforeach
+                        @foreach(['q', 'risk', 'sort', 'order'] as $filter)<input type="hidden" name="{{ $filter }}" value="{{ request($filter) }}">@endforeach
                     <button class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white">Apply Selection</button>
                     <a href="{{ route('analytics') }}" class="px-2 py-2 text-sm text-gray-600">Reset</a>
                 </div>
-                @error('date_from')<p class="mt-2 text-sm text-red-700">{{ $message }}</p>@enderror
-                @error('date_to')<p class="mt-2 text-sm text-red-700">{{ $message }}</p>@enderror
+                <p id="analyticsDateRangeError" data-analytics-date-error hidden class="mt-2 text-sm text-red-700" role="alert">From date must be on or before Through date.</p>
+                <p id="analyticsDateFromError" class="mt-2 text-sm text-red-700" role="alert">@error('date_from'){{ $message }}@enderror</p>
+                <p id="analyticsDateToError" class="mt-2 text-sm text-red-700" role="alert">@error('date_to'){{ $message }}@enderror</p>
+                @if (collect(request()->only('date_from', 'date_to', 'barangay', 'type', 'q', 'risk'))->contains(fn ($value) => filled($value)))
+                    <p class="mt-2 text-xs text-gray-600">Reporting selection applied. Metrics, charts, recommendations, priority rows, and exports use this selection.</p>
+                @endif
             </form>
 
             {{-- Finalized city-wide calculation metrics --}}
@@ -126,19 +133,40 @@
                 <div class="planning-banner-icon" aria-hidden="true"><i class="fa-solid fa-lightbulb"></i></div>
                 <div class="planning-banner-body">
                     <h2>AI Prescription &amp; Planning Priorities</h2>
-                    <p class="mt-2 text-sm">{{ $prescription['summary'] }}</p>
+                    <h3 class="mt-3 text-sm font-semibold text-white">Assessment Overview</h3>
+                    <p class="mt-1 text-sm font-semibold">Assessment Completeness: {{ $prescription['complete_count'] }} of {{ $prescription['record_count'] }} selected analytics records</p>
+                    <p class="mt-1 text-sm">Mean Overall ICT Gap: {{ $prescription['average_gap'] === null ? 'Not calculated' : number_format($prescription['average_gap'], 1).'%' }}.
+                        @if ($selectedConcern = collect($prescription['dimensions'])->first())
+                            Main driver: {{ $selectedConcern['label'] }} ({{ number_format($selectedConcern['score'], 1) }}%).
+                        @endif
+                    </p>
+                    @if ($prescription['complete_count'] < $prescription['record_count'])
+                        <p class="mt-1 text-xs">Records without an Overall ICT Gap score are excluded from its mean; they are not zero-gap assessments.</p>
+                    @elseif ($prescription['record_count'] === 0)
+                        <p class="mt-1 text-xs">No analytics records match this selection.</p>
+                    @endif
+                    <h3 class="mt-3 text-sm font-semibold text-white">Key Planning Recommendation</h3>
                     <p class="mt-2 text-sm">{{ $prescription['next_step'] }}</p>
                     @if(count($prescription['actions']))
-                        <h3 class="mt-3 text-sm font-semibold text-white">Priority actions for the selected results</h3>
+                        <h3 class="mt-3 text-sm font-semibold text-white">Top Recommended Actions</h3>
                         <ol class="planning-preview text-sm" style="list-style-type: decimal;">
                             @foreach(collect($prescription['actions'])->take(3) as $action)
-                                <li>{{ $action['action'] }}<small>{{ $action['institution'] }} &middot; {{ $action['source'] }} &middot; {{ str_replace('_', ' ', $action['urgency']) }}</small></li>
+                                <li>{{ Str::limit($action['action'], 160) }}<small>{{ $action['institution'] }} &middot; {{ $action['source'] }} &middot; {{ str_replace('_', ' ', $action['urgency']) }}</small></li>
                             @endforeach
                         </ol>
                     @else
                         <p class="mt-2 text-xs">No stored priority actions are available for this selection. Complete and validate the records, then run institution analytics.</p>
                     @endif
-                    <p class="mt-2 text-xs">Overall assessment uses the selected calculated results. Priority actions come from stored institution recommendations, ordered by overall ICT gap; source labels identify AI recommendations and fallback guidance.</p>
+                    <details class="analysis-planning-details mt-3 text-xs">
+                        <summary class="cursor-pointer font-semibold">Assessment context</summary>
+                        <p class="mt-2">{{ $prescription['summary'] }}</p>
+                        <p class="mt-2">Overall assessment uses the selected calculated results. Priority actions come from stored institution recommendations, ordered by overall ICT gap; source labels identify AI recommendations and fallback guidance.</p>
+                        @foreach (collect($prescription['actions'])->take(3) as $action)
+                            @if (Str::length($action['action']) > 160)
+                                <p class="mt-2"><strong>{{ $action['institution'] }}</strong>: {{ $action['action'] }}</p>
+                            @endif
+                        @endforeach
+                    </details>
                 </div>
             </section>
             <div class="analytics-chart-grid">
@@ -257,16 +285,19 @@
                             </p>
                         </div>
                     @else
-                        <div class="barangay-chart" role="img" aria-label="Highest calculated barangay mean ICT gap scores">
+                        <div class="barangay-chart" role="group" aria-label="Top five mean available institution ICT Gap scores by barangay">
                             @foreach ($topBarangays as $index => $barangay)
+                                @php
+                                    $barHeight = min(100, max(0, $barangay['gap_score'])) / $barangayChartMaximum * 100;
+                                @endphp
                                 <a class="barangay-chart-column" href="{{ route('analytics', array_merge(request()->except('page'), ['barangay' => $barangay['id']])) }}"
                                     title="{{ $barangay['name'] }}: {{ number_format($barangay['gap_score'], 1) }}% mean ICT gap; {{ $barangay['institution_count'] }} analyzed institutions">
-                                    <div class="barangay-chart-track"><strong style="bottom: calc({{ min(100, max(0, $barangay['gap_score'])) }}% + 0.375rem)">{{ number_format($barangay['gap_score'], 1) }}%</strong><span class="chart-color-{{ $index }}" style="height: {{ min(100, max(0, $barangay['gap_score'])) }}%"></span></div>
+                                    <div class="barangay-chart-track"><strong style="bottom: calc({{ $barHeight }}% + 0.375rem)">{{ number_format($barangay['gap_score'], 1) }}%</strong><span class="analysis-barangay-bar" style="height: {{ $barHeight }}%"></span></div>
                                     <span>{{ $barangay['name'] }}</span>
                                 </a>
                             @endforeach
                         </div>
-                        <p class="mt-3 text-xs text-gray-500">Mean of available institution scores in this selection; colors distinguish barangays and do not indicate severity.</p>
+                        <p class="mt-3 text-xs text-gray-500">Means use available institution scores in this selection, not complete barangay-wide assessments. Bar heights are relative to the highest displayed mean; color does not indicate severity.</p>
 
                         @if ($topBarangays->count() >= 5)
                             <div class="mt-4 text-center">
@@ -301,6 +332,7 @@
                             class="w-full xl:w-auto">
                             <input type="hidden" name="date_from" value="{{ request('date_from') }}">
                             <input type="hidden" name="date_to" value="{{ request('date_to') }}">
+                            @foreach (['sort', 'order'] as $filter)<input type="hidden" name="{{ $filter }}" value="{{ request($filter) }}">@endforeach
                             <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
                                 <div class="relative lg:col-span-1">
                                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400"></i>
@@ -413,7 +445,7 @@
                             <tr>
                                 <th scope="col" class="px-3 py-3 text-left text-xs text-gray-500">#</th>
                                 <th class="group px-5 py-3 text-left">
-                                    <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except('sort', 'order'), ['sort' => 'name', 'order' => request('sort') === 'name' && request('order') === 'asc' ? 'desc' : 'asc'])) }}"
+                                    <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except('sort', 'order', 'page'), ['sort' => 'name', 'order' => request('sort') === 'name' && request('order') === 'asc' ? 'desc' : 'asc'])) }}"
                                         class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500 transition hover:text-gray-700">
                                         Institution
                                         @if(request('sort') === 'name')
@@ -429,7 +461,7 @@
                                 </th>
 
                                 <th class="group px-4 py-3 text-left">
-                                    <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except('sort', 'order'), ['sort' => 'gap_score', 'order' => request('sort') === 'gap_score' && request('order') === 'desc' ? 'asc' : 'desc'])) }}"
+                                    <a href="{{ url()->current() }}?{{ http_build_query(array_merge(request()->except('sort', 'order', 'page'), ['sort' => 'gap_score', 'order' => request('sort') === 'gap_score' && request('order') === 'desc' ? 'asc' : 'desc'])) }}"
                                         class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500 transition hover:text-gray-700">
                                         Overall ICT Gap
                                         @if(request('sort') === 'gap_score' || !request('sort'))
@@ -542,7 +574,17 @@
                                 @endphp
 
                                 <tr class="align-top transition hover:bg-gray-50">
-                                    <td class="px-3 py-4 text-xs text-gray-500">{{ ($analytics->firstItem() ?? 1) + $loop->index }}</td>
+                                    <td class="px-3 py-4 text-xs text-gray-500">
+                                        <div class="flex items-center gap-1">
+                                            <button type="button" data-analysis-row-toggle aria-expanded="false"
+                                                aria-controls="analysis-details-{{ $analytic->id }}"
+                                                aria-label="Assessment details for {{ $institution?->name ?? 'unavailable institution' }}"
+                                                class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded text-gray-600 hover:bg-gray-100">
+                                                <i class="fa-solid fa-chevron-right text-xs" aria-hidden="true"></i>
+                                            </button>
+                                            {{ ($analytics->firstItem() ?? 1) + $loop->index }}
+                                        </div>
+                                    </td>
                                     <td class="px-5 py-4">
                                         @if ($institution)
                                             <a href="{{ route('institutions.show', $institution) }}"
@@ -565,7 +607,7 @@
 
                                     <td class="px-4 py-4">
                                         @if($institution?->barangay)
-                                            <a href="{{ url()->current() }}?barangay={{ $institution->barangay->id }}"
+                                            <a href="{{ route('analytics', array_merge(request()->except('page'), ['barangay' => $institution->barangay->id])) }}"
                                                 class="text-sm font-medium text-gray-600 transition hover:text-red-600 hover:underline"
                                                 title="Filter by {{ $institution->barangay->name }}">
                                                 {{ $institution->barangay->name }}
@@ -584,10 +626,6 @@
                                             <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold {{ $riskBadge }}">
                                                 {{ $riskLabel }}
                                             </span>
-                                            @include('ict-inventory._connectivity-assessment', ['assessment' => $recommendationDetails['connectivity_assessment'] ?? null, 'compact' => true])
-                                            @if ($institution)
-                                                <a href="{{ route('institutions.show', ['institution' => $institution->id, 'tab' => 'connectivity']) }}#institutionInventory" class="text-xs font-semibold text-red-700 hover:underline">Internet Connectivity</a>
-                                            @endif
                                         </div>
                                     </td>
 
@@ -622,7 +660,7 @@
                                                     'medium_term' => 'text-blue-700',
                                                     default => 'text-gray-800',
                                                 } }}" title="{{ $firstAction }}">
-                                                    {{ Str::limit($firstAction, 150) }}
+                                                    {{ Str::limit($firstAction, 90) }}
                                                 </p>
                                             </div>
                                         @else
@@ -630,6 +668,11 @@
                                                 No recommendation available.
                                             </span>
                                         @endif
+                                    </td>
+                                </tr>
+                                <tr id="analysis-details-{{ $analytic->id }}" class="analysis-priority-details" hidden>
+                                    <td colspan="6">
+                                        @include('analytics._priority-details')
                                     </td>
                                 </tr>
                             @empty
